@@ -74,7 +74,7 @@
         // Client side event listener.  It takes new messages from the server and appends it to HTML.
         socket.on( 'receiveMessage', message => {
             const li = $( '<li></li>' );
-            li.text( `${ message.from }: ${ message.text }` );
+            li.text( message );
             $( '#messages' ).append( li );
         } );
     } );
