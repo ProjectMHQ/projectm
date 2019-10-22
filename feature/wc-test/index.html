@@ -12,10 +12,11 @@
 
         body {
             font: 13px Helvetica, Arial;
+            background-color: #36393F;
         }
 
         form {
-            background: #000;
+            background-color: #36393F;
             padding: 3px;
             position: fixed;
             bottom: 0;
@@ -36,10 +37,16 @@
             padding: 10px;
         }
 
+        input[type=text] {
+            background-color: #36393F;
+            color: white;
+        }
+
         #messages {
             list-style-type: none;
             margin: 0;
             padding: 0;
+            colo
         }
 
         #messages li {
@@ -47,7 +54,10 @@
         }
 
         #messages li:nth-child(odd) {
-            background: #eee;
+            background: #36393F;
+            font-family: monospace;
+            font-size: 12pt;
+            color: #fff;
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"
