@@ -1,3 +1,4 @@
+from core.src.websocket.messages import WebsocketMessagesFactory
 from etc import settings
 from core.src import database
 from core.src.repositories.user_repository import UserRepositoryImpl
@@ -10,3 +11,4 @@ encryption_service = AESCipherServiceImpl(
 )
 user_repository = UserRepositoryImpl(database.db)
 user_service = AuthenticationServiceImpl(encryption_service, user_repository)
+ws_messages_factory = WebsocketMessagesFactory()
