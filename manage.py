@@ -87,10 +87,17 @@ class Client:
         self._clean_localstorage()
         return res.content
 
-    def graphql(self, query, variables):
-        res = requests.post(
-            self.url + '/graphql',
-            data=json.dumps({'query': query, 'variables': variables}),
+    def get_details(self):
+        res = requests.get(
+            self.url + '/user',
+            cookies=self._get_cookie_from_token()
+        )
+        res.raise_for_status()
+        return res.json()
+
+    def get_characters(self):
+        res = requests.get(
+            self.url + '/user/characters',
             cookies=self._get_cookie_from_token()
         )
         res.raise_for_status()
@@ -151,6 +158,31 @@ def logout():
         return
     response = client.logout()
     click.echo('Logout response: %s' % response)
+
+
+@user.command()
+def details():
+    client = get_client()
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+    response = client.get_details()
+    click.echo('Response:\n%s' % json.dumps(response, indent=2))
+
+
+@user.group()
+def characters():
+    pass
+
+
+@characters.command()
+def get_characters():
+    client = get_client()
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+    response = client.get_characters()
+    click.echo('Response:\n%s' % json.dumps(response, indent=2))
 
 
 if __name__ == '__main__':

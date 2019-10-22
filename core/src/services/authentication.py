@@ -31,13 +31,13 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
             email: typing.AnyStr,
             password: typing.AnyStr
     ):
-        user_model = self.user_repository.create_user(email, password)
-        return user_model.as_dict()
+        user = self.user_repository.create_user(email, password)
+        return user.as_dict()
 
     @atomic
     def update_user(self, user: models.User, data: typing.Dict):
-        user_model = self.user_repository.update_user(user, data=data)
-        return user_model.as_dict()
+        user = self.user_repository.update_user(user, data=data)
+        return user.as_dict()
 
     def login(self, email: typing.AnyStr, password: typing.AnyStr) -> typing.Dict:
         user = self.user_repository.get_user_by_field('email', email)
@@ -70,6 +70,6 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         now = int(time.time())
         if expires_at < now:
             raise exceptions.EmailConfirmationTokenExpiredException
-        user_model = self.user_repository.get_user_by_field('email', data['email'])
-        user_model = user_model.mark_email_as_confirmed().set_user_as_active()
-        return self.user_repository.update_user(user_model)
+        user = self.user_repository.get_user_by_field('email', data['email'])
+        user = user.mark_email_as_confirmed().set_user_as_active()
+        return self.user_repository.update_user(user)
