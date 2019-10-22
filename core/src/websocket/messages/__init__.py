@@ -21,5 +21,13 @@ class WebsocketMessagesFactory():
                                                     ##################
 
 
+
+
+
                                                                       
 """
+
+    def get_login_message(self):
+        return \
+"                                                    Waiting for login... "
+
