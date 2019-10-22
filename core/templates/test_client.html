@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Socket.IO chat</title>
+    <title>Project M Test Client</title>
     <style>
         * {
             margin: 0;
@@ -21,6 +21,7 @@
             position: fixed;
             bottom: 0;
             width: 100%;
+            border: 1px solid #ffffff;
         }
 
         form input {
@@ -67,16 +68,14 @@
 <script>
     $( document ).ready( function () {
         var socket = io( 'localhost:60160' );
-
         $( '#message-form' ).on( 'submit', function ( event ) {
             event.preventDefault();
+            console.log('=> [main]: ' + $( '#message' ).val())
             socket.emit(
-                'sendMessage', {
-                    from: 'User',
-                    text: $( '#message' ).val()
-                },
+                'main',
+                $( '#message' ).val(),
                 () => {
-                    //callback function here
+                    $( '#message' ).val('')
                 }
             );
         } );
@@ -94,7 +93,6 @@
     <ol id="messages"></ol>
     <form action="" id="message-form">
         <input type="text" name="message" id="message" placeholder="enter message">
-        <button>Send</button>
     </form>
 </body>
 
