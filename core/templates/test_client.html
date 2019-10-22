@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Project M Test Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Courier New", Courier, monospace;
+            background-color: #36393F;
+        }
+
+        form {
+            background-color: #36393F;
+            padding: 3px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            border: 1px solid #ffffff;
+        }
+
+        form input {
+            border: 0;
+            padding: 10px;
+            width: 90%;
+            margin-right: .5%;
+        }
+
+        form button {
+            width: 9%;
+            background: rgb(130, 224, 255);
+            border: none;
+            padding: 10px;
+        }
+
+        input[type=text] {
+            background-color: #36393F;
+            color: white;
+        }
+
+        #messages {
+            padding: 10px;
+        }
+
+        pre {
+            padding: px 10px;
+        }
+
+        #messages p:nth-child(odd) {
+            background: #36393F;
+            font-family: monospace;
+            font-size: 12pt;
+            color: #fff;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+</head>
+<script>
+    $( document ).ready( function () {
+        var socket = io( 'localhost:60160' );
+        $( '#message-form' ).on( 'submit', function ( event ) {
+            event.preventDefault();
+            console.log('=> [main]: ' + $( '#message' ).val())
+            socket.emit(
+                'main',
+                $( '#message' ).val(),
+                () => {
+                    $( '#message' ).val('')
+                }
+            );
+        } );
+
+        // Client side event listener.  It takes new messages from the server and appends it to HTML.
+        socket.on( 'message', message => {
+           const pre = $( '<pre></pre>' );
+           $( '#messages' ).append( pre.text(message.data));
+        } );
+    } );
+</script>
+
+<body>
+    <ul id="messages"></ul>
+    <form action="" id="message-form">
+        <input type="text" name="message" id="message" placeholder="enter message">
+    </form>
+</body>
+
+</html>
