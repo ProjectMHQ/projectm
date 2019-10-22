@@ -26,7 +26,7 @@ class UserRepositoryImpl:
             return UserStatus.ACTIVE.value
 
     @staticmethod
-    def _get_random_uuid():
+    def _get_random_uuid() -> str:
         return str(uuid.uuid4())
 
     @property
@@ -40,7 +40,7 @@ class UserRepositoryImpl:
         return self.session.query(models.User).filter(getattr(models.User, field_name) == field_value)
 
     @atomic
-    def create_user(self, email: str, password: str):
+    def create_user(self, email: str, password: str) -> models.User:
         user = models.User(
             email=email,
             user_id=self._get_random_uuid(),
@@ -53,7 +53,7 @@ class UserRepositoryImpl:
         return user
 
     @atomic
-    def update_user(self, user: models.User, data: typing.Dict = None):
+    def update_user(self, user: models.User, data: typing.Dict = None) -> models.User:
         if data:
             for k, v in data.items():
                 if v is not None and getattr(user, k, None) != v:
