@@ -28,6 +28,7 @@ CLIENT (API test)
 
 ```bash
 
+$ cd projectm
 $ . venv/bin/activate
 $ python -m manage --help 
 
