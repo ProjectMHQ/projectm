@@ -44,6 +44,13 @@ class UserDOImpl(UserDOAbstract):
         from core.src.builder import user_repository
         return user_repository
 
+    @staticmethod
+    def _get_characters_repository(repository):
+        if repository:
+            return repository
+        from core.src.builder import character_repository
+        return character_repository
+
     @classmethod
     def get_by_user_id(cls, user_id: str, repository=None):
         repository = cls._get_repository(repository)
@@ -158,3 +165,7 @@ class UserDOImpl(UserDOAbstract):
     @property
     def email_confirmed_at(self) -> typing.Optional[int]:
         return self._meta.get('email_confirmed_at')
+
+    def get_characters(self, repository=None):
+        repository = self._get_characters_repository(repository)
+        characters = repository.get_multiple_characters_by_field('user_do', self)

@@ -21,9 +21,17 @@ class CharacterRepositoryImpl:
         return self._session_factory()
 
     def get_character_by_field(self, field_name: str, field_value: typing.Any) -> models.Character:
+        if field_name == 'user_do':
+            field_name = 'user'
+            field_value = self.session.query(models.User).filter('user_id' == field_value.user_id).one()
+
         return self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value).one()
 
-    def get_multiple_characters_by_field(self, field_name: str, field_value: typing.Any) -> typing.List[models.Character]:
+    def get_multiple_characters_by_field(self, field_name: str, field_value: typing.Any) \
+            -> typing.List[models.Character]:
+        if field_name == 'user_do':
+            field_name = 'user'
+            field_value = self.session.query(models.User).filter(models.User.user_id == field_value.user_id).one()
         return self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value)
 
     @atomic

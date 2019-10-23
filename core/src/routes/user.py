@@ -8,7 +8,7 @@ from core.src.builder import user_service, user_repository, character_repository
 from core.src.database import db_close
 from core.src.utils.tools import handle_exception
 
-bp = flask.Blueprint('auth', __name__)
+bp = flask.Blueprint('profile', __name__)
 
 
 @db_close
@@ -30,7 +30,7 @@ def get_characters():
     user = user_repository.get_user_by_field(
         'user_id', request.user['user_id']
     )
-    characters = character_repository.get_multiple_characters_by_field('user', user)
+    characters = user.get_characters()
     return flask.jsonify(
         {
             "data": [c.as_dict() for c in characters]
@@ -39,9 +39,9 @@ def get_characters():
 
 
 bp.add_url_rule(
-    '/user', view_func=get_details, methods=['GET']
+    '/', view_func=get_details, methods=['GET']
 )
 bp.add_url_rule(
-    '/user/characters', view_func=get_characters, methods=['GET']
+    '/characters', view_func=get_characters, methods=['GET']
 )
 

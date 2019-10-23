@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import typing
 from getpass import getpass
 from json import JSONDecodeError
 from typing import Dict
@@ -74,12 +75,12 @@ class Client:
         res.raise_for_status()
         return res.content
 
-    def login(self, payload: Dict):
+    def login(self, payload: Dict) -> typing.Tuple[str, str]:
         res = requests.post(self.url + '/auth/login', data=json.dumps(payload))
         res.raise_for_status()
         self._user_id = res.json()['user_id']
         self._store_credentials(self._parse_token_from_cookies(res.cookies))
-        return self._user_id
+        return self._user_id, res.cookies
 
     def logout(self):
         res = requests.post(self.url + '/auth/logout', cookies=self._get_cookie_from_token())
@@ -147,7 +148,7 @@ def login():
         return
     payload = _get_login_data()
     response = client.login(payload)
-    click.echo('Login response: %s' % response)
+    click.echo('Login response: %s - Cookies: %s' % response)
 
 
 @user.command()
@@ -176,7 +177,7 @@ def characters():
 
 
 @characters.command()
-def get_characters():
+def get():
     client = get_client()
     if not client.is_logged_in:
         click.echo('Not logged in')
