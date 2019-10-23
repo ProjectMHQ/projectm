@@ -67,29 +67,101 @@
         var socket = io( 'localhost:60160' );
         $( '#message-form' ).on( 'submit', function ( event ) {
             event.preventDefault();
-            console.log('=> [main]: ' + $( '#message' ).val())
+            console.log( '=> [main]: ' + $( '#message' ).val() )
             socket.emit(
                 'main',
                 $( '#message' ).val(),
                 () => {
-                    $( '#message' ).val('')
+                    $( '#message' ).val( '' )
                 }
             );
         } );
 
         // Client side event listener.  It takes new messages from the server and appends it to HTML.
         socket.on( 'message', message => {
-           const pre = $( '<pre></pre>' );
-           $( '#messages' ).append( pre.text(message.data));
+            const pre = $( '<pre></pre>' );
+            $( '#messages' ).append( pre.text( message.data ) );
         } );
     } );
 </script>
 
 <body>
-    <ul id="messages"></ul>
-    <form action="" id="message-form">
-        <input type="text" name="message" id="message" placeholder="enter message">
-    </form>
+    <div style="width:auto;
+            height:12pt;
+            background:#CCFF33;
+            padding:10px;
+            position:relative;
+            text-align: center;">
+
+        Special effect in the room
+    </div>
+    <div style="width:250px;
+                height: 100vh;
+                background:#CC0000;
+                color:#FFF;
+                padding:5px 2px;
+                text-align:center;
+                top:0;
+                position:absolute;
+                right:0;">
+
+        Column right
+        <div style="width:250px;
+                        height: 250px;
+                        background:#CCBB00;
+                        color:#FFF;
+                        padding:5px 2px;
+                        text-align:center;
+                        top:0;
+                        position:absolute;
+                        right:0;">
+
+            Map
+
+        </div>
+        <div style="width:250px;
+                                    height: 150px;
+                                    background:#CCBBBB;
+                                    color:#FFF;
+                                    padding:5px 2px;
+                                    bottom:0;
+                                    text-align:center;
+                                    position:absolute;
+                                    right:0;">
+
+            Region info
+
+        </div>
+    </div>
+    <div style="width: 100vh;
+                                    height: 24pt;
+                                    background:#AABBAA;
+                                    color:#FFF;
+                                    padding:5px 2px;
+                                    text-align:center;
+                                    bottom:32pt;
+                                    position:absolute;
+                                    left:0;
+                                    z-index: 1000;">
+
+        Status
+        <div style="width: auto;
+                                    height: 24pt;
+                                    background:#AABBAA;
+                                    color:#FFF;
+                                    padding:5px 2px;
+                                    text-align:center;
+                                    bottom:0;
+                                    position:absolute;
+                                    left:0;
+                                    z-index: 1000;"">
+            <ul id=" messages">
+            </ul>
+            <form action="" id="message-form">
+                <input type="text" name="message" id="message" placeholder="enter message">
+            </form>
+        </div>
+    </div>
 </body>
 
 </html>
