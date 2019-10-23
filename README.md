@@ -26,7 +26,7 @@ $ python -m core.app
 
 CLIENT (API test)
 
-```
+```bash
 
 $ . venv/bin/activate
 $ python -m manage --help 
