@@ -7,3 +7,7 @@ class AuthenticationServiceAbstract(metaclass=abc.ABCMeta):
 
 class AESCipherServiceAbstract(metaclass=abc.ABCMeta):
     pass
+
+
+class RedisServiceAbstract(metaclass=abc.ABCMeta):
+    pass

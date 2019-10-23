@@ -47,6 +47,16 @@ def handle_logout():
     return flask.Response(response='LOGOUT_CONFIRMED')
 
 
+@db_close
+@handle_exception
+@ensure_logged_in
+def handle_new_token():
+    payload = json.loads(request.data)
+    token_type = payload.get('entity_type')
+    entity_id = payload.get('entity_id')
+    return flask.Response(response='LOGOUT_CONFIRMED')
+
+
 bp.add_url_rule(
     '/confirm_email/<string:email_token>', view_func=handle_email_address_confirmation, methods=['GET']
 )
@@ -58,4 +68,7 @@ bp.add_url_rule(
 )
 bp.add_url_rule(
     '/logout', view_func=handle_logout, methods=['POST']
+)
+bp.add_url_rule(
+    '/token', view_func=handle_new_token, methods=['POST']
 )
