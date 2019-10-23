@@ -6,6 +6,7 @@ from sqlalchemy.orm import scoped_session, Session
 
 from core.src import models
 from core.src.business.character.abstract import CharacterDOAbstract
+from core.src.business.user.abstract import UserDOAbstract
 from core.src.database import atomic
 
 
@@ -45,17 +46,19 @@ class CharacterRepositoryImpl:
 
     @atomic
     def create_character(
-            self, user: models.User,
+            self,
+            user: UserDOAbstract,
             name: str
-    ) -> models.Character:
+    ) -> CharacterDOAbstract:
         character = models.Character(
-            user=user,
+            user=self.session.query(models.User).filter(models.User.user_id == user.user_id).one(),
             character_id=self._get_random_uuid(),
             name=name
         )
         self.session.add(character)
         self.session.flush()
-        return character
+        from core.src.business.character.character import CharacterDOImpl
+        return CharacterDOImpl.from_model(character)
 
     @atomic
     def update_character(self, character: models.Character, data: typing.Dict = None) -> models.Character:

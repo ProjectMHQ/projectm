@@ -98,8 +98,17 @@ class Client:
 
     def get_characters(self):
         res = requests.get(
-            self.url + '/user/characters',
+            self.url + '/user/character',
             cookies=self._get_cookie_from_token()
+        )
+        res.raise_for_status()
+        return res.json()
+
+    def create_character(self, payload: Dict):
+        res = requests.post(
+            self.url + '/user/character',
+            cookies=self._get_cookie_from_token(),
+            data=json.dumps(payload)
         )
         res.raise_for_status()
         return res.json()
@@ -172,18 +181,29 @@ def details():
 
 
 @user.group()
-def characters():
+def character():
     pass
 
 
-@characters.command()
-def get():
+@character.command()
+def ls():
     client = get_client()
     if not client.is_logged_in:
         click.echo('Not logged in')
         return
     response = client.get_characters()
     click.echo('Response:\n%s' % json.dumps(response, indent=2))
+
+
+@character.command()
+def create():
+    client = get_client()
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+    character_name = input('Enter your chacter name: ')
+    response = client.create_character({"name": character_name})
+    click.echo('Create Character response:\n%s' % json.dumps(response, indent=2))
 
 
 if __name__ == '__main__':

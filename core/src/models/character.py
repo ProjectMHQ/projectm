@@ -26,10 +26,3 @@ class Character(Base):
 
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship("User", backref="characters")
-
-    def as_dict(self):
-        return {
-            'character_id': self.user_id,
-            'name': self.full_name,
-            'created_at': self.email
-        }
