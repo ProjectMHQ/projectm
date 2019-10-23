@@ -5,6 +5,7 @@ import uuid
 from sqlalchemy.orm import scoped_session, Session
 
 from core.src import models
+from core.src.business.character.abstract import CharacterDOAbstract
 from core.src.database import atomic
 
 
@@ -20,19 +21,27 @@ class CharacterRepositoryImpl:
     def session(self) -> Session:
         return self._session_factory()
 
-    def get_character_by_field(self, field_name: str, field_value: typing.Any) -> models.Character:
+    def get_character_by_field(self, field_name: str, field_value: typing.Any) -> CharacterDOAbstract:
         if field_name == 'user_do':
             field_name = 'user'
             field_value = self.session.query(models.User).filter('user_id' == field_value.user_id).one()
 
-        return self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value).one()
+        from core.src.business.character.character import CharacterDOImpl
+        return CharacterDOImpl(
+            self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value).one()
+        )
 
     def get_multiple_characters_by_field(self, field_name: str, field_value: typing.Any) \
-            -> typing.List[models.Character]:
+            -> typing.List[CharacterDOAbstract]:
         if field_name == 'user_do':
             field_name = 'user'
             field_value = self.session.query(models.User).filter(models.User.user_id == field_value.user_id).one()
-        return self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value)
+        from core.src.business.character.character import CharacterDOImpl
+        return [
+            CharacterDOImpl.from_model(c) for c in
+            self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value)
+        ]
+
 
     @atomic
     def create_character(

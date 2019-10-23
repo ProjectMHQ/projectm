@@ -4,6 +4,7 @@ import time
 import typing
 
 from core.src import exceptions
+from core.src.business.character.abstract import CharacterDOAbstract
 from core.src.business.user.abstract import UserDOAbstract
 from core.src.business.user.types import UserStatus
 
@@ -166,6 +167,7 @@ class UserDOImpl(UserDOAbstract):
     def email_confirmed_at(self) -> typing.Optional[int]:
         return self._meta.get('email_confirmed_at')
 
-    def get_characters(self, repository=None):
+    def get_characters(self, repository=None) -> typing.List[CharacterDOAbstract]:
         repository = self._get_characters_repository(repository)
-        characters = repository.get_multiple_characters_by_field('user_do', self)
+        return repository.get_multiple_characters_by_field('user_do', self)
+
