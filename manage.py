@@ -8,8 +8,7 @@ from typing import Dict
 
 import click
 import requests
-
-from etc import settings
+from requests import HTTPError
 
 
 class Client:
@@ -125,7 +124,27 @@ def _get_login_data():
 
 
 def get_client() -> Client:
-    return Client(settings.WEB_BASE_URL)
+    def get_client_url():
+        try:
+            with open('/tmp/__pm_client_url', 'r') as f:
+                d = f.read()
+        except FileNotFoundError:
+            d = input('Enter projectm base URL (i.e. http://localhost:60160) : ')
+            check_res = requests.get(d + '/auth/login')
+            try:
+                check_res.raise_for_status()
+            except HTTPError as e:
+                if e.response.status_code == 405:
+                    pass
+                else:
+                    print('Error checking Client URL: ', str(e))
+                    exit(1)
+
+            with open('/tmp/__pm_client_url', 'w') as f:
+                f.write(d)
+        return d
+
+    return Client(get_client_url())
 
 
 @click.group(name='client')

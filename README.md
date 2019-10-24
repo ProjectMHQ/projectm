@@ -1,6 +1,8 @@
 Project M
 ---
 
+E' necessario settare una variabile d'ambiente PROJECTM_ENV.
+In sviluppo dev'essere "development".
 
 
 ##### Only the brave:
@@ -12,7 +14,7 @@ $ cd projectm
 $ virtualenv -p python3.6 venv
 $ . venv/bin/activate
 $ pip install -r requirements.txt
-$ python -m alembic_script upgrade_head
+$ PROJECTM_ENV=development python -m alembic_script upgrade_head
 ```
 
 RUN:
@@ -20,14 +22,14 @@ RUN:
 ```bash
 $ cd projectm
 $ . venv/bin/activate
-$ python -m core.app
+$ PROJECTM_ENV=development python -m core.app
 ```
 
 
 CLIENT (API test)
 
 ```bash
-$ cd pojectm
+$ cd projectm
 $ . venv/bin/activate
 $ python -m manage --help 
 ```
