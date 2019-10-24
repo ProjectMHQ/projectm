@@ -25,7 +25,7 @@ def upgrade():
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('updated_at', sa.TIMESTAMP(), nullable=True),
     sa.Column('version_id', sa.Integer(), server_default='1', nullable=False),
-    sa.Column('meta', core.src.database.JsonEncodedDict(), nullable=False),
+    sa.Column('meta', core.src.database.json_column_type(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')

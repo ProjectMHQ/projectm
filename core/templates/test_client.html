@@ -64,7 +64,7 @@
 </head>
 <script>
     $( document ).ready( function () {
-        var socket = io( 'localhost:60160' );
+        var socket = io( '/' );
         $( '#message-form' ).on( 'submit', function ( event ) {
             event.preventDefault();
             console.log('=> [main]: ' + $( '#message' ).val())
