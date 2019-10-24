@@ -79,9 +79,6 @@ def atomic(fun):
             _threadlocal.counter -= 1
             return r
         except Exception as e:
-            if _threadlocal.counter == 1:
-                _threadlocal.db.commit()
-            _threadlocal.counter -= 1
             raise e
 
     return _inner_atomic
