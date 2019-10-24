@@ -1,24 +1,32 @@
-import binascii
 import hashlib
+import os
+from configparser import ConfigParser
 
-ENV = 'development'
-RUNNING_TESTS = False
-ENCRYPTION_KEY = b'12345678'
-ENCRYPTION_IV = hashlib.md5('$$$ initial value seed'.encode()).digest()
-WEB_PROTOCOL = 'http'
-WEB_BASE_HOSTNAME = 'localhost'
-WEB_BASE_PORT = 60160
+ENV = os.environ['PROJECTM_ENV']
+RUNNING_TESTS = os.environ.get('RUNNING_TESTS')
+
+INI_FILE = os.path.join(os.path.dirname(__file__), ENV, 'settings.conf')
+
+config = ConfigParser()
+config.read(INI_FILE)
+
+ENCRYPTION_KEY = hashlib.sha256(config['settings']['encryption_key_seed'].encode()).digest()
+ENCRYPTION_IV = hashlib.md5(config['settings']['encryption_iv_seed'].encode()).digest()
+
+WEB_PROTOCOL = config['settings']['web_protocol']
+WEB_BASE_HOSTNAME = config['settings']['web_base_hostname']
+WEB_BASE_PORT = config['settings']['web_base_port']
 
 WEB_BASE_URL = '{}://{}:{}'.format(WEB_PROTOCOL, WEB_BASE_HOSTNAME, WEB_BASE_PORT)
 
-#SQL_DRIVER = 'postgresql'
-SQL_DRIVER = 'sqlite'
+SQL_DRIVER = config['database']['sql_driver']
 
-POSTGRESQL_USERNAME = 'user'
-POSTGRESQL_PASSWORD = 'pass'
-POSTGRESQL_HOSTNAME = 'localhost'
-POSTGRESQL_DATABASE = 5432
-SQLITE_DB = '/tmp/core.db'
+POSTGRESQL_USERNAME = config['database']['postgresql_username']
+POSTGRESQL_PASSWORD = config['database']['postgresql_password']
+POSTGRESQL_HOSTNAME = config['database']['postgresql_hostname']
+POSTGRESQL_DATABASE = int(config['database'].get('postgresql_port') or 0)
+
+SQLITE_DB = config['database']['sqlite_db_file']
 
 if SQL_DRIVER == 'postgresql':
     DATASOURCE = 'postgresql://{}:{}@{}/{}'.format(
@@ -30,11 +38,9 @@ if SQL_DRIVER == 'postgresql':
 elif SQL_DRIVER == 'sqlite':
     DATASOURCE = 'sqlite:///{}'.format(SQLITE_DB)
 
-USE_SQLITE = True
+EMAIL_CONFIRMATION_LINK_TTL = config['settings'].getint('email_confirmation_link_ttl')
+EMAIL_MUST_BE_CONFIRMED = config['settings'].getboolean('email_must_be_confirmed')
 
-EMAIL_CONFIRMATION_LINK_TTL = 3600 * 24
-EMAIL_MUST_BE_CONFIRMED = False
+SENDGRID_API_KEY = config['settings']['sendgrid_api_key']
 
-SENDGRID_API_KEY = 'SG.fNKabwGwTXOutmjViiVDEQ.upJZx59daaaaacECmSfFZcWjZoLhJxbIECm5D_evVYjVDR0 '
-
-TOKEN_TTL = 3600 * 6
+TOKEN_TTL = config['settings']['token_ttl']
