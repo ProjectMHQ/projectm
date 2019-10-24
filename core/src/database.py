@@ -15,7 +15,7 @@ if settings.SQL_DRIVER == 'postgresql':
     json_column_type = postgresql.JSONB
     _engine_endpoint = settings.DATASOURCE
 
-elif settings.SQL_DRIVER == 'sqlite' or settings.RUNNING_TESTS or settings.USE_SQLITE:
+elif settings.SQL_DRIVER == 'sqlite' or settings.RUNNING_TESTS:
     class JsonEncodedDict(sqlalchemy.TypeDecorator):
         impl = sqlalchemy.String
 

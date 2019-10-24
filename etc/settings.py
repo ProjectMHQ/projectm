@@ -24,15 +24,17 @@ SQL_DRIVER = config['database']['sql_driver']
 POSTGRESQL_USERNAME = config['database']['postgresql_username']
 POSTGRESQL_PASSWORD = config['database']['postgresql_password']
 POSTGRESQL_HOSTNAME = config['database']['postgresql_hostname']
-POSTGRESQL_DATABASE = int(config['database'].get('postgresql_port') or 0)
+POSTGRESQL_DATABASE = config['database']['postgresql_database']
+POSTGRESQL_PORT = int(config['database'].get('postgresql_port') or 0)
 
 SQLITE_DB = config['database']['sqlite_db_file']
 
 if SQL_DRIVER == 'postgresql':
-    DATASOURCE = 'postgresql://{}:{}@{}/{}'.format(
+    DATASOURCE = 'postgresql://{}:{}@{}:{}/{}'.format(
         POSTGRESQL_USERNAME,
         POSTGRESQL_PASSWORD,
         POSTGRESQL_HOSTNAME,
+        POSTGRESQL_PORT,
         POSTGRESQL_DATABASE
     )
 elif SQL_DRIVER == 'sqlite':
