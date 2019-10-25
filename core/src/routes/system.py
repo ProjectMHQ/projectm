@@ -11,5 +11,10 @@ def serve_test_client():
     return flask.render_template('test_client.html')
 
 
+def serve_dashboard():
+    return flask.render_template('index.html')
+
+
 bp.add_url_rule('/ping', view_func=ping, methods=['GET'])
 bp.add_url_rule('/test_client', view_func=serve_test_client, methods=['GET'])
+bp.add_url_rule('/dashboard', view_func=serve_dashboard, methods=['GET'])

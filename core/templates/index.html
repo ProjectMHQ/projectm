@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Project M Test Login</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <style>
+        body {
+            font-family: "Courier New", Courier, monospace;
+            background-color: #36393F;
+            color: white;
+        }
+        .hide {
+            display: none;
+        }
+
+    </style>
+</head>
+
+<body>
+    <h1>Project M Test Platform</h1>
+    <hr />
+    <br />
+    <br />
+    <div id="container">
+        <div id="container_login_form">
+            <div id="login_form_div">
+                <h2>Login:</h2>
+                <form id="login_form">
+                  Email:<br>
+                  <input type="text" name="email"><br>
+                  Password:<br>
+                  <input type="password" name="password">
+                    <br><br>
+                    <button id="login_button">Login</button>
+                </form>
+            </div>
+        </div>
+        <div class="hide" id="logged_in_area">
+            <h2>Logged in</h2>
+            <h4>Email: <span id="email">bla@bla</span></h4>
+            <div id="logout_button_div">
+                <button id="logout_button">Logout</button>
+            </div>
+
+            <hr />
+            <br />
+            <br />
+            <h2>Create character:</h2>
+            <form id="create_character">
+                Character name:<br>
+                <input type="text" name="name"><br>
+            </form>
+            <br /><br />
+            <h2>Your characters:</h2>
+            <table width=50% id="characters" border="1">
+              <tr>
+                <th>Name</th>
+                <th>ID</th>
+                <th></th>
+              </tr>
+              <tr>
+                <td>Pippo</td>
+                <td>d7d974ec-f75f-11e9-9ec5-8734f8be75f4</td>
+                <th><a href="#">Open Client</a></th>
+              </tr>
+              <tr>
+                <td>Pluto</td>
+                <td>efa09ff6-f75f-11e9-a1c9-1bba505cd7fa</td>
+                <th><a href="#">Open Client</a></th>
+              </tr>
+            </table>
+        </div>
+    </div>
+
+<script>
+    let app = {
+        login: function() {
+           return
+        },
+        get_characters: function() {
+           return
+        },
+        create_character: function() {
+           return
+        },
+        setup: function() {
+            $("#login_button").on('click', function() {
+                $("#login_form_div").addClass('hide');
+                $("#logged_in_area").removeClass('hide');
+                return false
+            })
+            $("#logout_button").on('click', function() {
+                $("#login_form_div").removeClass('hide');
+                $("#logged_in_area").addClass('hide');
+                return false
+            })
+        }
+    }
+    $(document).ready(function () {
+        app.setup()
+    })
+</script>
+</body>
+
+</html>

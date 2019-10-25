@@ -66,3 +66,8 @@ class CharacterDOImpl(CharacterDOAbstract):
         # Block multiple logins
         # Issue: https://github.com/gdassori/projectm/issues/14
         return True
+
+    @classmethod
+    def from_session_token(cls, token: typing.Dict):
+        instance = cls(character_id=token['character_id'])
+        return instance

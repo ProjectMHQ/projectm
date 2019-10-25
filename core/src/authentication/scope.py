@@ -2,6 +2,7 @@ import typing
 from functools import wraps
 from flask import request
 from core.src import exceptions
+from core.src.business.character.character import CharacterDOImpl
 
 
 def get_current_user_id():
@@ -47,5 +48,25 @@ def ensure_logged_in(fun):
                 return response
 
         response.set_cookie('Authorization', request.cookies['Authorization'])
+        return response
+    return wrapper
+
+
+def ensure_websocket_authentication(fun):
+    @wraps(fun)
+    def wrapper(*a, **kw):
+        from core.src.builder import auth_service
+        if not request or not request.cookies or not request.cookies.get('Authorization'):
+            raise exceptions.NotLoggedInException()
+        session_token = auth_service.decode_session_token(
+            request.cookies['WS-Authorization'].replace('Bearer ', '')
+        )
+        if session_token['context'] != 'character':
+            raise NotImplementedError('wtf?')
+
+        request.character = CharacterDOImpl.from_session_token(session_token['data'])
+        response = fun(*a, **kw)
+        response.set_cookie('Authorization', request.cookies['Authorization'])
+        response.set_cookie('WS-Authorization', request.cookies['WS-Authorization'])
         return response
     return wrapper
