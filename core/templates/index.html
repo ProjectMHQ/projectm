@@ -64,8 +64,9 @@
         function getCharsList() {
             $.get( "/user/character", function ( data ) {
                 jQuery.each( data.data, function ( i, val ) {
-                    $( "#characters" ).append( document.createTextNode( val.character_id + " " + val
-                        .name + "<br />" ) );
+                    $( "#characters" ).append( "<br />" + document.createTextNode( val.character_id +
+                        " " + val
+                        .name ) );
                 } );
             } );
         }
