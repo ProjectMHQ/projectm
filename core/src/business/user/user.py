@@ -137,6 +137,12 @@ class UserDOImpl(UserDOAbstract):
         return self
 
     def as_dict(self, context=None):
+        if context == 'token':
+            return {
+                'user_id': self.user_id,
+                'status': UserStatus(self.status).name,
+                'roles': self.roles
+            }
         return {
             'user_id': self.user_id,
             'full_name': self.full_name,

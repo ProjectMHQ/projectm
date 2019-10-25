@@ -5,7 +5,7 @@ from flask import request
 from flask.views import MethodView
 
 from core.src.authentication.scope import ensure_not_logged_in, ensure_logged_in
-from core.src.builder import user_service, user_repository, character_repository
+from core.src.builder import auth_service, user_repository, character_repository
 from core.src.database import db_close
 from core.src.utils.tools import handle_exception
 

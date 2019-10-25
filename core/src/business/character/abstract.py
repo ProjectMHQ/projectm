@@ -21,17 +21,7 @@ class CharacterDOAbstract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def gender(self) -> enum.Enum:
-        pass  # pragma: no cover
-
-    @property
-    @abc.abstractmethod
-    def at_coordinates(self) -> typing.Tuple:
-        pass  # pragma: no cover
-
-    @property
-    @abc.abstractmethod
-    def race(self) -> enum.Enum:
+    def pos(self) -> typing.Tuple:
         pass  # pragma: no cover
 
     @classmethod
@@ -43,12 +33,6 @@ class CharacterDOAbstract(metaclass=abc.ABCMeta):
     def as_dict(self, context=None):
         pass  # pragma: no cover
 
-
-class CharacterServiceAbstract(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def exists(self, character: CharacterDOAbstract):
-        pass  # pragma: no cover
-
-    @abc.abstractmethod
-    def get_coordinates(self, character: CharacterDOAbstract):
+    def ensure_can_authenticate(self):
         pass  # pragma: no cover

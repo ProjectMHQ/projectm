@@ -2,6 +2,7 @@ import json
 import time
 import typing
 
+from core.src.business.user.abstract import UserDOAbstract
 from etc import settings
 from core.src import exceptions, models
 from core.src.business.user.types import UserStatus
@@ -15,14 +16,23 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         self.encryption_service = encryption_service
         self.user_repository = user_repository
 
-    def _get_login_token(self, user) -> typing.AnyStr:
-        payload = json.dumps(
-            {
-                'user': user.as_dict(context='token'),
-                'created_at': int(time.time()),
-                'ttl': settings.TOKEN_TTL
-            }
-        )
+    def _get_login_token(self, user_data: typing.Dict) -> typing.AnyStr:
+        token = {
+            'user': user_data,
+            'created_at': int(time.time()),
+            'ttl': settings.TOKEN_TTL,
+        }
+        payload = json.dumps(token)
+        return self.encryption_service.encrypt(payload)
+
+    def _get_websocket_token(self, data: typing.Dict, context=None) -> typing.AnyStr:
+        token = {
+            'context': context,
+            'data': data,
+            'created_at': int(time.time()),
+            'ttl': settings.TOKEN_TTL,
+        }
+        payload = json.dumps(token)
         return self.encryption_service.encrypt(payload)
 
     @atomic
@@ -49,7 +59,7 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         user.validate_password(password)
         return {
             "user_id": user.user_id,
-            "token": self._get_login_token(user)
+            "token": self._get_login_token(user.as_dict(context='token'))
         }
 
     def logout(self, *a, **kw):
@@ -64,7 +74,7 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         return token
 
     @atomic
-    def confirm_email_address(self, email_token):
+    def confirm_email_address(self, email_token: str):
         data = json.loads(self.encryption_service.decrypt(email_token))
         expires_at = data['ttl'] + data['created_at']
         now = int(time.time())
@@ -73,3 +83,10 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         user = self.user_repository.get_user_by_field('email', data['email'])
         user = user.mark_email_as_confirmed().set_user_as_active()
         return self.user_repository.update_user(user)
+
+    @atomic
+    def authenticate_character(self, character_data: typing.Dict) -> typing.Dict:
+        return {
+            "character_id": character_data['character_id'],
+            "token": self._get_websocket_token(character_data, context="character")
+        }

@@ -12,6 +12,6 @@ encryption_service = AESCipherServiceImpl(
 )
 character_repository = CharacterRepositoryImpl(database.db)
 user_repository = UserRepositoryImpl(database.db)
-user_service = AuthenticationServiceImpl(encryption_service, user_repository)
+auth_service = AuthenticationServiceImpl(encryption_service, user_repository)
 ws_messages_factory = WebsocketMessagesFactory()
 
