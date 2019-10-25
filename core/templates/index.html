@@ -6,17 +6,48 @@
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"
         integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
     <style>
         body {
             font-family: "Courier New", Courier, monospace;
             background-color: #36393F;
             color: white;
         }
+
         .hide {
             display: none;
         }
-
     </style>
+
+    <script type="text/javascript">
+        $( document ).ready( function () {
+            $( "#login_button" ).on( 'click', function () {
+                $( "#login_form_div" ).addClass( 'hide' );
+                $( "#logged_in_area" ).removeClass( 'hide' );
+                return false;
+            } );
+            $( "#logout_button" ).on( 'click', function () {
+                $( "#login_form_div" ).removeClass( 'hide' );
+                $( "#logged_in_area" ).addClass( 'hide' );
+                return false;
+            } );
+
+            $( "#login_button" ).click( function () {
+                $.ajax( {
+                    type: "POST",
+                    url: "/auth/login",
+                    data: {
+                        "email": $( "#email" ).val(),
+                        "password": sha256( $( "#password" ).val() )
+                    },
+                    success: function () {
+                        console.log( "OK" );
+                    },
+                    dataType: dataType
+                } );
+            } );
+        } )
+    </script>
 </head>
 
 <body>
@@ -29,10 +60,10 @@
             <div id="login_form_div">
                 <h2>Login:</h2>
                 <form id="login_form">
-                  Email:<br>
-                  <input type="text" name="email"><br>
-                  Password:<br>
-                  <input type="password" name="password">
+                    Email:<br>
+                    <input type="text" name="email"><br>
+                    Password:<br>
+                    <input type="password" name="password">
                     <br><br>
                     <button id="login_button">Login</button>
                 </form>
@@ -56,53 +87,24 @@
             <br /><br />
             <h2>Your characters:</h2>
             <table width=50% id="characters" border="1">
-              <tr>
-                <th>Name</th>
-                <th>ID</th>
-                <th></th>
-              </tr>
-              <tr>
-                <td>Pippo</td>
-                <td>d7d974ec-f75f-11e9-9ec5-8734f8be75f4</td>
-                <th><a href="#">Open Client</a></th>
-              </tr>
-              <tr>
-                <td>Pluto</td>
-                <td>efa09ff6-f75f-11e9-a1c9-1bba505cd7fa</td>
-                <th><a href="#">Open Client</a></th>
-              </tr>
+                <tr>
+                    <th>Name</th>
+                    <th>ID</th>
+                    <th></th>
+                </tr>
+                <tr>
+                    <td>Pippo</td>
+                    <td>d7d974ec-f75f-11e9-9ec5-8734f8be75f4</td>
+                    <th><a href="#">Open Client</a></th>
+                </tr>
+                <tr>
+                    <td>Pluto</td>
+                    <td>efa09ff6-f75f-11e9-a1c9-1bba505cd7fa</td>
+                    <th><a href="#">Open Client</a></th>
+                </tr>
             </table>
         </div>
     </div>
-
-<script>
-    let app = {
-        login: function() {
-           return
-        },
-        get_characters: function() {
-           return
-        },
-        create_character: function() {
-           return
-        },
-        setup: function() {
-            $("#login_button").on('click', function() {
-                $("#login_form_div").addClass('hide');
-                $("#logged_in_area").removeClass('hide');
-                return false
-            })
-            $("#logout_button").on('click', function() {
-                $("#login_form_div").removeClass('hide');
-                $("#logged_in_area").addClass('hide');
-                return false
-            })
-        }
-    }
-    $(document).ready(function () {
-        app.setup()
-    })
-</script>
 </body>
 
 </html>
