@@ -147,7 +147,7 @@
 </head>
 <script>
     $( document ).ready( function () {
-        var socket = io( 'localhost:60160' );
+        var socket = io( '127.0.0.1:60160' );
         $( '#message-form' ).on( 'submit', function ( event ) {
             event.preventDefault();
             console.log( '=> [main]: ' + $( '#message' ).val() )
