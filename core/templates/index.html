@@ -63,7 +63,22 @@
 
         function getCharsList() {
             $.get( "/user/character", function ( data ) {
-                $( "#characters" ).html( data );
+                "data": [ {
+                        "character_id": "74080bda-1716-4ab6-8d1e-a0eb9f70dd54",
+                        "name": "pippo",
+                        "pos": null
+                    },
+                    {
+                        "character_id": "4a6ee6a7-a57b-4e7c-a897-729503d0c6ba",
+                        "name": "pluto",
+                        "pos": null
+                    }
+                ]
+
+                jQuery.each( data, function ( i, val ) {
+                    $( "#characters" ).append( document.createTextNode( val.character_id + " " + val.name +
+                        " - " + val.pos ) );
+                } );
             } );
         }
     </script>
