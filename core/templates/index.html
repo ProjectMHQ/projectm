@@ -22,9 +22,7 @@
     <script type="text/javascript">
         $( document ).ready( function () {
             $( "#login_button" ).on( 'click', function () {
-                $( "#login_form_div" ).addClass( 'hide' );
-                $( "#logged_in_area" ).removeClass( 'hide' );
-                return false;
+
             } );
             $( "#logout_button" ).on( 'click', function () {
                 $( "#login_form_div" ).removeClass( 'hide' );
@@ -36,15 +34,18 @@
                 $.ajax( {
                     type: "POST",
                     url: "/auth/login",
-                    data: {
+                    data: JSON.stringify({
                         "email": $( "#email" ).val(),
                         "password": sha256( $( "#password" ).val() )
+                    }),
+                    success: function (res) {
+                        $( "#login_form_div" ).addClass( 'hide' );
+                        $( "#logged_in_area" ).removeClass( 'hide' );
+                        $( "#user_id" ).text(res['user_id']);
                     },
-                    success: function () {
-                        console.log( "OK" );
-                    },
-                    dataType: dataType
+                    contentType: "application/json; charset=utf-8"
                 } );
+                return false;
             } );
         } )
     </script>
@@ -61,9 +62,9 @@
                 <h2>Login:</h2>
                 <form id="login_form">
                     Email:<br>
-                    <input type="text" name="email"><br>
+                    <input id="email" type="text" name="email"><br>
                     Password:<br>
-                    <input type="password" name="password">
+                    <input id="password" type="password" name="password">
                     <br><br>
                     <button id="login_button">Login</button>
                 </form>
@@ -71,7 +72,7 @@
         </div>
         <div class="hide" id="logged_in_area">
             <h2>Logged in</h2>
-            <h4>Email: <span id="email">bla@bla</span></h4>
+            <h4>user_id: <span id="user_id"></span></h4>
             <div id="logout_button_div">
                 <button id="logout_button">Logout</button>
             </div>

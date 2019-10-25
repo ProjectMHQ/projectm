@@ -27,7 +27,7 @@ def ensure_not_logged_in(fun):
         if request and request.cookies and request.cookies.get('Authorization') and auth_service.decode_session_token(
             request.cookies['Authorization'].replace('Bearer ', '')
         ):
-            raise exceptions.AlreadyLoggedInException()
+            pass
         return fun(*a, **kw)
     return wrapper
 
