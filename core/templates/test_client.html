@@ -197,6 +197,10 @@
     <div id="specialEffects">
 
         Special effect in the room
+        <div id="output">
+            <ul id="messages">
+            </ul>
+        </div>
     </div>
     <div id="columnRight">
         <div id="map">
@@ -205,9 +209,10 @@
 
 
             <div id="server-info">
-                <span>server address:</span>&nbsp;<input id="serverAddress" type="text" value="localhost">
+                <span>server address:</span>&nbsp;<input id="serverAddress" type="text"
+                    value="http://staging.pm.chatsubo.it/">
                 <br />
-                <span>port:</span>&nbsp;<input id="serverPort" type="text" value="60160">
+                <span>port:</span>&nbsp;<input id="serverPort" type="text" value="80">
                 <br />
                 <button type="button" name="cnn" id="cnn">Connect</button>
             </div>
@@ -223,8 +228,6 @@
 
         Status and Quick actions
         <div id="boxMsg">
-            <ul id="messages">
-            </ul>
             <form action="" id="message-form">
                 <input type="text" name="message" id="message" placeholder="enter message">
             </form>
