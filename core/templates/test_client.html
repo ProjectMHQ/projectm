@@ -43,6 +43,102 @@
             color: white;
         }
 
+        #specialEffects {
+            width: auto;
+            height: 12pt;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCFF33;
+            color: #FFF;
+            position: relative;
+            text-align: center;
+        }
+
+        #columnRight {
+            width: 250px;
+            height: 100vh;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CC0000;
+            color: #FFF;
+            padding: 5px 2px;
+            text-align: center;
+            top: 0;
+            position: absolute;
+            right: 0;
+        }
+
+        #map {
+            width: 250px;
+            height: 250px;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCBB00;
+            color: #FFF;
+            padding: 5px 2px;
+            text-align: center;
+            vertical-align: middle;
+            top: 0;
+            position: absolute;
+            right: 0;
+        }
+
+        #server-info {
+            width: auto;
+            height: auto;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCBBBB;
+            font-family: monospace;
+            font-size: 10pt;
+            vertical-align: middle;
+            text-align: left;
+            top: 180pt;
+            position: relative;
+        }
+
+        #regionInfo {
+            width: 250px;
+            height: 150px;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCBBBB;
+            color: #FFF;
+            padding: 5px 2px;
+            bottom: 0;
+            text-align: center;
+            position: absolute;
+            right: 0;
+        }
+
+        #statusAndQA {
+            width: 100vh;
+            height: 24pt;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #AABBAA;
+            color: #FFF;
+            padding: 5px 2px;
+            text-align: center;
+            bottom: 32pt;
+            position: absolute;
+            left: 0;
+            z-index: 1000;
+        }
+
+        #boxMsg {
+            width: auto;
+            height: 24pt;
+            background: #AABBAA;
+            color: #FFF;
+            padding: 5px 2px;
+            text-align: center;
+            bottom: 0;
+            position: absolute;
+            left: 0;
+            z-index: 1000;
+        }
+
         #messages {
             padding: 10px;
         }
@@ -64,32 +160,78 @@
 </head>
 <script>
     $( document ).ready( function () {
-        var socket = io( '/' );
-        $( '#message-form' ).on( 'submit', function ( event ) {
-            event.preventDefault();
-            console.log('=> [main]: ' + $( '#message' ).val())
-            socket.emit(
-                'main',
-                $( '#message' ).val(),
-                () => {
-                    $( '#message' ).val('')
-                }
-            );
-        } );
+        var socket = {};
 
-        // Client side event listener.  It takes new messages from the server and appends it to HTML.
-        socket.on( 'message', message => {
-           const pre = $( '<pre></pre>' );
-           $( '#messages' ).append( pre.text(message.data));
+        $( '#cnn' ).click( function () {
+            var add = $( "#serverAddress" ).val();
+            var port = $( "#serverPort" ).val();
+            var cnnStr = add + ":" + port;
+
+            socket.io = io( cnnStr );
+            // Client side event listener. It takes new messages from the server and appends it to HTML.
+            socket.io.on( 'message', message => {
+                console.log( 'connected' );
+                $( '#cnn' ).val( "connected" );
+
+                const pre = $( ' <pre> </pre>' );
+                $( '#messages' ).append( pre.text( message.data ) );
+            } );
         } );
+    } );
+
+    $( '#message-form' ).on( 'submit', function ( event ) {
+        event.preventDefault();
+        console.log( '=> [main]: ' + $( '#message' ).val() )
+        socket.io.emit(
+            'main',
+            $( '#message' ).val(),
+            () => {
+                $( '#message' ).val( '' )
+            }
+        );
     } );
 </script>
 
 <body>
-    <ul id="messages"></ul>
-    <form action="" id="message-form">
-        <input type="text" name="message" id="message" placeholder="enter message">
-    </form>
+    <div id="specialEffects">
+
+        Special effect in the room
+        <div id="output">
+            <ul id="messages">
+            </ul>
+        </div>
+    </div>
+    <div id="columnRight">
+        <div id="map">
+
+            Map
+
+
+            <div id="server-info">
+                <span>server address:</span>&nbsp;<input id="serverAddress" type="text"
+                    value="http://staging.pm.chatsubo.it">
+                <br />
+                <span>port:</span>&nbsp;<input id="serverPort" type="text" value="80">
+                <br />
+                <button type="button" name="cnn" id="cnn">Connect</button>
+            </div>
+        </div>
+    </div>
+    <div id="regionInfo">
+
+        Region info
+
+    </div>
+    </div>
+    <div id="statusAndQA">
+
+        Status and Quick actions
+        <div id="boxMsg">
+            <form action="" id="message-form">
+                <input type="text" name="message" id="message" placeholder="enter message">
+            </form>
+        </div>
+    </div>
 </body>
 
 </html>
