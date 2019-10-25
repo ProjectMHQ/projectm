@@ -46,3 +46,5 @@ EMAIL_MUST_BE_CONFIRMED = config['settings'].getboolean('email_must_be_confirmed
 SENDGRID_API_KEY = config['settings']['sendgrid_api_key']
 
 TOKEN_TTL = int(config['settings'].getint('token_ttl'))
+
+ENABLE_CORS = config['settings']['enable_cors']
