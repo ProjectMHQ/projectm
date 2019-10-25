@@ -81,7 +81,20 @@
             top: 0;
             position: absolute;
             right: 0;
-            line-height: 200pt;
+        }
+
+        #server-info {
+            width: auto;
+            height: auto;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCBBBB;
+            font-family: monospace;
+            font-size: 10pt;
+            vertical-align: middle;
+            text-align: left;
+            top: 180pt;
+            position: relative;
         }
 
         #regionInfo {
@@ -147,26 +160,36 @@
 </head>
 <script>
     $( document ).ready( function () {
-        var socket = io( '127.0.0.1:60160' );
-        $( '#message-form' ).on( 'submit', function ( event ) {
-            event.preventDefault();
-            console.log( '=> [main]: ' + $( '#message' ).val() )
-            socket.emit(
-                'main',
-                $( '#message' ).val(),
-                () => {
-                    $( '#message' ).val( '' )
-                }
-            );
-        } );
 
-        // Client side event listener.  It takes new messages from the server and appends it to HTML.
-        socket.on( 'message', message => {
-            console.log( 'connected' );
+        var socket = {};
 
-            const pre = $( '<pre></pre>' );
-            $( '#messages' ).append( pre.text( message.data ) );
+        $( '#cnn' ).click( function () {
+            var add = $( "#serverAddress" ).val();
+            var port = $( "#serverPort" ).val();
+            var cnnStr = add + ":" + port;
+
+            socket.io = io( cnnStr );
+            // Client side event listener. It takes new messages from the server and appends it to HTML.
+            socket.io.on( 'message', message => {
+                console.log( 'connected' );
+                $( '#cnn' ).val( "connected" );
+
+                const pre = $( ' <pre > < /pre>' );
+                $( '#messages' ).append( pre.text( message.data ) );
+            } );
         } );
+    } );
+
+    $( '#message-form' ).on( 'submit', function ( event ) {
+        event.preventDefault();
+        console.log( '=> [main]: ' + $( '#message' ).val() )
+        socket.io.emit(
+            'main',
+            $( '#message' ).val(),
+            () => {
+                $( '#message' ).val( '' )
+            }
+        );
     } );
 </script>
 
@@ -180,12 +203,21 @@
 
             Map
 
-        </div>
-        <div id="regionInfo">
 
-            Region info
-
+            <div id="server-info">
+                <span>server address:</span>&nbsp;<input id="serverAddress" type="text" value="localhost">
+                <br />
+                <span>port:</span>&nbsp;<input id="serverPort" type="text" value="60160">
+                <br />
+                <button type="button" name="cnn" id="cnn">Connect</button>
+            </div>
         </div>
+    </div>
+    <div id="regionInfo">
+
+        Region info
+
+    </div>
     </div>
     <div id="statusAndQA">
 
