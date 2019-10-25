@@ -1,4 +1,5 @@
 from .user import *
+from .character import *
 
 from etc import settings
 if settings.RUNNING_TESTS:

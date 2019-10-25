@@ -1,14 +1,14 @@
 import hashlib
 import json
 import os
+import typing
 from getpass import getpass
 from json import JSONDecodeError
 from typing import Dict
 
 import click
 import requests
-
-from etc import settings
+from requests import HTTPError
 
 
 class Client:
@@ -74,12 +74,12 @@ class Client:
         res.raise_for_status()
         return res.content
 
-    def login(self, payload: Dict):
+    def login(self, payload: Dict) -> typing.Tuple[str, str]:
         res = requests.post(self.url + '/auth/login', data=json.dumps(payload))
         res.raise_for_status()
         self._user_id = res.json()['user_id']
         self._store_credentials(self._parse_token_from_cookies(res.cookies))
-        return self._user_id
+        return self._user_id, res.cookies
 
     def logout(self):
         res = requests.post(self.url + '/auth/logout', cookies=self._get_cookie_from_token())
@@ -87,11 +87,27 @@ class Client:
         self._clean_localstorage()
         return res.content
 
-    def graphql(self, query, variables):
-        res = requests.post(
-            self.url + '/graphql',
-            data=json.dumps({'query': query, 'variables': variables}),
+    def get_details(self):
+        res = requests.get(
+            self.url + '/user',
             cookies=self._get_cookie_from_token()
+        )
+        res.raise_for_status()
+        return res.json()
+
+    def get_characters(self):
+        res = requests.get(
+            self.url + '/user/character',
+            cookies=self._get_cookie_from_token()
+        )
+        res.raise_for_status()
+        return res.json()
+
+    def create_character(self, payload: Dict):
+        res = requests.post(
+            self.url + '/user/character',
+            cookies=self._get_cookie_from_token(),
+            data=json.dumps(payload)
         )
         res.raise_for_status()
         return res.json()
@@ -108,7 +124,27 @@ def _get_login_data():
 
 
 def get_client() -> Client:
-    return Client(settings.WEB_BASE_URL)
+    def get_client_url():
+        try:
+            with open('/tmp/__pm_client_url', 'r') as f:
+                d = f.read()
+        except FileNotFoundError:
+            d = input('Enter projectm base URL (i.e. http://localhost:60160) : ')
+            check_res = requests.get(d + '/auth/login')
+            try:
+                check_res.raise_for_status()
+            except HTTPError as e:
+                if e.response.status_code == 405:
+                    pass
+                else:
+                    print('Error checking Client URL: ', str(e))
+                    exit(1)
+
+            with open('/tmp/__pm_client_url', 'w') as f:
+                f.write(d)
+        return d
+
+    return Client(get_client_url())
 
 
 @click.group(name='client')
@@ -140,7 +176,7 @@ def login():
         return
     payload = _get_login_data()
     response = client.login(payload)
-    click.echo('Login response: %s' % response)
+    click.echo('Login response: %s - Cookies: %s' % response)
 
 
 @user.command()
@@ -151,6 +187,42 @@ def logout():
         return
     response = client.logout()
     click.echo('Logout response: %s' % response)
+
+
+@user.command()
+def details():
+    client = get_client()
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+    response = client.get_details()
+    click.echo('Response:\n%s' % json.dumps(response, indent=2))
+
+
+@user.group()
+def character():
+    pass
+
+
+@character.command()
+def ls():
+    client = get_client()
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+    response = client.get_characters()
+    click.echo('Response:\n%s' % json.dumps(response, indent=2))
+
+
+@character.command()
+def create():
+    client = get_client()
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+    character_name = input('Enter your chacter name: ')
+    response = client.create_character({"name": character_name})
+    click.echo('Create Character response:\n%s' % json.dumps(response, indent=2))
 
 
 if __name__ == '__main__':

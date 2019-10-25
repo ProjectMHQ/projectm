@@ -4,9 +4,8 @@ import uuid
 
 from sqlalchemy.orm import scoped_session, Session
 
-from etc import settings
-from core.src import models
-from core.src.business.user.types import UserStatus
+from core.src.business.user.abstract import UserDOAbstract
+from core.src import models, exceptions
 from core.src.database import atomic
 
 
@@ -15,45 +14,48 @@ class UserRepositoryImpl:
         self._session_factory = session_factory
 
     @staticmethod
-    def _get_new_users_default_roles():
-        return ['admin']
-
-    @staticmethod
-    def _get_new_users_default_status():
-        if settings.EMAIL_MUST_BE_CONFIRMED:
-            return UserStatus.LOCKED.value
-        else:
-            return UserStatus.ACTIVE.value
-
-    @staticmethod
-    def _get_random_uuid():
+    def _get_random_uuid() -> str:
         return str(uuid.uuid4())
 
     @property
     def session(self) -> Session:
         return self._session_factory()
 
-    def get_user_by_field(self, field_name: str, field_value: typing.Any) -> models.User:
-        return self.session.query(models.User).filter(getattr(models.User, field_name) == field_value).one()
+    def get_user_by_field(self, field_name: str, field_value: typing.Any) -> UserDOAbstract:
+        from core.src.business.user.user import UserDOImpl
+        model = self.session.query(models.User).filter(getattr(models.User, field_name) == field_value).one()
+        return UserDOImpl.from_model(model)
 
-    def get_multiple_users_by_field(self, field_name: str, field_value: typing.Any) -> typing.List[models.User]:
-        return self.session.query(models.User).filter(getattr(models.User, field_name) == field_value)
+    def get_multiple_users_by_field(self, field_name: str, field_value: typing.Any) -> typing.List[UserDOAbstract]:
+        from core.src.business.user.user import UserDOImpl
+        return [
+            UserDOImpl.from_model(x)
+            for x in self.session.query(models.User).filter(getattr(models.User, field_name) == field_value)
+        ]
 
     @atomic
-    def create_user(self, email: str, password: str):
-        user = models.User(
-            email=email,
+    def create_user(self, email: str, password: str) -> UserDOAbstract:
+        from core.src.business.user.user import UserDOImpl
+        user = UserDOImpl(email=email).set_password(password)
+        model = models.User(
+            email=user.email,
             user_id=self._get_random_uuid(),
-            status=self._get_new_users_default_status(),
+            status=user.status.value,
+            hashed_password=user.hashed_password,
+            meta=user.meta
         )
-        user.roles = self._get_new_users_default_roles()
-        user.set_password(password)
-        self.session.add(user)
-        self.session.flush()
+        try:
+            self.session.add(model)
+            self.session.flush()
+        except Exception as e:
+            if 'UNIQUE' in str(e.args[0]):
+                raise exceptions.ResourceDuplicated(e.args[0])
+            raise e
+        user._user_id = model.user_id
         return user
 
     @atomic
-    def update_user(self, user: models.User, data: typing.Dict = None):
+    def update_user(self, user: models.User, data: typing.Dict = None) -> UserDOAbstract:
         if data:
             for k, v in data.items():
                 if v is not None and getattr(user, k, None) != v:

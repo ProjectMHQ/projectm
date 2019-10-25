@@ -15,7 +15,7 @@ if settings.SQL_DRIVER == 'postgresql':
     json_column_type = postgresql.JSONB
     _engine_endpoint = settings.DATASOURCE
 
-elif settings.SQL_DRIVER == 'sqlite' or settings.RUNNING_TESTS or settings.USE_SQLITE:
+elif settings.SQL_DRIVER == 'sqlite' or settings.RUNNING_TESTS:
     class JsonEncodedDict(sqlalchemy.TypeDecorator):
         impl = sqlalchemy.String
 
@@ -79,9 +79,6 @@ def atomic(fun):
             _threadlocal.counter -= 1
             return r
         except Exception as e:
-            if _threadlocal.counter == 1:
-                _threadlocal.db.commit()
-            _threadlocal.counter -= 1
             raise e
 
     return _inner_atomic
