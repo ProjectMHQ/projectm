@@ -174,7 +174,7 @@
                 console.log( 'connected' );
                 $( '#cnn' ).val( "connected" );
 
-                const pre = $( ' <pre > < /pre>' );
+                const pre = $( ' <pre> </pre>' );
                 $( '#messages' ).append( pre.text( message.data ) );
             } );
         } );
@@ -210,7 +210,7 @@
 
             <div id="server-info">
                 <span>server address:</span>&nbsp;<input id="serverAddress" type="text"
-                    value="http://staging.pm.chatsubo.it/">
+                    value="http://staging.pm.chatsubo.it">
                 <br />
                 <span>port:</span>&nbsp;<input id="serverPort" type="text" value="80">
                 <br />
