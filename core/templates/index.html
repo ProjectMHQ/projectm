@@ -21,12 +21,17 @@
 
     <script type="text/javascript">
         $( document ).ready( function () {
-            $( "#login_button" ).on( 'click', function () {
-
-            } );
-            $( "#logout_button" ).on( 'click', function () {
-                $( "#login_form_div" ).removeClass( 'hide' );
-                //$( "#logged_in_area" ).addClass( 'hide' );
+            $( "#logout_button" ).click( function () {
+                $.ajax( {
+                    type: "POST",
+                    url: "/auth/logout",
+                    success: function ( res ) {
+                        $( "#login_form_div" ).removeClass( 'hide' );
+                        $( "#logged_in_area" ).addClass( 'hide' );
+                        return false;
+                    },
+                    contentType: "application/json; charset=utf-8"
+                } );
                 return false;
             } );
 
