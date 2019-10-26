@@ -54,3 +54,7 @@ SENDGRID_API_KEY = config['settings']['sendgrid_api_key']
 TOKEN_TTL = int(config['settings'].getint('token_ttl'))
 
 ENABLE_CORS = config['settings']['enable_cors']
+
+REDIS_HOST = config['database']['redis_host']
+REDIS_PORT = int(config['database']['redis_port'] or 0)
+REDIS_DB = int(config['database']['redis_db'] or 0)
