@@ -70,4 +70,9 @@ def handler(exception):
 
 
 if __name__ == '__main__':
-    socketio.run(app, port=60160, debug=True)
+    socketio.run(
+        app,
+        port=int(settings.WEB_BASE_PORT),
+        host=settings.WEB_BASE_HOSTNAME,
+        debug=settings.DEBUG
+    )
