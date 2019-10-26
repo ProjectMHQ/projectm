@@ -168,7 +168,9 @@
 
                 socket.io = io( cnnStr );
                 // Client side event listener. It takes new messages from the server and appends it to HTML.
-                socket.io.on('connect', function() { console.log( 'connected' ); });
+                socket.io.on('connect', function() {
+                    console.log( 'connected' );
+                });
                 socket.io.on( 'msg', message => {
                     $( '#cnn' ).val( "connected" );
 
@@ -211,10 +213,14 @@
 
 
                 <div id="server-info">
+
+                    <!-- I tag tipo con parentesi graffe sono jinja template. leave it here, gli hostname li setta
+                     il server. -->
+
                     <span>server address:</span>&nbsp;<input id="serverAddress" type="text"
-                        value="http://localhost">
+                        value="http://{{context.ws_host}}">
                     <br />
-                    <span>port:</span>&nbsp;<input id="serverPort" type="text" value="60160">
+                    <span>port:</span>&nbsp;<input id="serverPort" type="text" value="{{context.ws_port}}">
                     <br />
                     <button type="button" name="cnn" id="cnn">Connect</button>
                 </div>

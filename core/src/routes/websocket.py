@@ -12,11 +12,11 @@ def build_websocket_route(socketio):
     @ensure_websocket_authentication
     def connect():
         emit('msg', {'data': ws_messages_factory.get_motd()})
-        emit('msg', {'data': ws_messages_factory.get_login_message()})
-        emit('msg', {'data': json.dumps(request.user_token, indent=4)})
+        emit('msg', {'data': ws_messages_factory.get_login_message(request)})
 
     @socketio.on('msg')
     def message(message):
+
         emit('msg', {'data': str(message)})
 
     @socketio.on('authetication')

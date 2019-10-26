@@ -60,8 +60,12 @@ def handle_new_token():
         )
         character.ensure_can_authenticate()
         auth_response = auth_service.authenticate_character(character.as_dict(context='token'))
-        response = flask.jsonify({"character_id": auth_response['character_id']})
-        response.set_cookie('WS-Authorization', 'Bearer {}'.format(auth_response['token']))
+        response = flask.jsonify(
+            {
+                "character_id": auth_response['character_id'],
+                "token": auth_response['token']
+            }
+        )
         return response
 
     return flask.Response(response='WRONG_ENTITY_TYPE', status=401)
