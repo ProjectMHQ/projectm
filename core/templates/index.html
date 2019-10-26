@@ -26,7 +26,7 @@
             } );
             $( "#logout_button" ).on( 'click', function () {
                 $( "#login_form_div" ).removeClass( 'hide' );
-                $( "#logged_in_area" ).addClass( 'hide' );
+                //$( "#logged_in_area" ).addClass( 'hide' );
                 return false;
             } );
 
@@ -59,14 +59,39 @@
                         alert( "error" );
                     } );
             } );
+
+            // $( "#test" ).click( e => {
+            //         e.preventDefault();
+            //         var data = [ {
+            //                 "character_id": "74080bda-1716-4ab6-8d1e-a0eb9f70dd54",
+            //                 "name": "pippo",
+            //                 "pos": null
+            //             },
+            //             {
+            //                 "character_id": "4a6ee6a7-a57b-4e7c-a897-729503d0c6ba",
+            //                 "name": "pluto",
+            //                 "pos": null
+            //             }
+            //         ];
+
+            //         jQuery.each( data, function ( i, d ) {
+            //                 $( "#characters" ).append( "<div>" + d.character_id + " " + d.name +
+            //                     "</div>" ).css( {
+            //                     "float": "left",
+            //                     "position": "relative",
+            //                 } );
+            //         } );
+            // } );
         } );
 
         function getCharsList() {
-            $.get( "/user/character", function ( data ) {
-                jQuery.each( data.data, function ( i, val ) {
-                    $( "#characters" ).append( "<br />" + document.createTextNode( val.character_id +
-                        " " + val
-                        .name ) );
+            $.get( "/user/character", function ( res ) {
+                jQuery.each( res.data, function ( i, d ) {
+                    $( "#characters" ).append( "<div>" + d.character_id + " " + d.name +
+                        "</div>" ).css( {
+                        "float": "left",
+                        "position": "relative",
+                    } );
                 } );
             } );
         }
@@ -92,7 +117,7 @@
                 </form>
             </div>
         </div>
-        <div class="hide" id="logged_in_area">
+        <div id="logged_in_area" class="hide">
             <h2>Logged in</h2>
             <h4>user_id: <span id="user_id"></span></h4>
             <div id="logout_button_div">
@@ -108,8 +133,9 @@
             <button id="create">Create</button>
             <br /><br />
             <h2>Your characters:</h2>
-            <table width=50% id="characters" border="1">
-            </table>
+            <!-- <a href="javascript:;" id="test">Get Chars</a> -->
+            <div id="characters">
+            </div>
         </div>
     </div>
 </body>
