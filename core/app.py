@@ -2,6 +2,7 @@ import flask
 from flask_socketio import SocketIO
 from core.src.database import init_db, db
 from core.src.exceptions import ResourceDuplicated
+from core.src.logging_factory import LOGGING_FACTORY
 from core.src.routes.websocket import build_websocket_route
 from core.src.utils.tools import FlaskUUID
 
@@ -47,6 +48,17 @@ build_websocket_route(socketio)
 @app.before_request
 def _init_db():
     init_db(db)
+
+
+@app.teardown_request
+def _tear_db(response):
+    # noinspection PyBroadException
+    try:
+        LOGGING_FACTORY.core.debug('Closing database')
+        db().close()
+    except:
+        LOGGING_FACTORY.core.exception('Error closing database')
+    return response
 
 
 @app.errorhandler(ResourceDuplicated)
