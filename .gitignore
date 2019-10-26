@@ -3,4 +3,4 @@ __pycache__
 .idea/
 temp/
 venv/
-
+local-settings.conf

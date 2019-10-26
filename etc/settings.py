@@ -4,11 +4,14 @@ from configparser import ConfigParser
 
 ENV = os.environ['PROJECTM_ENV']
 RUNNING_TESTS = os.environ.get('RUNNING_TESTS')
-
 INI_FILE = os.path.join(os.path.dirname(__file__), ENV, 'settings.conf')
+LOCAL_SETTINGS_INI_FILE = os.path.join(os.path.dirname(__file__), ENV, 'local-settings.conf')
 
 config = ConfigParser()
 config.read(INI_FILE)
+config.read(LOCAL_SETTINGS_INI_FILE)
+
+DEBUG = config['settings']['debug']
 
 ENCRYPTION_KEY = hashlib.sha256(config['settings']['encryption_key_seed'].encode()).digest()
 ENCRYPTION_IV = hashlib.md5(config['settings']['encryption_iv_seed'].encode()).digest()
