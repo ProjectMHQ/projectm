@@ -1,5 +1,3 @@
-import json
-
 from flask import request
 from flask_socketio import emit
 

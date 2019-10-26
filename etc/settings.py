@@ -17,10 +17,13 @@ ENCRYPTION_KEY = hashlib.sha256(config['settings']['encryption_key_seed'].encode
 ENCRYPTION_IV = hashlib.md5(config['settings']['encryption_iv_seed'].encode()).digest()
 
 WEB_PROTOCOL = config['settings']['web_protocol']
-WEB_BASE_HOSTNAME = config['settings']['web_base_hostname']
-WEB_BASE_PORT = config['settings']['web_base_port']
+WEB_HOSTNAME = config['settings']['web_hostname']
+WEB_PORT = config['settings']['web_port']
 
-WEB_BASE_URL = '{}://{}:{}'.format(WEB_PROTOCOL, WEB_BASE_HOSTNAME, WEB_BASE_PORT)
+SOCKETIO_HOSTNAME = config['settings']['socketio_hostname']
+SOCKETIO_PORT = config['settings']['socketio_port']
+
+WEB_BASE_URL = '{}://{}:{}'.format(WEB_PROTOCOL, WEB_HOSTNAME, WEB_PORT)
 
 SQL_DRIVER = config['database']['sql_driver']
 

@@ -59,7 +59,8 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         user.validate_password(password)
         return {
             "user_id": user.user_id,
-            "token": self._get_login_token(user.as_dict(context='token'))
+            "token": self._get_login_token(user.as_dict(context='token')),
+            "expires_at": settings.TOKEN_TTL + int(time.time())
         }
 
     def logout(self, *a, **kw):

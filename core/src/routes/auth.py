@@ -35,7 +35,10 @@ def handle_login():
     payload = json.loads(request.data)
     login_response = auth_service.login(payload.get('email'), payload.get('password'))
     response = flask.jsonify({"user_id": login_response['user_id']})
-    response.set_cookie('Authorization', 'Bearer {}'.format(login_response['token']))
+    response.set_cookie(
+        'Authorization', 'Bearer {}'.format(login_response['token']),
+        expires=login_response['expires_at']
+    )
     return response
 
 
@@ -45,7 +48,8 @@ def handle_login():
 def handle_logout():
     auth_service.logout()
     response = flask.Response(response='LOGOUT_CONFIRMED')
-    response.set_cookie('Authorization', '')
+    response.set_cookie('Authorization', '', expires=0)
+    print('LOGGED OUT!')
     return response
 
 

@@ -164,7 +164,7 @@
 
                 var add = $( "#serverAddress" ).val();
                 var port = $( "#serverPort" ).val();
-                var cnnStr = add + ":" + port;
+                var cnnStr = "http://" + add + ":" + port;
 
                 socket.io = io( cnnStr );
                 // Client side event listener. It takes new messages from the server and appends it to HTML.
@@ -218,7 +218,7 @@
                      il server. -->
 
                     <span>server address:</span>&nbsp;<input id="serverAddress" type="text"
-                        value="http://{{context.ws_host}}">
+                        value="{{context.ws_host}}">
                     <br />
                     <span>port:</span>&nbsp;<input id="serverPort" type="text" value="{{context.ws_port}}">
                     <br />

@@ -74,7 +74,7 @@ def handler(exception):
 if __name__ == '__main__':
     socketio.run(
         app,
-        port=int(settings.WEB_BASE_PORT),
-        host=settings.WEB_BASE_HOSTNAME,
+        port=int(settings.WEB_PORT),
+        host=settings.WEB_HOSTNAME,
         debug=settings.DEBUG
     )

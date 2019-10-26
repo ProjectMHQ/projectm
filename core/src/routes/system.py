@@ -12,8 +12,8 @@ def serve_test_client():
     return flask.render_template(
         'test_client.html',
         context={
-            'ws_host': settings.WEB_BASE_HOSTNAME,
-            'ws_port': settings.WEB_BASE_PORT
+            'ws_host': settings.SOCKETIO_HOSTNAME,
+            'ws_port': settings.SOCKETIO_PORT
         }
     )
 
