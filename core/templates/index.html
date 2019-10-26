@@ -93,7 +93,14 @@
                     "entity_id": character_id
                 } ),
                 success: function ( res ) {
-                    alert(JSON.stringify(res))
+                    var win = window.open('/system/test_client?token='+res.token, '_blank');
+                    if (win) {
+                        //Browser has allowed it to be opened
+                        win.focus();
+                    } else {
+                        //Browser has blocked it
+                        alert('Please allow popups for this website');
+                    }
                 },
                 contentType: "application/json; charset=utf-8"
             } );

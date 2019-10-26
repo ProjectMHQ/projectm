@@ -34,10 +34,20 @@ class WebsocketMessagesFactory():
 """.format(LINE)
 
     def get_login_message(self, request):
-        return "\n\n{line}\n\nWelcome user! It has been a while...\n\n{data}\n\n{line}".format(
-            data=json.dumps(request.user_token, indent=4),
-            line=LINE
-        )
+        return 'User %s' % request.user_token['user']['user_id']
 
     def echo(self, value) -> str:
         return str(value)
+
+    def greet_character(self, data):
+        res = "\n\nAhoy, {} !\n\n".format(data['data']['name'])
+        res += "\n\n"
+        res += "~~~~ Nel bel mezzo del niente ~~~~\n\n\n"
+        res += "Sei nel bel mezzo del niente. Qui non c'è niente.\n"
+        res += "Attorno a te non vedi niente, perché... non c'è niente.\n"
+        res += "Se vuoi però... puoi parlare. Da solo. Ovviamente.\n"
+        res += "Perché nel niente, nessuno può sentirti.\n\n"
+        return res
+
+    def wait_for_auth(self):
+        return '\n\n\nAuthenticating...\n\n\n'

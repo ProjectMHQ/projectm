@@ -6,8 +6,10 @@ class WebsocketRequestsProcessorInterface:
         self._commands = {}
         self._errors_handlers = set()
 
-    def add_command(self, command: str, method: callable):
+    def add_command(self, command: str, method: callable, aliases=[]):
         self._commands[command] = method
+        for alias in aliases:
+            self._commands[alias] = method
 
     def on_command(self, command: str, arguments: typing.List[str], callback=None):
         cmd = self._commands.get(command)

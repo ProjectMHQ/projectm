@@ -11,3 +11,8 @@ ws_commands_processor.add_command(
     'di',
     lambda *x: request.user_token['user']['user_id'] + ' dice "' + ' '.join(x) + '"'
 )
+ws_commands_processor.add_command(
+    'guarda',
+    lambda *a, **kw: "Guarda pure, ma non c'è niente, ti ho detto che non c'è niente.\n",
+    aliases=['g', 'gu', 'gua']
+)

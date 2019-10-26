@@ -1,5 +1,6 @@
 import json
 
+import time
 from flask import request
 from flask_socketio import emit
 
@@ -40,6 +41,8 @@ def build_websocket_route(socketio):
     @socketio.on('auth')
     @ensure_websocket_authentication
     def authentication(message):
-        token = auth_service.decode_session_token(message)
+        payload = json.loads(message)
+        emit('msg', {'data': ws_messages_factory.wait_for_auth(), 'ctx': 'auth'})
+        token = auth_service.decode_session_token(payload['token'])
         assert token['context'] == 'character'
-        raise NotImplementedError ## Fixme Todo
+        emit('msg', {'data': ws_messages_factory.greet_character(token), 'ctx': 'auth'})

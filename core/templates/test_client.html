@@ -159,6 +159,9 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
         <script>
             $( document ).ready( function () {
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                const character_id = urlParams.get('character_id');
                 var socket = {};
 
 
@@ -166,16 +169,30 @@
                 var port = $( "#serverPort" ).val();
                 var cnnStr = "http://" + add + ":" + port;
 
+                authenticate = function() {
+                    console.log('Authenticating character id ' + character_id + ' with token: ' + token)
+                    socket.io.emit(
+                        'auth',
+                        JSON.stringify({'character_id': character_id, 'token': token}),
+                        function() {
+                            console.log('auth call done');
+                        }
+                    )
+                }
+                addMsg = function(msg) {
+                    const pre = $( ' <pre> </pre>' );
+                    $( '#messages' ).append( pre.text( msg ) );
+                }
+
                 socket.io = io( cnnStr );
                 // Client side event listener. It takes new messages from the server and appends it to HTML.
                 socket.io.on('connect', function() {
                     console.log( 'connected' );
+                    authenticate()
                 });
                 socket.io.on( 'msg', message => {
                     $( '#cnn' ).val( "connected" );
-
-                    const pre = $( ' <pre> </pre>' );
-                    $( '#messages' ).append( pre.text( message.data ) );
+                    addMsg(message.data)
                 } );
 
                 $('#message').on('keypress',function(e) {
