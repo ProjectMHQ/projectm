@@ -72,6 +72,21 @@
 
         } );
 
+        function openWebClient(character_id) {
+            $.ajax( {
+                type: "POST",
+                url: "/auth/token",
+                data: JSON.stringify( {
+                    "entity_type": "character",
+                    "entity_id": character_id
+                } ),
+                success: function ( res ) {
+                    alert(JSON.stringify(res))
+                },
+                contentType: "application/json; charset=utf-8"
+            } );
+        };
+
         function getCharsList() {
             $("#characters").empty()
             $.get( "/user/character", function ( res ) {
@@ -83,6 +98,7 @@
                         "position": "relative",
                         "margin-top": "20px"
                     } );
+                    $("#open_wc_character_" + d.character_id).on('click', () => { openWebClient(d.character_id) });
                 } );
             } );
         }
