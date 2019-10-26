@@ -17,7 +17,7 @@ class User(Base):
     created_at = sqlalchemy.Column(sqlalchemy.TIMESTAMP, server_default=sqlalchemy.func.now())
     updated_at = sqlalchemy.Column(sqlalchemy.TIMESTAMP, nullable=True, onupdate=sqlalchemy.func.now())
     version_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False, default=1, server_default='1')
-    hashed_password = sqlalchemy.Column(sqlalchemy.String(36), nullable=False, unique=False, index=True)
+    hashed_password = sqlalchemy.Column(sqlalchemy.String(64), nullable=False, unique=False, index=True)
     __mapper_args__ = {
         "version_id_col": version_id
     }
