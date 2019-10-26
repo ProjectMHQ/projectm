@@ -1,11 +1,10 @@
 import typing
 
-from click import exceptions
 
-
-class RequestsProcessorInterface:
+class WebsocketRequestsProcessorInterface:
     def __init__(self):
         self._commands = {}
+        self._errors_handlers = set()
 
     def add_command(self, command: str, method: callable):
         self._commands[command] = method
@@ -13,6 +12,11 @@ class RequestsProcessorInterface:
     def on_command(self, command: str, arguments: typing.List[str], callback=None):
         cmd = self._commands.get(command)
         if not cmd:
-            raise exceptions.MissingCommandException
-        res = cmd(command, arguments)
+            self.on_error(command)
+            return
+        res = cmd(*arguments)
         callback and callback(res)
+
+    def on_error(self, command: str):
+        for handler in self._errors_handlers:
+            handler(command)

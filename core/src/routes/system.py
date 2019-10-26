@@ -1,4 +1,5 @@
 import flask
+
 from etc import settings
 
 bp = flask.Blueprint('system', __name__)

@@ -2,20 +2,37 @@ from flask import request
 from flask_socketio import emit
 
 from core.src.authentication.scope import ensure_websocket_authentication
-from core.src.builder import ws_messages_factory
+from core.src.websocket.builder import ws_commands_processor, ws_messages_factory
+from core.src.websocket.utilities import ws_commands_extractor
 
 
 def build_websocket_route(socketio):
     @socketio.on('connect')
     @ensure_websocket_authentication
     def connect():
-        emit('msg', {'data': ws_messages_factory.get_motd()})
-        emit('msg', {'data': ws_messages_factory.get_login_message(request)})
+        emit('msg', {
+            'data': ws_messages_factory.get_motd(),
+            'ctx': 'auth'
+        })
+        emit('msg', {
+            'data': ws_messages_factory.get_login_message(request),
+            'ctx': 'auth'
+        })
 
     @socketio.on('msg')
-    def message(message):
-
-        emit('msg', {'data': str(message)})
+    @ensure_websocket_authentication
+    def message(msg):
+        command, arguments = ws_commands_extractor(msg)
+        if not command:
+            return
+        ws_commands_processor.on_command(
+            command,
+            arguments,
+            lambda response: response and emit('msg', {
+                'data': response,
+                'ctx': 'cmd'
+            })
+        )
 
     @socketio.on('authetication')
     def authentication():
