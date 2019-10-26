@@ -42,7 +42,6 @@
                         $( "#login_form_div" ).addClass( 'hide' );
                         $( "#logged_in_area" ).removeClass( 'hide' );
                         $( "#user_id" ).text( res[ 'user_id' ] );
-
                         getCharsList();
                     },
                     contentType: "application/json; charset=utf-8"
@@ -51,46 +50,33 @@
             } );
 
 
-            $( "#create" ).click( name => {
-                $.get( "/user/character", function ( name ) {
-                        console.log( "creato" );
-                    } )
-                    .fail( function () {
-                        alert( "error" );
-                    } );
+            $( "#character_create" ).click( function () {
+                $.ajax( {
+                    type: "POST",
+                    url: "/user/character",
+                    data: JSON.stringify( {
+                        "name": $( "#character_name" ).val()
+                    } ),
+                    success: function ( res ) {
+                        getCharsList();
+                    },
+                    contentType: "application/json; charset=utf-8"
+                } );
+                return false;
             } );
 
-            // $( "#test" ).click( e => {
-            //         e.preventDefault();
-            //         var data = [ {
-            //                 "character_id": "74080bda-1716-4ab6-8d1e-a0eb9f70dd54",
-            //                 "name": "pippo",
-            //                 "pos": null
-            //             },
-            //             {
-            //                 "character_id": "4a6ee6a7-a57b-4e7c-a897-729503d0c6ba",
-            //                 "name": "pluto",
-            //                 "pos": null
-            //             }
-            //         ];
-
-            //         jQuery.each( data, function ( i, d ) {
-            //                 $( "#characters" ).append( "<div>" + d.character_id + " " + d.name +
-            //                     "</div>" ).css( {
-            //                     "float": "left",
-            //                     "position": "relative",
-            //                 } );
-            //         } );
-            // } );
         } );
 
         function getCharsList() {
+            $("#characters").empty()
             $.get( "/user/character", function ( res ) {
                 jQuery.each( res.data, function ( i, d ) {
-                    $( "#characters" ).append( "<div>" + d.character_id + " " + d.name +
-                        "</div>" ).css( {
+                    $( "#characters" ).append( "<div>" + d.character_id + " " + d.name + " " +
+                     '<button class="open_wc" id="open_wc_character_' + d.character_id + '">Open Client</button>' +
+                        "</div><br />" ).css( {
                         "float": "left",
                         "position": "relative",
+                        "margin-top": "20px"
                     } );
                 } );
             } );
@@ -129,8 +115,7 @@
             <br />
             <h2>Create character:</h2>
             Character name:<br>
-            <input type="text" name="name"><br />
-            <button id="create">Create</button>
+            <input id="character_name" type="text" name="name"> <button id="character_create">Create</button>
             <br /><br />
             <h2>Your characters:</h2>
             <!-- <a href="javascript:;" id="test">Get Chars</a> -->

@@ -58,15 +58,8 @@ def ensure_websocket_authentication(fun):
         from core.src.builder import auth_service
         if not request or not request.cookies or not request.cookies.get('Authorization'):
             raise exceptions.NotLoggedInException()
-        session_token = auth_service.decode_session_token(
-            request.cookies['WS-Authorization'].replace('Bearer ', '')
-        )
+        session_token = auth_service.decode_session_token(request.cookies['Authorization'].replace('Bearer ', ''))
         if session_token['context'] != 'character':
             raise NotImplementedError('wtf?')
-
-        request.character = CharacterDOImpl.from_session_token(session_token['data'])
-        response = fun(*a, **kw)
-        response.set_cookie('Authorization', request.cookies['Authorization'])
-        response.set_cookie('WS-Authorization', request.cookies['WS-Authorization'])
-        return response
+        fun(*a, **kw)
     return wrapper

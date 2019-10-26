@@ -16,7 +16,9 @@ app = flask.Flask(__name__)
 FlaskUUID(app)
 
 
-socketion_settings = {}
+socketion_settings = {
+    'async_mode': 'eventlet'
+}
 
 if settings.ENABLE_CORS:
     socketion_settings['cors_allowed_origins'] = "*"
