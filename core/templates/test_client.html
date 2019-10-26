@@ -169,27 +169,30 @@
 
         socket.io = io( cnnStr );
         // Client side event listener. It takes new messages from the server and appends it to HTML.
-        socket.io.on( 'message', message => {
-            console.log( 'connected' );
+        socket.io.on('connect', function() { console.log( 'connected' ); });
+        socket.io.on( 'msg', message => {
             $( '#cnn' ).val( "connected" );
 
             const pre = $( ' <pre> </pre>' );
             $( '#messages' ).append( pre.text( message.data ) );
         } );
 
+        $('#message').on('keypress',function(e) {
+            if(e.which == 13) {
+                console.log('enter')
+                socket.io.emit(
+                    'msg',
+                    $( '#message' ).val(),
+                    () => {
+                        $( '#message' ).val( '' )
+                    }
+                );
+            }
+        }
+    );
+
     } );
 
-    $( '#message-form' ).on( 'submit', function ( event ) {
-        event.preventDefault();
-        console.log( '=> [main]: ' + $( '#message' ).val() )
-        socket.io.emit(
-            'main',
-            $( '#message' ).val(),
-            () => {
-                $( '#message' ).val( '' )
-            }
-        );
-    } );
 </script>
 
 <body>
@@ -227,9 +230,7 @@
 
         Status and Quick actions
         <div id="boxMsg">
-            <form action="" id="message-form">
-                <input type="text" name="message" id="message" placeholder="enter message">
-            </form>
+            <input type="text" name="message" id="message" placeholder="enter message">
         </div>
     </div>
 </body>

@@ -44,7 +44,9 @@ def handle_login():
 @ensure_logged_in
 def handle_logout():
     auth_service.logout()
-    return flask.Response(response='LOGOUT_CONFIRMED')
+    response = flask.Response(response='LOGOUT_CONFIRMED')
+    response.set_cookie('Authorization', '')
+    return response
 
 
 @db_close

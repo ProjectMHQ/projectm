@@ -1,5 +1,7 @@
 import flask
 
+from core.src.authentication.scope import ensure_logged_in
+
 bp = flask.Blueprint('system', __name__)
 
 
@@ -7,6 +9,7 @@ def ping():
     return flask.Response(response='PONG')
 
 
+#@ensure_logged_in
 def serve_test_client():
     return flask.render_template('test_client.html')
 

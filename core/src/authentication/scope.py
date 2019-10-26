@@ -38,16 +38,9 @@ def ensure_logged_in(fun):
         from core.src.builder import auth_service
         if not request or not request.cookies or not request.cookies.get('Authorization'):
             raise exceptions.NotLoggedInException()
-        session_token = auth_service.decode_session_token(
-            request.cookies['Authorization'].replace('Bearer ', '')
-        )
+        session_token = auth_service.decode_session_token(request.cookies['Authorization'].replace('Bearer ', ''))
         request.user = session_token['user']
         response = fun(*a, **kw)
-        for c in response.headers.get('Set-Cookie', []):
-            if 'Cookie Authorization' in str(c):
-                return response
-
-        response.set_cookie('Authorization', request.cookies['Authorization'])
         return response
     return wrapper
 
@@ -58,8 +51,7 @@ def ensure_websocket_authentication(fun):
         from core.src.builder import auth_service
         if not request or not request.cookies or not request.cookies.get('Authorization'):
             raise exceptions.NotLoggedInException()
-        session_token = auth_service.decode_session_token(request.cookies['Authorization'].replace('Bearer ', ''))
-        if session_token['context'] != 'character':
-            raise NotImplementedError('wtf?')
+        user_token = auth_service.decode_session_token(request.cookies['Authorization'].replace('Bearer ', ''))
+        request.user_token = user_token
         fun(*a, **kw)
     return wrapper
