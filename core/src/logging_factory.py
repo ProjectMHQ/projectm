@@ -48,17 +48,21 @@ def _init_logging(loggers):
 class LoggingFactory(object):
     def __init__(self):
         self.loggers = {
-            'core': 'DEBUG'
+            'core': 'DEBUG',
+            'websocket_monitor': 'DEBUG'
         }
         _init_logging(self.loggers)
 
     @staticmethod
     def _get_logger(name):
-        return
+        return logging.getLogger(name)
 
     @property
     def core(self):
-        return logging.LoggerAdapter(logging.getLogger('core'), {"user_id": get_current_user_id()})
+        return logging.LoggerAdapter(
+            logging.getLogger('core'),
+            {"user_id": get_current_user_id()}
+        )
 
     @property
     def websocket_monitor(self):
