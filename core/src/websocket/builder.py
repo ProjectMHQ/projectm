@@ -1,5 +1,7 @@
 from flask import request
-
+from redis import StrictRedis
+from etc import settings
+from core.src.websocket.channels import WebsocketChannelsFactory
 from core.src.websocket.requests import WebsocketWorldCommandsInterface
 from core.src.websocket.messages import WebsocketMessagesFactory
 from core.src.websocket.types import WebsocketContext
@@ -25,3 +27,11 @@ _ws_world_commands_interface.add_command(
 
 ws_commands_extractor_factory = WSCommandsInterfaceFactory()
 ws_commands_extractor_factory.add_interface(_ws_world_commands_interface)
+
+_redis = StrictRedis(
+    host=settings.REDIS_HOST,
+    port=settings.REDIS_PORT,
+    db=settings.REDIS_DB
+)
+
+channels_factory = WebsocketChannelsFactory(_redis)

@@ -25,9 +25,9 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         payload = json.dumps(token)
         return self.encryption_service.encrypt(payload)
 
-    def _get_websocket_token(self, data: typing.Dict, context=None) -> typing.AnyStr:
+    def _get_websocket_token(self, data: typing.Dict) -> typing.AnyStr:
         token = {
-            'context': context,
+            'context': 'world',
             'data': data,
             'created_at': int(time.time()),
             'ttl': settings.TOKEN_TTL,
@@ -89,6 +89,6 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
     def authenticate_character(self, character_data: typing.Dict) -> typing.Dict:
         return {
             "character_id": character_data['character_id'],
-            "token": self._get_websocket_token(character_data, context="character"),
+            "token": self._get_websocket_token(character_data),
             "expires_at": settings.TOKEN_TTL + int(time.time())
         }
