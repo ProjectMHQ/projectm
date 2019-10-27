@@ -6,6 +6,7 @@ from flask import request
 from core.src.authentication.scope import ensure_not_logged_in, ensure_logged_in
 from core.src.builder import user_service
 from core.src.database import db_close
+from core.src.logging_factory import LOGGING_FACTORY
 from core.src.utils.tools import handle_exception
 
 bp = flask.Blueprint('auth', __name__)
@@ -24,6 +25,7 @@ def handle_email_address_confirmation(email_token):
 @ensure_not_logged_in
 def handle_signup():
     payload = json.loads(request.data)
+    LOGGING_FACTORY.core.info('Signup: %s', payload)
     user_service.signup(payload.get('email'), payload.get('password'))
     return flask.Response(response='SIGNUP_CONFIRMED')
 
@@ -33,6 +35,7 @@ def handle_signup():
 @ensure_not_logged_in
 def handle_login():
     payload = json.loads(request.data)
+    LOGGING_FACTORY.core.info('Login: %s', payload)
     login_response = user_service.login(payload.get('email'), payload.get('password'))
     response = flask.jsonify({"user_id": login_response['user_id']})
     response.set_cookie('Authorization', 'Bearer {}'.format(login_response['token']))
@@ -43,6 +46,7 @@ def handle_login():
 @handle_exception
 @ensure_logged_in
 def handle_logout():
+    LOGGING_FACTORY.core.info('Logout')
     user_service.logout()
     return flask.Response(response='LOGOUT_CONFIRMED')
 
