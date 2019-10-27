@@ -23,17 +23,12 @@ def build_websocket_route(socketio):
     @ensure_websocket_authentication
     def message(msg):
         json_message = json.loads(msg)
-        _interface = ws_commands_extractor_factory.get_interface(json_message['ctx'])
+        interface = ws_commands_extractor_factory.get_interface(json_message['ctx'])
         if not json_message['data']:
             return
-        _interface.on_command(
+        interface.on_command(
             json_message['data'],
-            lambda response: response and emit(
-                'msg', {
-                    'data': response,
-                    'ctx': 'cmd'
-                }
-            )
+            lambda response: response and emit('msg', {'data': response, 'ctx': 'cmd'})
         )
 
     @socketio.on('auth')
@@ -46,8 +41,4 @@ def build_websocket_route(socketio):
         channel = channels_factory.get_from_entity_id(token['data']['character_id'])
         if not channel:
             channel = channels_factory.create(token['data']['character_id'])
-        emit(
-            'auth', {
-                'data': {'channel_id': channel.channel_id}
-            }
-        )
+        emit('auth', {'data': {'channel_id': channel.channel_id}})
