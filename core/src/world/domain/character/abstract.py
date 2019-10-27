@@ -4,13 +4,13 @@ import typing
 
 
 class CharacterAbstract(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
     @property
+    @abc.abstractmethod
     def character_id(self) -> str:
         pass
 
-    @abc.abstractmethod
     @property
+    @abc.abstractmethod
     def pos(self) -> typing.NamedTuple:
         pass
 
@@ -22,13 +22,13 @@ class CharacterAbstract(metaclass=abc.ABCMeta):
     def set_name(self, name: str) -> 'CharacterAbstract':
         pass
 
-    @abc.abstractmethod
     @classmethod
+    @abc.abstractmethod
     def from_dict(cls, values: typing.Dict) -> 'CharacterAbstract':
         pass
 
-    @abc.abstractmethod
     @classmethod
+    @abc.abstractmethod
     def new(cls, character_id: str, name: str) -> 'CharacterAbstract':
         pass
 
@@ -36,9 +36,9 @@ class CharacterAbstract(metaclass=abc.ABCMeta):
     def set_id(self, character_id: str) -> 'CharacterAbstract':
         pass
 
-    @abc.abstractmethod
     @classmethod
-    def login(cls, character_id: str, repo: typing.Optional[typing.NamedTuple]=None):
+    @abc.abstractmethod
+    def login(cls, character_id: str, character_name: str, repo: typing.Optional[typing.NamedTuple]=None):
         pass
 
     @abc.abstractmethod

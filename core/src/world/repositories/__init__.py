@@ -1,9 +1,12 @@
 import typing
 
+from core.src.world.repositories.character_repository import RedisCharacterRepositoryImpl
+from core.src.world.repositories.world_repository import RedisWorldRepositoryImpl
+
 RepositoriesFactory = typing.NamedTuple(
     'RepositoriesFactory',
     (
-        ('world', callable),
-        ('character', callable)
+        ('world', RedisWorldRepositoryImpl),
+        ('character', RedisCharacterRepositoryImpl)
     )
 )

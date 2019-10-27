@@ -5,6 +5,7 @@ from core.src.authentication.scope import ensure_websocket_authentication
 from core.src.builder import auth_service
 from core.src.websocket.builder import _ws_world_commands_interface, ws_messages_factory, ws_commands_extractor_factory
 from core.src.world.builder import repositories
+from core.src.world.domain.character.entity import Character
 
 
 def build_websocket_route(socketio):
@@ -42,6 +43,6 @@ def build_websocket_route(socketio):
         emit('msg', {'data': ws_messages_factory.wait_for_auth(), 'ctx': 'auth'})
         token = auth_service.decode_session_token(payload['token'])
         assert token['context'] == 'character'
-        existing_channel = repositories.world.get_character_channel(token['data']['character_id'])
-        channel_id = existing_channel or repositories.world.login(token['data']['character_id'])
-        emit('auth', {'data': {'channel_id': channel_id}})
+        character = Character.login(token['data']['character_id'], token['data']['name'])  # fixme \see comments inside
+        emit('auth', {'data': {'channel_id': character.channel_id}})
+
