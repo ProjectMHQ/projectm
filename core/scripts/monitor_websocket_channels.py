@@ -1,8 +1,5 @@
 import asyncio
-
-import time
 from redis import StrictRedis
-
 from core.src.logging_factory import LOGGING_FACTORY
 from core.src.websocket.channels import WebsocketChannelsFactory
 from etc import settings
@@ -10,7 +7,12 @@ from flask_socketio import SocketIO
 
 
 class WebsocketChannelsMonitor:
-    def __init__(self, socketio, channels_factory, loop=asyncio.get_event_loop()):
+    def __init__(
+            self,
+            socketio: SocketIO,
+            channels_factory: WebsocketChannelsFactory,
+            loop=asyncio.get_event_loop()
+    ):
         self.loop = loop
         self.last_ping = {}
         self.socketio = socketio

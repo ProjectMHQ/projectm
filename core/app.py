@@ -73,6 +73,18 @@ def handler(exception):
     )
 
 
+@app.errorhandler(Exception)
+def handler(exception):
+    _h = {}
+    if settings.ENABLE_CORS:
+        _h['Access-Control-Allow-Origin'] = '*'
+    return flask.Response(
+        response=str(exception),
+        status=getattr(exception, 'status_code', 500),
+        headers=_h
+    )
+
+
 if __name__ == '__main__':
     LOGGING_FACTORY.core.error('Starting')
     socketio.run(
