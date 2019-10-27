@@ -1,269 +1,273 @@
 <!doctype html>
 <html>
 
-    <head>
-        <title>Project M Test Client</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
+<head>
+    <title>Project M Test Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-            body {
-                font-family: "Courier New", Courier, monospace;
-                background-color: #36393F;
-                margin: 5px
-            }
+        body {
+            font-family: "Courier New", Courier, monospace;
+            background-color: #36393F;
+            margin: 5px
+        }
 
-            form {
-                background-color: #36393F;
-                padding: 3px;
-                position: fixed;
-                bottom: 0;
-                width: 100%;
-                border: 1px solid #ffffff;
-            }
+        form {
+            background-color: #36393F;
+            padding: 3px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            border: 1px solid #ffffff;
+        }
 
-            form input {
-                border: 0;
-                padding: 10px;
-                width: 90%;
-                margin-right: .5%;
-            }
+        form input {
+            border: 0;
+            padding: 10px;
+            width: 90%;
+            margin-right: .5%;
+        }
 
-            form button {
-                width: 9%;
-                background: rgb(130, 224, 255);
-                border: none;
-                padding: 10px;
-            }
+        form button {
+            width: 9%;
+            background: rgb(130, 224, 255);
+            border: none;
+            padding: 10px;
+        }
 
-            input[type=text] {
-                background-color: #36393F;
-                color: white;
-                font-size:18px;
-            }
+        input[type=text] {
+            background-color: #36393F;
+            color: white;
+            font-size: 18px;
+        }
 
-            #specialEffects {
-                width: auto;
-                height: 22pt;
-                border-style: solid;
-                border-width: 1px;
-                border-color: #CCFF33;
-                color: #FFF;
-                position: relative;
-                text-align: center;
-            }
+        #specialEffects {
+            width: auto;
+            height: 22pt;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCFF33;
+            color: #FFF;
+            position: relative;
+            text-align: center;
+        }
 
-            #columnRight {
-                width: 250px;
-                height: 100vh;
-                border-style: solid;
-                border-width: 1px;
-                border-color: #CC0000;
-                color: #FFF;
-                padding: 5px 2px;
-                text-align: center;
-                top: 0;
-                position: absolute;
-                right: 0;
-            }
+        #columnRight {
+            width: 250px;
+            height: 100vh;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CC0000;
+            color: #FFF;
+            padding: 5px 2px;
+            text-align: center;
+            top: 0;
+            position: absolute;
+            right: 0;
+        }
 
-            #map {
-                width: 250px;
-                height: 250px;
-                border-style: solid;
-                border-width: 1px;
-                border-color: #CCBB00;
-                color: #FFF;
-                padding: 5px 2px;
-                text-align: center;
-                vertical-align: middle;
-                top: 0;
-                position: absolute;
-                right: 0;
-            }
+        #map {
+            width: 250px;
+            height: 250px;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCBB00;
+            color: #FFF;
+            padding: 5px 2px;
+            text-align: center;
+            vertical-align: middle;
+            top: 0;
+            position: absolute;
+            right: 0;
+        }
 
-            #server-info {
-                width: auto;
-                height: auto;
-                border-style: solid;
-                border-width: 1px;
-                border-color: #CCBBBB;
-                font-family: monospace;
-                font-size: 10pt;
-                vertical-align: middle;
-                text-align: left;
-                top: 180pt;
-                position: relative;
-            }
+        #server-info {
+            width: auto;
+            height: auto;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCBBBB;
+            font-family: monospace;
+            font-size: 10pt;
+            vertical-align: middle;
+            text-align: left;
+            top: 180pt;
+            position: relative;
+        }
 
-            #regionInfo {
-                width: 250px;
-                height: 150px;
-                border-style: solid;
-                border-width: 1px;
-                border-color: #CCBBBB;
-                color: #FFF;
-                padding: 5px 2px;
-                bottom: 0;
-                text-align: center;
-                position: absolute;
-                right: 0;
-            }
+        #regionInfo {
+            width: 250px;
+            height: 150px;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCBBBB;
+            color: #FFF;
+            padding: 5px 2px;
+            bottom: 0;
+            text-align: center;
+            position: absolute;
+            right: 0;
+        }
 
-            #statusAndQA {
-                width: 100vh;
-                height: 24pt;
-                border-style: solid;
-                border-width: 1px;
-                border-color: #AABBAA;
-                color: #FFF;
-                padding: 5px 2px;
-                text-align: center;
-                bottom: 32pt;
-                position: absolute;
-                left: 0;
-                z-index: 1000;
-            }
+        #statusAndQA {
+            width: 100vh;
+            height: 24pt;
+            border-style: solid;
+            border-width: 1px;
+            border-color: #AABBAA;
+            color: #FFF;
+            padding: 5px 2px;
+            text-align: center;
+            bottom: 32pt;
+            position: absolute;
+            left: 0;
+            z-index: 1000;
+        }
 
-            #boxMsg {
-                width: auto;
-                background: #AABBAA;
-                color: #FFF;
-                bottom: 0;
-                position: absolute;
-                left: 0;
-                z-index: 1000;
-            }
+        #boxMsg {
+            width: auto;
+            background: #AABBAA;
+            color: #FFF;
+            bottom: 0;
+            position: absolute;
+            left: 0;
+            z-index: 1000;
+        }
 
-            #messages {
-                padding: 10px;
-                color: white;
-            }
+        #messages {
+            padding: 10px;
+            color: white;
+        }
 
-            pre {
-                padding: px 10px;
-            }
+        pre {
+            padding: px 10px;
+        }
 
-            #messages p:nth-child(odd) {
-                background: #36393F;
-                font-family: monospace;
-                font-size: 12pt;
-                color: #fff;
-            }
-        </style>
-        <script src="https://code.jquery.com/jquery-3.4.1.min.js"
-            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
-        <script>
-            $( document ).ready( function () {
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                const character_id = urlParams.get('character_id');
-                var socket = {};
+        #messages p:nth-child(odd) {
+            background: #36393F;
+            font-family: monospace;
+            font-size: 12pt;
+            color: #fff;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script>
+        $( document ).ready( function () {
+            const urlParams = new URLSearchParams( window.location.search );
+            const token = urlParams.get( 'token' );
+            const character_id = urlParams.get( 'character_id' );
+            var socket = {};
 
 
-                var add = $( "#serverAddress" ).val();
-                var port = $( "#serverPort" ).val();
-                var cnnStr = "http://" + add + ":" + port;
+            var add = $( "#serverAddress" ).val();
+            var port = $( "#serverPort" ).val();
+            var cnnStr = "http://" + add + ":" + port;
 
-                authenticate = function() {
-                    console.log('Authenticating character id ' + character_id + ' with token: ' + token)
-                    socket.io.emit(
-                        'auth',
-                        JSON.stringify({'character_id': character_id, 'token': token}),
-                        function() {
-                            console.log('auth call done');
-                        }
-                    )
-                }
-                addMsg = function(msg) {
-                    const pre = $( ' <pre> </pre>' );
-                    $( '#messages' ).append( pre.text( msg ) );
-                }
-
-                socket.io = io( cnnStr );
-                // Client side event listener. It takes new messages from the server and appends it to HTML.
-                socket.io.on('connect', function() {
-                    console.log( 'connected' );
-                    authenticate()
-                });
-                socket.io.on( 'msg', message => {
-                    $( '#cnn' ).val( "connected" );
-                    addMsg(message.data)
-                } );
-
-                socket.io.on( 'auth', message => {
-                    socket.authenticated_channel = io('/' + message.data.channel_id)
-                    socket.authenticated_channel.on('msg', x => {addMsg('PRIVCHAN: ' + x)})
-                    socket.authenticated_channel.on('connect', y => {
-                        addMsg('Connected to PRIVCHAN ' + message.data.channel_id)
-                    })
-
-                });
-
-                $('#message').on('keypress',function(e) {
-                    if(e.which == 13) {
-                        console.log('enter')
-                        socket.io.emit(
-                            'msg',
-                            JSON.stringify({"ctx": "world", "data": $( '#message' ).val()}),
-                            () => {
-                                $( '#message' ).val( '' )
-                            }
-                        );
+            authenticate = function () {
+                console.log( 'Authenticating character id ' + character_id + ' with token: ' + token )
+                socket.io.emit(
+                    'auth',
+                    JSON.stringify( {
+                        'character_id': character_id,
+                        'token': token
+                    } ),
+                    function () {
+                        console.log( 'auth call done' );
                     }
-                }
-            );
+                )
+            }
+            addMsg = function ( msg ) {
+                const pre = $( ' <pre> </pre>' );
+                $( '#messages' ).append( pre.text( msg ) );
+            }
 
+
+            socket.io = io( cnnStr );
+            // Client side event listener. It takes new messages from the server and appends it to HTML.
+            socket.io.on('connect', function() {
+                console.log( 'connected' );
+                authenticate()
+            });
+            socket.io.on( 'msg', message => {
+                $( '#cnn' ).val( "connected" );
+                addMsg(message.data)
             } );
 
-        </script>
-    </head>
-    <body>
-        <div id="specialEffects">
-            Special effect in the room
+            socket.io.on( 'auth', message => {
+                socket.authenticated_channel = io('/' + message.data.channel_id)
+                socket.authenticated_channel.on('msg', x => {addMsg('PRIVCHAN: ' + x)})
+                socket.authenticated_channel.on('connect', y => {
+                    addMsg('Connected to PRIVCHAN ' + message.data.channel_id)
+                })
+
+            });
+
+            $('#message').on('keypress',function(e) {
+                if(e.which == 13) {
+                    console.log('enter')
+                    socket.io.emit(
+                        'msg',
+                        JSON.stringify({"ctx": "world", "data": $( '#message' ).val()}),
+                        () => {
+                            $( '#message' ).val( '' )
+                        }
+                    );
+                }
+            }
+        );
+
+        } );
+    </script>
+</head>
+
+<body>
+    <div id="specialEffects">
+        Special effect in the room
+    </div>
+
+    <div id="output">
+        <div id="messages" style="overflow-y: scroll;">
         </div>
+    </div>
 
-        <div id="output">
-            <ul id="messages">
-            </ul>
-        </div>
+    <div id="columnRight">
+        <div id="map">
 
-        <div id="columnRight">
-            <div id="map">
-
-                Map
+            Map
 
 
-                <div id="server-info">
+            <div id="server-info">
 
-                    <!-- I tag tipo con parentesi graffe sono jinja template. leave it here, gli hostname li setta
+                <!-- I tag tipo con parentesi graffe sono jinja template. leave it here, gli hostname li setta
                      il server. -->
 
-                    <span>server address:</span>&nbsp;<input id="serverAddress" type="text"
-                        value="{{context.ws_host}}">
-                    <br />
-                    <span>port:</span>&nbsp;<input id="serverPort" type="text" value="{{context.ws_port}}">
-                    <br />
-                    <button type="button" name="cnn" id="cnn">Connect</button>
-                </div>
+                <span>server address:</span>&nbsp;<input id="serverAddress" type="text" value="{{context.ws_host}}">
+                <br />
+                <span>port:</span>&nbsp;<input id="serverPort" type="text" value="{{context.ws_port}}">
+                <br />
+                <button type="button" name="cnn" id="cnn">Connect</button>
             </div>
         </div>
+    </div>
 
-        <div id="regionInfo">
-            Region info
-        </div>
+    <div id="regionInfo">
+        Region info
+    </div>
 
-        <div id="statusAndQA">
-            Status and Quick actions
-        </div>
+    <div id="statusAndQA">
+        Status and Quick actions
+    </div>
 
-        <div id="boxMsg">
-            <input autocomplete="off" type="text" name="message" id="message" placeholder="enter message" size="150">
-        </div>
+    <div id="boxMsg">
+        <input autocomplete="off" type="text" name="message" id="message" placeholder="enter message" size="150">
+    </div>
 
-    </body>
+</body>
+
 </html>
