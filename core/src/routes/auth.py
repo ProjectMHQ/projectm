@@ -58,21 +58,22 @@ def handle_logout():
 @ensure_logged_in
 def handle_new_token():
     payload = json.loads(request.data)
-    if payload['entity_type'] == 'character':
+    if payload['context'] == 'world':
         character = character_repository.get_character_by_field(
-            'character_id', payload['entity_id'], user_id=request.user['user_id']
+            'character_id', payload['id'], user_id=request.user['user_id']
         )
         character.ensure_can_authenticate()
         auth_response = auth_service.authenticate_character(character.as_dict(context='token'))
-        response = flask.jsonify(
-            {
-                "character_id": auth_response['character_id'],
-                "token": auth_response['token']
-            }
-        )
-        return response
+    else:
+        return flask.Response(response='WRONG_ENTITY_TYPE', status=401)
 
-    return flask.Response(response='WRONG_ENTITY_TYPE', status=401)
+    response = flask.jsonify(
+        {
+            "expires_at": auth_response['expires_at'],
+            "token": auth_response['token']
+        }
+    )
+    return response
 
 
 bp.add_url_rule(

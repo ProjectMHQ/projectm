@@ -89,8 +89,8 @@
                 type: "POST",
                 url: "/auth/token",
                 data: JSON.stringify( {
-                    "entity_type": "character",
-                    "entity_id": character_id
+                    "context": "world",
+                    "id": character_id
                 } ),
                 success: function ( res ) {
                     var win = window.open('/system/test_client?token='+res.token, '_blank');

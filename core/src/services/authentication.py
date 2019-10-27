@@ -89,5 +89,6 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
     def authenticate_character(self, character_data: typing.Dict) -> typing.Dict:
         return {
             "character_id": character_data['character_id'],
-            "token": self._get_websocket_token(character_data, context="character")
+            "token": self._get_websocket_token(character_data, context="character"),
+            "expires_at": settings.TOKEN_TTL + int(time.time())
         }
