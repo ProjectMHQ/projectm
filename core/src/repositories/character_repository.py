@@ -22,15 +22,15 @@ class CharacterRepositoryImpl:
     def session(self) -> Session:
         return self._session_factory()
 
-    def get_character_by_field(self, field_name: str, field_value: typing.Any) -> CharacterDOAbstract:
-        if field_name == 'user_do':
-            field_name = 'user'
-            field_value = self.session.query(models.User).filter('user_id' == field_value.user_id).one()
-
+    def get_character_by_field(
+            self, field_name: str, field_value: typing.Any, user_id: typing.Optional[str]=None
+    ) -> CharacterDOAbstract:
         from core.src.business.character.character import CharacterDOImpl
-        return CharacterDOImpl(
-            self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value).one()
-        )
+        query = self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value)
+        if user_id:
+            query = query.join(models.User).filter(models.User.user_id == user_id)
+        res = query.one()
+        return CharacterDOImpl.from_model(res)
 
     def get_multiple_characters_by_field(self, field_name: str, field_value: typing.Any) \
             -> typing.List[CharacterDOAbstract]:
@@ -42,7 +42,6 @@ class CharacterRepositoryImpl:
             CharacterDOImpl.from_model(c) for c in
             self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value)
         ]
-
 
     @atomic
     def create_character(

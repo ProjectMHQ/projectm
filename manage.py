@@ -112,6 +112,19 @@ class Client:
         res.raise_for_status()
         return res.json()
 
+    def authenticate_character(self, character_id: str) -> typing.Tuple[str, str]:
+        payload = {
+            'entity_type': 'character',
+            'entity_id': character_id
+        }
+        res = requests.post(
+            self.url + '/auth/token',
+            data=json.dumps(payload),
+            cookies=self._get_cookie_from_token()
+        )
+        res.raise_for_status()
+        return res.json(), res.cookies
+
 
 def _get_login_data():
     email = input('Enter email: ')
@@ -199,7 +212,7 @@ def details():
     click.echo('Response:\n%s' % json.dumps(response, indent=2))
 
 
-@user.group()
+@main.group()
 def character():
     pass
 
@@ -223,6 +236,30 @@ def create():
     character_name = input('Enter your chacter name: ')
     response = client.create_character({"name": character_name})
     click.echo('Create Character response:\n%s' % json.dumps(response, indent=2))
+
+
+@character.command()
+def authenticate():
+    client = get_client()
+
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+
+    by_name = {ch['name']: ch for ch in client.get_characters()['data']}
+    if not by_name:
+        click.echo('No characters created')
+        return
+
+    character_name = input('Enter your chacter name: ')
+    try:
+        character_id = by_name[character_name]['character_id']
+    except KeyError:
+        click.echo('No character with that name, available: [%s]' % ', '.join(list(by_name.keys())))
+        return
+    response = client.authenticate_character(character_id)
+
+    click.echo('Authenticate Character response:\n%s - Cookies: %s' % response)
 
 
 if __name__ == '__main__':

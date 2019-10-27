@@ -60,5 +60,9 @@ class LoggingFactory(object):
     def core(self):
         return logging.LoggerAdapter(logging.getLogger('core'), {"user_id": get_current_user_id()})
 
+    @property
+    def websocket_monitor(self):
+        return LoggingFactory._get_logger('websocket_monitor')
+
 
 LOGGING_FACTORY = LoggingFactory()

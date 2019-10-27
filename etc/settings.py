@@ -17,10 +17,13 @@ ENCRYPTION_KEY = hashlib.sha256(config['settings']['encryption_key_seed'].encode
 ENCRYPTION_IV = hashlib.md5(config['settings']['encryption_iv_seed'].encode()).digest()
 
 WEB_PROTOCOL = config['settings']['web_protocol']
-WEB_BASE_HOSTNAME = config['settings']['web_base_hostname']
-WEB_BASE_PORT = config['settings']['web_base_port']
+WEB_HOSTNAME = config['settings']['web_hostname']
+WEB_PORT = config['settings']['web_port']
 
-WEB_BASE_URL = '{}://{}:{}'.format(WEB_PROTOCOL, WEB_BASE_HOSTNAME, WEB_BASE_PORT)
+SOCKETIO_HOSTNAME = config['settings']['socketio_hostname']
+SOCKETIO_PORT = config['settings']['socketio_port']
+
+WEB_BASE_URL = '{}://{}:{}'.format(WEB_PROTOCOL, WEB_HOSTNAME, WEB_PORT)
 
 SQL_DRIVER = config['database']['sql_driver']
 
@@ -52,5 +55,10 @@ TOKEN_TTL = int(config['settings'].getint('token_ttl'))
 
 ENABLE_CORS = config['settings']['enable_cors']
 
+REDIS_HOST = config['database']['redis_host']
+REDIS_PORT = int(config['database']['redis_port'] or 0)
+REDIS_DB = int(config['database']['redis_db'] or 0)
+
 FLUENTD_HANDLER_HOST = config['logging']['fluentd_host']
 FLUENTD_HANDLER_PORT = config['logging']['fluentd_port']
+

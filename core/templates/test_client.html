@@ -13,6 +13,7 @@
         body {
             font-family: "Courier New", Courier, monospace;
             background-color: #36393F;
+            margin: 5px
         }
 
         form {
@@ -41,11 +42,12 @@
         input[type=text] {
             background-color: #36393F;
             color: white;
+            font-size: 18px;
         }
 
         #specialEffects {
             width: auto;
-            height: 12pt;
+            height: 22pt;
             border-style: solid;
             border-width: 1px;
             border-color: #CCFF33;
@@ -128,11 +130,8 @@
 
         #boxMsg {
             width: auto;
-            height: 24pt;
             background: #AABBAA;
             color: #FFF;
-            padding: 5px 2px;
-            text-align: center;
             bottom: 0;
             position: absolute;
             left: 0;
@@ -141,6 +140,7 @@
 
         #messages {
             padding: 10px;
+            color: white;
         }
 
         pre {
@@ -157,50 +157,85 @@
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"
         integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
-</head>
-<script>
-    $( document ).ready( function () {
-        var socket = {};
+    <script>
+        $( document ).ready( function () {
+            const urlParams = new URLSearchParams( window.location.search );
+            const token = urlParams.get( 'token' );
+            const character_id = urlParams.get( 'character_id' );
+            var socket = {};
 
-        $( '#cnn' ).click( function () {
+
             var add = $( "#serverAddress" ).val();
             var port = $( "#serverPort" ).val();
-            var cnnStr = add + ":" + port;
+            var cnnStr = "http://" + add + ":" + port;
+
+            authenticate = function () {
+                console.log( 'Authenticating character id ' + character_id + ' with token: ' + token )
+                socket.io.emit(
+                    'auth',
+                    JSON.stringify( {
+                        'character_id': character_id,
+                        'token': token
+                    } ),
+                    function () {
+                        console.log( 'auth call done' );
+                    }
+                )
+            }
+            addMsg = function ( msg ) {
+                const pre = $( ' <pre> </pre>' );
+                $( '#messages' ).append( pre.text( msg ) );
+            }
+
 
             socket.io = io( cnnStr );
             // Client side event listener. It takes new messages from the server and appends it to HTML.
-            socket.io.on( 'message', message => {
+            socket.io.on('connect', function() {
                 console.log( 'connected' );
+                authenticate()
+            });
+            socket.io.on( 'msg', message => {
                 $( '#cnn' ).val( "connected" );
-
-                const pre = $( ' <pre> </pre>' );
-                $( '#messages' ).append( pre.text( message.data ) );
+                addMsg(message.data)
             } );
-        } );
-    } );
 
-    $( '#message-form' ).on( 'submit', function ( event ) {
-        event.preventDefault();
-        console.log( '=> [main]: ' + $( '#message' ).val() )
-        socket.io.emit(
-            'main',
-            $( '#message' ).val(),
-            () => {
-                $( '#message' ).val( '' )
+            socket.io.on( 'auth', message => {
+                socket.authenticated_channel = io('/' + message.data.channel_id)
+                socket.authenticated_channel.on('msg', x => {addMsg('PRIVCHAN: ' + x)})
+                socket.authenticated_channel.on('connect', y => {
+                    addMsg('Connected to PRIVCHAN ' + message.data.channel_id)
+                })
+
+            });
+
+            $('#message').on('keypress',function(e) {
+                if(e.which == 13) {
+                    console.log('enter')
+                    socket.io.emit(
+                        'msg',
+                        JSON.stringify({"ctx": "world", "data": $( '#message' ).val()}),
+                        () => {
+                            $( '#message' ).val( '' )
+                        }
+                    );
+                }
             }
         );
-    } );
-</script>
+
+        } );
+    </script>
+</head>
 
 <body>
     <div id="specialEffects">
-
         Special effect in the room
-        <div id="output">
-            <ul id="messages">
-            </ul>
+    </div>
+
+    <div id="output">
+        <div id="messages" style="overflow-y: scroll;">
         </div>
     </div>
+
     <div id="columnRight">
         <div id="map">
 
@@ -208,30 +243,31 @@
 
 
             <div id="server-info">
-                <span>server address:</span>&nbsp;<input id="serverAddress" type="text"
-                    value="http://staging.pm.chatsubo.it">
+
+                <!-- I tag tipo con parentesi graffe sono jinja template. leave it here, gli hostname li setta
+                     il server. -->
+
+                <span>server address:</span>&nbsp;<input id="serverAddress" type="text" value="{{context.ws_host}}">
                 <br />
-                <span>port:</span>&nbsp;<input id="serverPort" type="text" value="80">
+                <span>port:</span>&nbsp;<input id="serverPort" type="text" value="{{context.ws_port}}">
                 <br />
                 <button type="button" name="cnn" id="cnn">Connect</button>
             </div>
         </div>
     </div>
+
     <div id="regionInfo">
-
         Region info
+    </div>
 
-    </div>
-    </div>
     <div id="statusAndQA">
-
         Status and Quick actions
-        <div id="boxMsg">
-            <form action="" id="message-form">
-                <input type="text" name="message" id="message" placeholder="enter message">
-            </form>
-        </div>
     </div>
+
+    <div id="boxMsg">
+        <input autocomplete="off" type="text" name="message" id="message" placeholder="enter message" size="150">
+    </div>
+
 </body>
 
 </html>

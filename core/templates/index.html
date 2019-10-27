@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Project M Test Login</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
+    <style>
+        body {
+            font-family: "Courier New", Courier, monospace;
+            background-color: #36393F;
+            color: white;
+        }
+
+        .hide {
+            display: none;
+        }
+    </style>
+
+    <script type="text/javascript">
+        function onLogin(res) {
+            $( "#login_form_div" ).addClass( 'hide' );
+                    $( "#logged_in_area" ).removeClass( 'hide' );
+                    $( "#user_id" ).text( res[ 'user_id' ] );
+                getCharsList();
+            }
+        $( document ).ready( function () {
+            $.ajax( {
+                    type: "GET",
+                    url: "/user",
+                    success: function ( res ) {
+                        onLogin(res['data'])
+                    },
+                    contentType: "application/json; charset=utf-8"
+                } );
+
+            $( "#logout_button" ).click( function () {
+                $.ajax( {
+                    type: "POST",
+                    url: "/auth/logout",
+                    success: function ( res ) {
+                        $( "#login_form_div" ).removeClass( 'hide' );
+                        $( "#logged_in_area" ).addClass( 'hide' );
+                        return false;
+                    },
+                    contentType: "application/json; charset=utf-8"
+                } );
+                return false;
+            } );
+
+            $( "#login_button" ).click( function () {
+                $.ajax( {
+                    type: "POST",
+                    url: "/auth/login",
+                    data: JSON.stringify( {
+                        "email": $( "#email" ).val(),
+                        "password": sha256( $( "#password" ).val() )
+                    } ),
+                    success: function ( res ) {
+                        onLogin(res)
+                    },
+                    contentType: "application/json; charset=utf-8"
+                } );
+                return false;
+            } );
+
+
+            $( "#character_create" ).click( function () {
+                $.ajax( {
+                    type: "POST",
+                    url: "/user/character",
+                    data: JSON.stringify( {
+                        "name": $( "#character_name" ).val()
+                    } ),
+                    success: function ( res ) {
+                        getCharsList();
+                    },
+                    contentType: "application/json; charset=utf-8"
+                } );
+                return false;
+            } );
+
+        } );
+
+        function openWebClient(character_id) {
+            $.ajax( {
+                type: "POST",
+                url: "/auth/token",
+                data: JSON.stringify( {
+                    "context": "world",
+                    "id": character_id
+                } ),
+                success: function ( res ) {
+                    var win = window.open('/system/test_client?token='+res.token, '_blank');
+                    if (win) {
+                        //Browser has allowed it to be opened
+                        win.focus();
+                    } else {
+                        //Browser has blocked it
+                        alert('Please allow popups for this website');
+                    }
+                },
+                contentType: "application/json; charset=utf-8"
+            } );
+        };
+
+        function getCharsList() {
+            $("#characters").empty()
+            $.get( "/user/character", function ( res ) {
+                jQuery.each( res.data, function ( i, d ) {
+                    $( "#characters" ).append( "<div>" + d.character_id + " " + d.name + " " +
+                     '<button class="open_wc" id="open_wc_character_' + d.character_id + '">Open Client</button>' +
+                        "</div><br />" ).css( {
+                        "float": "left",
+                        "position": "relative",
+                        "margin-top": "20px"
+                    } );
+                    $("#open_wc_character_" + d.character_id).on('click', () => { openWebClient(d.character_id) });
+                } );
+            } );
+        }
+    </script>
+</head>
+
+<body>
+    <h1>Project M Test Platform</h1>
+    <hr />
+    <br />
+    <br />
+    <div id="container">
+        <div id="container_login_form">
+            <div id="login_form_div">
+                <h2>Login:</h2>
+                <form id="login_form">
+                    Email:<br>
+                    <input id="email" type="text" name="email"><br>
+                    Password:<br>
+                    <input id="password" type="password" name="password">
+                    <br><br>
+                    <button id="login_button">Login</button>
+                </form>
+            </div>
+        </div>
+        <div id="logged_in_area" class="hide">
+            <h2>Logged in</h2>
+            <h4>user_id: <span id="user_id"></span></h4>
+            <div id="logout_button_div">
+                <button id="logout_button">Logout</button>
+            </div>
+
+            <hr />
+            <br />
+            <br />
+            <h2>Create character:</h2>
+            Character name:<br>
+            <input id="character_name" type="text" name="name"> <button id="character_create">Create</button>
+            <br /><br />
+            <h2>Your characters:</h2>
+            <!-- <a href="javascript:;" id="test">Get Chars</a> -->
+            <div id="characters">
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

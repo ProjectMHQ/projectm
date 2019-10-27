@@ -2,6 +2,7 @@ import typing
 from functools import wraps
 from flask import request
 from core.src import exceptions
+from core.src.business.character.character import CharacterDOImpl
 
 
 def get_current_user_id():
@@ -25,11 +26,11 @@ def get_roles() -> typing.List[str]:
 def ensure_not_logged_in(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
-        from core.src.builder import user_service
-        if request and request.cookies and request.cookies.get('Authorization') and user_service.decode_session_token(
+        from core.src.builder import auth_service
+        if request and request.cookies and request.cookies.get('Authorization') and auth_service.decode_session_token(
             request.cookies['Authorization'].replace('Bearer ', '')
         ):
-            raise exceptions.AlreadyLoggedInException()
+            pass
         return fun(*a, **kw)
     return wrapper
 
@@ -37,12 +38,23 @@ def ensure_not_logged_in(fun):
 def ensure_logged_in(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
-        from core.src.builder import user_service
+        from core.src.builder import auth_service
         if not request or not request.cookies or not request.cookies.get('Authorization'):
             raise exceptions.NotLoggedInException()
-        session_token = user_service.decode_session_token(
-            request.cookies['Authorization'].replace('Bearer ', '')
-        )
+        session_token = auth_service.decode_session_token(request.cookies['Authorization'].replace('Bearer ', ''))
         request.user = session_token['user']
-        return fun(*a, **kw)
+        response = fun(*a, **kw)
+        return response
+    return wrapper
+
+
+def ensure_websocket_authentication(fun):
+    @wraps(fun)
+    def wrapper(*a, **kw):
+        from core.src.builder import auth_service
+        if not request or not request.cookies or not request.cookies.get('Authorization'):
+            raise exceptions.NotLoggedInException()
+        user_token = auth_service.decode_session_token(request.cookies['Authorization'].replace('Bearer ', ''))
+        request.user_token = user_token
+        fun(*a, **kw)
     return wrapper

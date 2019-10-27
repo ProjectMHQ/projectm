@@ -44,3 +44,12 @@ Note: _Confirmation links are sent to the email address via Twilio' SendGrid_
 - Response: ```200 LOGOUT_OK```
 - Set-Cookie: ```Authentication: ```
 
+##### Token
+- Requires Bearer Token: YES
+- URL: ```/auth/token```
+- Method: ```POST```
+- Payload: ```{"context": String, "id": String}```
+- Response: ```{"expires_at": Integer, "token": String}```
+- Params:
+  - ```context: ```
+     - ```world```

@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import flask
 from flask_socketio import SocketIO
 from core.src.database import init_db, db
@@ -16,7 +19,9 @@ app = flask.Flask(__name__)
 FlaskUUID(app)
 
 
-socketion_settings = {}
+socketion_settings = {
+    'async_mode': 'eventlet'
+}
 
 if settings.ENABLE_CORS:
     socketion_settings['cors_allowed_origins'] = "*"
@@ -37,7 +42,7 @@ app.config.update(
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(system_bp, url_prefix='/system')
 app.register_blueprint(user_bp, url_prefix='/user')
-socketio = SocketIO(app)
+socketio = SocketIO(app, message_queue='redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
 
 
 socketio.init_app(app, **socketion_settings)
@@ -72,7 +77,7 @@ if __name__ == '__main__':
     LOGGING_FACTORY.core.error('Starting')
     socketio.run(
         app,
-        port=int(settings.WEB_BASE_PORT),
-        host=settings.WEB_BASE_HOSTNAME,
+        port=int(settings.WEB_PORT),
+        host=settings.WEB_HOSTNAME,
         debug=settings.DEBUG
     )

@@ -17,8 +17,8 @@ class EmailServiceImpl:
         ctx = {
             'confirm_link': '{}://{}:{}/auth/confirm_email/{}'.format(
                 settings.WEB_PROTOCOL,
-                settings.WEB_BASE_HOSTNAME,
-                settings.WEB_BASE_PORT,
+                settings.WEB_HOSTNAME,
+                settings.WEB_PORT,
                 email_token
             )
         }
