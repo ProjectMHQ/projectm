@@ -24,7 +24,7 @@ class WebsocketChannelsMonitor:
             for channel in channels:
                 print('Sending ping on channel %s (entity %s)' % (channel.channel_id, channel.entity_id))
                 self.socketio.emit(
-                    'msg', 'PING', namespace='/' + channel.channel_id
+                    'msg', 'PING {}'.format(channel.entity_id), namespace='/' + channel.channel_id
                 )
             LOGGING_FACTORY.websocket_monitor.debug('Sleeping')
             await asyncio.sleep(3)
