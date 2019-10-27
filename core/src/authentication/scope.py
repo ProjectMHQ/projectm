@@ -6,8 +6,11 @@ from core.src.business.character.character import CharacterDOImpl
 
 
 def get_current_user_id():
-    if getattr(request, 'user', None):
-        return request.user.user_id
+    try:
+        if getattr(request, 'user', None):
+            return request.user['user_id']
+    except RuntimeError:
+        return None
 
 
 def get_current_user():

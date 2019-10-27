@@ -59,7 +59,6 @@ def _init_db():
 def _tear_db(response):
     # noinspection PyBroadException
     try:
-        LOGGING_FACTORY.core.debug('Closing database')
         db().close()
     except:
         LOGGING_FACTORY.core.exception('Error closing database')
@@ -75,6 +74,7 @@ def handler(exception):
 
 
 if __name__ == '__main__':
+    LOGGING_FACTORY.core.error('Starting')
     socketio.run(
         app,
         port=int(settings.WEB_PORT),
