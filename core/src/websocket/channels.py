@@ -35,3 +35,13 @@ class WebsocketChannelsFactory:
         if not res:
             return
         return WebsocketChannel(entity_id=res and res.decode(), channel_id=channel_id)
+
+    def get_active_channels(self):
+        keys = self.redis.keys(self._prefix + 'c/*')
+        return (
+            WebsocketChannel(channel_id=c, entity_id=e) for c, e in
+            {
+                keys[i].decode().replace(self._prefix + 'c/', ''): v.decode()
+                for i, v in enumerate(self.redis.mget(list(keys)))
+            }.items()
+        )

@@ -196,8 +196,13 @@
                 } );
 
                 socket.io.on( 'auth', message => {
-                    addMsg(JSON.stringify(message))
-                } );
+                    socket.authenticated_channel = io('/' + message.data.channel_id)
+                    socket.authenticated_channel.on('msg', x => {addMsg('PRIVCHAN: ' + x)})
+                    socket.authenticated_channel.on('connect', y => {
+                        addMsg('Connected to PRIVCHAN ' + message.data.channel_id)
+                    })
+
+                });
 
                 $('#message').on('keypress',function(e) {
                     if(e.which == 13) {
