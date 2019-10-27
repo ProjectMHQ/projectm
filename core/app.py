@@ -30,6 +30,7 @@ if settings.ENABLE_CORS:
     def after_request(response):
         header = response.headers
         header['Access-Control-Allow-Origin'] = '*'
+        header['Access-Control-Allow-Headers'] = '*'
         return response
 
 
@@ -70,6 +71,19 @@ def handler(exception):
     return flask.Response(
         response=str(exception),
         status=getattr(exception, 'status_code', 400)
+    )
+
+
+@app.errorhandler(Exception)
+def handler(exception):
+    _h = {}
+    if settings.ENABLE_CORS:
+        _h['Access-Control-Allow-Origin'] = '*'
+        _h['Access-Control-Allow-Headers'] = '*'
+    return flask.Response(
+        response=str(exception),
+        status=getattr(exception, 'status_code', 500),
+        headers=_h
     )
 
 

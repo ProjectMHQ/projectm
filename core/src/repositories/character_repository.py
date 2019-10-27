@@ -52,7 +52,8 @@ class CharacterRepositoryImpl:
         character = models.Character(
             user=self.session.query(models.User).filter(models.User.user_id == user.user_id).one(),
             character_id=self._get_random_uuid(),
-            name=name
+            name=name,
+            meta={}
         )
         self.session.add(character)
         self.session.flush()

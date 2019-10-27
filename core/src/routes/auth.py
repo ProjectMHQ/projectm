@@ -26,7 +26,7 @@ def handle_email_address_confirmation(email_token):
 def handle_signup():
     payload = json.loads(request.data)
     LOGGING_FACTORY.core.info('Signup: %s', payload)
-    user_service.signup(payload.get('email'), payload.get('password'))
+    auth_service.signup(payload.get('email'), payload.get('password'))
     return flask.Response(response='SIGNUP_CONFIRMED')
 
 
@@ -36,7 +36,7 @@ def handle_signup():
 def handle_login():
     payload = json.loads(request.data)
     LOGGING_FACTORY.core.info('Login: %s', payload)
-    login_response = user_service.login(payload.get('email'), payload.get('password'))
+    login_response = auth_service.login(payload.get('email'), payload.get('password'))
     response = flask.jsonify({"user_id": login_response['user_id']})
     response.set_cookie(
         'Authorization', 'Bearer {}'.format(login_response['token']),
