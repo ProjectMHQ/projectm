@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import flask
 from flask_socketio import SocketIO
 from core.src.database import init_db, db
@@ -39,7 +42,7 @@ app.config.update(
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(system_bp, url_prefix='/system')
 app.register_blueprint(user_bp, url_prefix='/user')
-socketio = SocketIO(app)
+socketio = SocketIO(app, message_queue='redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
 
 
 socketio.init_app(app, **socketion_settings)
