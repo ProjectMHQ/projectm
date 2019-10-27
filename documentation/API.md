@@ -48,8 +48,8 @@ Note: _Confirmation links are sent to the email address via Twilio' SendGrid_
 - Requires Bearer Token: YES
 - URL: ```/auth/token```
 - Method: ```POST```
-- Payload: ```{"context": str, "id": str}```
-- Response: ```{"expires_at": int, "token": str}```
+- Payload: ```{"context": String, "id": String}```
+- Response: ```{"expires_at": Integer, "token": String}```
 - Params:
   - ```context: ```
      - ```world```
