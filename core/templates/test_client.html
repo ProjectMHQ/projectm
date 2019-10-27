@@ -195,12 +195,16 @@
                     addMsg(message.data)
                 } );
 
+                socket.io.on( 'auth', message => {
+                    addMsg(JSON.stringify(message))
+                } );
+
                 $('#message').on('keypress',function(e) {
                     if(e.which == 13) {
                         console.log('enter')
                         socket.io.emit(
                             'msg',
-                            $( '#message' ).val(),
+                            JSON.stringify({"ctx": "world", "data": $( '#message' ).val()}),
                             () => {
                                 $( '#message' ).val( '' )
                             }

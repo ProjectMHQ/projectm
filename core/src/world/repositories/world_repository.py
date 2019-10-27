@@ -1,3 +1,4 @@
+import typing
 import uuid
 from redis import StrictRedis
 
@@ -7,8 +8,9 @@ class RedisWorldRepositoryImpl:
         self.redis = redis
         self.prefix = 'wd/'
 
-    def get_character_channel(self, character_id: str):
-        return self.redis.hmget(self.prefix + 'chan', character_id)
+    def get_character_channel(self, character_id: str) -> typing.Optional[str]:
+        res = self.redis.hmget(self.prefix + 'chan', character_id)
+        return res[0] and res[0].decode()
 
     def get_character_pos(self, character_id: str):
         return self.redis.hmget(self.prefix + 'pos', character_id)

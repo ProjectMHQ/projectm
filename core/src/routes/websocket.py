@@ -1,13 +1,10 @@
 import json
-
-import time
 from flask import request
 from flask_socketio import emit
-
 from core.src.authentication.scope import ensure_websocket_authentication
 from core.src.builder import auth_service
-from core.src.websocket.builder import ws_commands_processor, ws_messages_factory
-from core.src.websocket.utilities import ws_commands_extractor
+from core.src.websocket.builder import _ws_world_commands_interface, ws_messages_factory, ws_commands_extractor_factory
+from core.src.world.builder import repositories
 
 
 def build_websocket_route(socketio):
@@ -26,12 +23,12 @@ def build_websocket_route(socketio):
     @socketio.on('msg')
     @ensure_websocket_authentication
     def message(msg):
-        command, arguments = ws_commands_extractor(msg)
-        if not command:
+        json_message = json.loads(msg)
+        _interface = ws_commands_extractor_factory.get_interface(json_message['ctx'])
+        if not json_message['data']:
             return
-        ws_commands_processor.on_command(
-            command,
-            arguments,
+        _interface.on_command(
+            json_message['data'],
             lambda response: response and emit('msg', {
                 'data': response,
                 'ctx': 'cmd'
@@ -45,4 +42,6 @@ def build_websocket_route(socketio):
         emit('msg', {'data': ws_messages_factory.wait_for_auth(), 'ctx': 'auth'})
         token = auth_service.decode_session_token(payload['token'])
         assert token['context'] == 'character'
-        emit('msg', {'data': ws_messages_factory.greet_character(token), 'ctx': 'auth'})
+        existing_channel = repositories.world.get_character_channel(token['data']['character_id'])
+        channel_id = existing_channel or repositories.world.login(token['data']['character_id'])
+        emit('auth', {'data': {'channel_id': channel_id}})
