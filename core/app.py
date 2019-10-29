@@ -6,12 +6,12 @@ from flask_socketio import SocketIO
 from core.src.database import init_db, db
 from core.src.exceptions import ResourceDuplicated
 from core.src.logging_factory import LOGGING_FACTORY
-from core.src.routes.websocket import build_websocket_route
+from core.src.router.websocket import build_base_websocket_route
 from core.src.utils.tools import FlaskUUID
 
-from core.src.routes.auth import bp as auth_bp
-from core.src.routes.system import bp as system_bp
-from core.src.routes.user import bp as user_bp
+from core.src.router.auth import bp as auth_bp
+from core.src.router.system import bp as system_bp
+from core.src.router.user import bp as user_bp
 from etc import settings
 
 
@@ -48,7 +48,7 @@ socketio = SocketIO(app, message_queue='redis://{}:{}'.format(settings.REDIS_HOS
 
 socketio.init_app(app, **socketion_settings)
 
-build_websocket_route(socketio)
+build_base_websocket_route(socketio)
 
 
 @app.before_request

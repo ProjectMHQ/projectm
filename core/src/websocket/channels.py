@@ -11,9 +11,12 @@ class WebsocketChannelsFactory:
         self._prefix = 'ch/'
 
     def create(self, entity_id: str) -> WebsocketChannel:
-        channel_id = str(uuid.uuid4())
-        self.redis.set(self._prefix + 'e/' + entity_id, channel_id)
-        self.redis.set(self._prefix + 'c/' + channel_id, entity_id)
+        connection_id = str(uuid.uuid4())
+        self.redis.hmset(
+            'e/' + entity_id, {"connection_id": connection_id}
+        )
+        self.redis.set(self._prefix + 'e/' + entity_id, connection_id)
+        self.redis.set(self._prefix + 'c/' + connection_id, entity_id)
         return WebsocketChannel(entity_id=entity_id, channel_id=channel_id)
 
     def delete(self, entity_id: str=None, channel_id: str=None) -> bool:

@@ -10,7 +10,7 @@ from core.src.business.user.abstract import UserDOAbstract
 from core.src.database import atomic
 
 
-class CharacterRepositoryImpl:
+class SQLCharactersRepositoryImpl:
     def __init__(self, session_factory: scoped_session):
         self._session_factory = session_factory
 

@@ -18,14 +18,13 @@ class WebsocketWorldCommandsInterface:
         for alias in aliases:
             self._commands[alias] = method
 
-    def on_command(self, data: str, callback: callable=None):
+    def on_command(self, data: str, topic: str):
         command, arguments = ws_commands_extractor(data)
         cmd = self._commands.get(command)
         if not cmd:
             self.on_error(command)
             return
-        res = cmd(*arguments)
-        callback and callback(res)
+        cmd(*arguments)
 
     def on_error(self, command: str):
         for handler in self._errors_handlers:

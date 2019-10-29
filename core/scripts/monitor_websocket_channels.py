@@ -1,3 +1,4 @@
+"""
 import asyncio
 from redis import StrictRedis
 from core.src.logging_factory import LOGGING_FACTORY
@@ -41,3 +42,4 @@ if __name__ == '__main__':
     channels_factory = WebsocketChannelsFactory(redis)
     monitor = WebsocketChannelsMonitor(socketio, channels_factory, loop=loop)
     loop.run_until_complete(monitor.start())
+"""

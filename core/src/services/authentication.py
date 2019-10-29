@@ -2,7 +2,6 @@ import json
 import time
 import typing
 
-from core.src.business.user.abstract import UserDOAbstract
 from etc import settings
 from core.src import exceptions, models
 from core.src.business.user.types import UserStatus

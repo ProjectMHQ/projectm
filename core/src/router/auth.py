@@ -4,7 +4,7 @@ import flask
 from flask import request
 
 from core.src.authentication.scope import ensure_not_logged_in, ensure_logged_in
-from core.src.builder import auth_service, character_repository
+from core.src.builder import auth_service, psql_character_repository
 from core.src.database import db_close
 from core.src.logging_factory import LOGGING_FACTORY
 from core.src.utils.tools import handle_exception
@@ -63,7 +63,7 @@ def handle_logout():
 def handle_new_token():
     payload = json.loads(request.data)
     if payload['context'] == 'world':
-        character = character_repository.get_character_by_field(
+        character = psql_character_repository.get_character_by_field(
             'character_id', payload['id'], user_id=request.user['user_id']
         )
         character.ensure_can_authenticate()
