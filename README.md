@@ -14,7 +14,7 @@ $ cd projectm
 $ virtualenv -p python3.6 venv
 $ . venv/bin/activate
 $ pip install -r requirements.txt
-$ PROJECTM_ENV=development python -m alembic_script upgrade_head
+$ PROJECTM_ENV=development python -m alembic_script upgrade head
 ```
 
 RUN:
