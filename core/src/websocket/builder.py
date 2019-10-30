@@ -1,4 +1,7 @@
 from flask import request
+
+from core.src.builder import strict_redis
+from core.src.websocket.channels_repository import WebsocketChannelsRepository
 from core.src.websocket.requests import WebsocketWorldCommandsInterface
 from core.src.websocket.messages import WebsocketMessagesFactory
 from core.src.websocket.types import WebsocketContext
@@ -15,3 +18,5 @@ _ws_world_commands_interface.add_command(
 
 ws_commands_extractor_factory = WSCommandsInterfaceFactory()
 ws_commands_extractor_factory.add_interface(_ws_world_commands_interface)
+
+ws_channels_repository = WebsocketChannelsRepository(strict_redis)

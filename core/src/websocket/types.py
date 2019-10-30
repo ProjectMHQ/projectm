@@ -10,6 +10,7 @@ WebsocketChannel = typing.NamedTuple(
     'WebsocketChannel',
     (
         ('entity_id', str),
-        ('channel_id', str)
+        ('connection_id', str),
+        ('created_at', int)
     )
 )

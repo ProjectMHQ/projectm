@@ -9,7 +9,9 @@ class ComponentsRepository:
         self.redis = redis
 
     def activate_component_for_entity(self, component_type: ComponentType, entity_id: str) -> Bit:
-        pass
+        self.redis.setbit(component_type.name, entity_id, Bit.ON)
+        return Bit.ON
 
     def deactivate_component_for_entity(self, component_type: ComponentType, entity_id: str) -> Bit:
-        pass
+        self.redis.setbit(component_type.name, entity_id, Bit.OFF)
+        return Bit.OFF

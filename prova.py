@@ -1,34 +1,42 @@
 import time
 
-import os
 from redis import StrictRedis
+
+from core.src.world.domain.components.connection import Components
 from etc import settings
 
 
-redis = StrictRedis(
+connections = [
+    StrictRedis(
     host=settings.REDIS_HOST,
     port=settings.REDIS_PORT,
     db=settings.REDIS_DB
-)
+) for _ in range(0, 30)]
 
-if __name__ == '__main__':
-    #script = """
-    #local val=redis.call('bitpos', 'eee', 0)
-    #redis.call('setbit', 'eee', val, 1)
-    #local key = string.format('e%s', val)
-    #redis.call('hmset', key, 'status', 'redispower')
-    #return val
-    #"""
-    #x = redis.eval(script, 0)
-    #print(redis.hmget('e' + str(x), 'status'))
 
-    now = int(time.time())
+bla = 'padulo'
+
+
+def create_entity(connection):
     script = """
-        local val=redis.call('bitpos', 'e:idmap', 0)
-        redis.call('setbit', 'e:id', val, 1)
-        local key = string.format('e:%s', val)
-        redis.call('hmset', key, 'created_at', ARGV[1])
+        local val=redis.call('bitpos', '{0}:idmap', 0)
+        redis.call('setbit', '{0}:idmap', val, 1)
+        local key = string.format('{0}:%s', val)
+        redis.call('hmset', key, '{1}', ARGV[1])
         return val
-        """
-    x = redis.eval(script, 0, now)
-    print(redis.hmget('e:' + str(x), 'created_at'))
+        """.format(bla, Components.base.CREATED_AT.value)
+    return connections[connection % 30].eval(script, 0, int(time.time()))
+
+
+from multiprocessing import Pool as ThreadPool
+
+
+s = time.time()
+pool = ThreadPool(30)
+results = []
+pool.map(create_entity, range(0, 100000))
+
+pool.close()
+pool.join()
+print(connections[0].bitpos('{}:idmap'.format(bla), 0))
+print(time.time() - s)

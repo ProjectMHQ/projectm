@@ -21,5 +21,5 @@ strict_redis = StrictRedis(
     port=settings.REDIS_PORT,
     db=settings.REDIS_DB
 )
-redis_character_repository = RedisCharactersRepositoryImpl(strict_redis)
+redis_characters_index_repository = RedisCharactersRepositoryImpl(strict_redis)
 

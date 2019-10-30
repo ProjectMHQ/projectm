@@ -142,7 +142,8 @@ def get_client() -> Client:
             with open('/tmp/__pm_client_url', 'r') as f:
                 d = f.read()
         except FileNotFoundError:
-            d = input('Enter projectm base URL (i.e. http://localhost:60160) : ')
+            d = input('Enter projectm base URL (default http://localhost:60160) : ')
+            d = d or 'http://localhost:60160'
             check_res = requests.get(d + '/auth/login')
             try:
                 check_res.raise_for_status()

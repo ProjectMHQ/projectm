@@ -3,5 +3,5 @@ from core.src.world.repositories.components_repository import ComponentsReposito
 from core.src.world.repositories.entities_repository import EntitiesRepository
 
 
-world_entities_repository = EntitiesRepository(strict_redis),
+world_entities_repository = EntitiesRepository(strict_redis)
 world_components_repository = ComponentsRepository(strict_redis)

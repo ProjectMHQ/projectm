@@ -75,7 +75,8 @@ def handler(exception):
 
 
 @app.errorhandler(Exception)
-def handler(exception):
+def all_exceptions_handler(exception):
+    LOGGING_FACTORY.core.exception('Exception catched')
     _h = {}
     if settings.ENABLE_CORS:
         _h['Access-Control-Allow-Origin'] = '*'

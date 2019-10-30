@@ -4,3 +4,4 @@ __pycache__
 temp/
 venv/
 local-settings.conf
+prova.py
