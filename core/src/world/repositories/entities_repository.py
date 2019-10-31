@@ -3,7 +3,7 @@ import typing
 
 from redis import StrictRedis
 
-from core.src.logging_factory import LOGGING_FACTORY
+from core.src.logging_factory import LOGGER
 from core.src.world.components import Components
 from core.src.world.components.types import BaseComponentType
 
@@ -30,7 +30,7 @@ class EntitiesRepository:
             Components.base.CREATED_AT.value
         )
         response = self.redis.eval(script, 0, now)
-        LOGGING_FACTORY.core.debug('EntityRepository.create_entity, response: %s', response)
+        LOGGER.core.debug('EntityRepository.create_entity, response: %s', response)
         return response and int(response)
 
     def get_entity(
@@ -39,12 +39,12 @@ class EntitiesRepository:
             components: typing.Optional[typing.Tuple[BaseComponentType]]
     ) -> typing.Optional[typing.List]:
         response = self.redis.hmget('{}:{}'.format(self.prefix, entity_id), components)
-        LOGGING_FACTORY.core.debug('EntityRepository.get_entity(%s, %s), response: %s', entity_id, components, response)
+        LOGGER.core.debug('EntityRepository.get_entity(%s, %s), response: %s', entity_id, components, response)
         return response
 
     def update_entity_properties(self, entity_id: int, **components: typing.Dict[str, str]):
         response = self.redis.hmget('{}:{}'.format(self.prefix, entity_id), components)
-        LOGGING_FACTORY.core.debug(
+        LOGGER.core.debug(
             'EntityRepository.update_entity_properties(%s, %s), response: %s', entity_id, components, response
         )
         return response

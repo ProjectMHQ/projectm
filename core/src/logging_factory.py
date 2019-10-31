@@ -75,4 +75,4 @@ class LoggingFactory(object):
         return LoggingFactory._get_logger('websocket_monitor')
 
 
-LOGGING_FACTORY = LoggingFactory()
+LOGGER = LoggingFactory()

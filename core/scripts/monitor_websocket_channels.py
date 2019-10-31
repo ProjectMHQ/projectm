@@ -4,7 +4,7 @@ from redis import StrictRedis
 import time
 
 from etc import settings
-from core.src.logging_factory import LOGGING_FACTORY
+from core.src.logging_factory import LOGGER
 from core.src.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 
 """
@@ -29,7 +29,7 @@ class WebsocketChannelsMonitor:
         self.ping_timeout = 40
 
     def _on_presence_event(self, connection_id: str, message: str):
-        LOGGING_FACTORY.websocket_monitor.debug(
+        LOGGER.websocket_monitor.debug(
             'Received message [ %s ] from connection_id [ %s ]', message, connection_id
         )
         if message == 'PONG':
@@ -39,13 +39,13 @@ class WebsocketChannelsMonitor:
                 socketio.emit('presence', 'PONG', namespace=connection_id)
 
     def subscribe_pong_from_channels(self, connection_id: str):
-        LOGGING_FACTORY.websocket_monitor.info('Subscribe presence for channel %s', connection_id)
+        LOGGER.websocket_monitor.info('Subscribe presence for channel %s', connection_id)
         self.socketio.on_event(
             'presence', lambda m: self._on_presence_event(connection_id, m), namespace=connection_id
         )
 
     def ping_channel(self, connection_id: str):
-        LOGGING_FACTORY.websocket_monitor.debug('Sending PING message to connection_id [ %s ]', connection_id)
+        LOGGER.websocket_monitor.debug('Sending PING message to connection_id [ %s ]', connection_id)
         self.connections_statuses[connection_id]['last_ping'] = int(time.time())
         self.socketio.emit('presence', 'PING', namespace=connection_id)
 
@@ -63,7 +63,7 @@ class WebsocketChannelsMonitor:
         now = int(time.time())
 
         if not self.connections_statuses.get(channel.connection_id):
-            LOGGING_FACTORY.websocket_monitor.debug('Channel %s status never saved. Saving', channel)
+            LOGGER.websocket_monitor.debug('Channel %s status never saved. Saving', channel)
             self.connections_statuses[channel.connection_id] = {"seen_at": channel.created_at}
             self.subscribe_pong_from_channels(channel.connection_id)
 
@@ -75,7 +75,7 @@ class WebsocketChannelsMonitor:
             now - self.connections_statuses[channel.connection_id]['last_pong'] > self.ping_timeout) or \
                 (not self.connections_statuses[channel.connection_id].get('last_pong') and
                  now - self.connections_statuses[channel.connection_id]['seen_at'] > self.ping_timeout):
-            LOGGING_FACTORY.websocket_monitor.info('Ping timeout for channel %s', channel)
+            LOGGER.websocket_monitor.info('Ping timeout for channel %s', channel)
             self.channels_repository.delete(channel.connection_id)
 
 

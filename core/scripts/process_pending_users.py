@@ -7,7 +7,7 @@ from etc import settings
 from core.src.builder import user_repository, encryption_service
 from core.src.business.user.types import UserStatus
 from core.src.database import atomic, init_db, db
-from core.src.logging_factory import LOGGING_FACTORY
+from core.src.logging_factory import LOGGER
 from core.src.services.email_service import EmailServiceImpl
 
 sendgrid_client = SendGridAPIClient(settings.SENDGRID_API_KEY)
@@ -61,4 +61,4 @@ if __name__ == '__main__':
         try:
             task()
         except:
-            LOGGING_FACTORY.core.exception('Error processing %s', task)
+            LOGGER.core.exception('Error processing %s', task)

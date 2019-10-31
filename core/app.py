@@ -5,7 +5,7 @@ import flask
 from flask_socketio import SocketIO
 from core.src.database import init_db, db
 from core.src.exceptions import ResourceDuplicated
-from core.src.logging_factory import LOGGING_FACTORY
+from core.src.logging_factory import LOGGER
 from core.src.router.websocket import build_base_websocket_route
 from core.src.utils import FlaskUUID
 
@@ -64,7 +64,7 @@ def _tear_db(response):
     try:
         db().close()
     except:
-        LOGGING_FACTORY.core.exception('Error closing database')
+        LOGGER.core.exception('Error closing database')
     return response
 
 
@@ -78,7 +78,7 @@ def handler(exception):
 
 @app.errorhandler(Exception)
 def all_exceptions_handler(exception):
-    LOGGING_FACTORY.core.exception('Exception catched')
+    LOGGER.core.exception('Exception catched')
     _h = {}
     if settings.ENABLE_CORS:
         _h['Access-Control-Allow-Origin'] = '*'
@@ -91,7 +91,7 @@ def all_exceptions_handler(exception):
 
 
 if __name__ == '__main__':
-    LOGGING_FACTORY.core.error('Starting')
+    LOGGER.core.error('Starting')
     socketio.run(
         app,
         port=int(settings.WEB_PORT),
