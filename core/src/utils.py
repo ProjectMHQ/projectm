@@ -13,6 +13,7 @@ def deserialize_message(deserializer):
     def _fn(fun):
         @wraps(fun)
         def wrapper(a, **kw):
+            from core.src.logging_factory import LOGGER
             LOGGER.core.debug('deserialize_message: %s, %s', deserializer, a)
             fun(deserializer(a), **kw)
         return wrapper
