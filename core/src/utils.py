@@ -1,8 +1,21 @@
 import typing
 from functools import wraps
+
+import flask
 from flask import request
+from werkzeug.routing import UUIDConverter
+
 from core.src import exceptions
-from core.src.business.character.character import CharacterDOImpl
+from core.src.exceptions import CoreException
+
+
+def deserialize_message(deserializer):
+    def _fn(fun):
+        @wraps(fun)
+        def wrapper(a, **kw):
+            fun(deserializer(a), **kw)
+        return wrapper
+    return _fn
 
 
 def get_current_user_id():
@@ -58,3 +71,30 @@ def ensure_websocket_authentication(fun):
         request.user_token = user_token
         fun(*a, **kw)
     return wrapper
+
+
+def handle_exception(fun):
+    @wraps(fun)
+    def wrapper(*a, **kw):
+        try:
+            return fun(*a, **kw)
+        except CoreException as e:
+            return flask.Response(response=e.message, status=e.status_code)
+    return wrapper
+
+
+def namedtuple_to_dict(data: typing.NamedTuple):
+    res = {}
+    for field in data._fields:
+        res[field] = getattr(data, field)
+    return res
+
+
+class FlaskUUID(object):
+    """Flask extension providing a UUID url converter"""
+    def __init__(self, app=None):
+        if app is not None:
+            self.init_app(app)
+
+    def init_app(self, app):
+        app.url_map.converters['uuid'] = UUIDConverter

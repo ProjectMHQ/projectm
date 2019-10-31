@@ -1,6 +1,7 @@
 from redis import StrictRedis
 
 from core.src.repositories.redis_characters_repository import RedisCharactersRepositoryImpl
+from core.src.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 from core.src.repositories.sql_characters_repository import SQLCharactersRepositoryImpl
 from etc import settings
 from core.src import database
@@ -22,4 +23,4 @@ strict_redis = StrictRedis(
     db=settings.REDIS_DB
 )
 redis_characters_index_repository = RedisCharactersRepositoryImpl(strict_redis)
-
+ws_channels_repository = WebsocketChannelsRepository(strict_redis)

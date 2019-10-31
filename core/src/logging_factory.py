@@ -1,6 +1,6 @@
 import logging
 import sys
-from core.src.authentication.scope import get_current_user_id
+from core.src.utils import get_current_user_id
 from etc import settings
 
 
@@ -10,6 +10,12 @@ def _init_logging(loggers):
         logger.setLevel(logging.DEBUG)
         logger.addHandler(logging.StreamHandler(sys.stdout))
         return
+    if settings.ENV == 'development':
+        for _n, _l in loggers.items():
+            logging.basicConfig(level=getattr(logging, _l))
+            _logger = logging.getLogger(_n)
+            _logger.setLevel(logging.DEBUG)
+            _logger.addHandler(logging.StreamHandler(sys.stdout))
 
     if settings.FLUENTD_HANDLER_HOST:
         from fluent import handler

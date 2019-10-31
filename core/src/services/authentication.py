@@ -66,8 +66,10 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         LOGGING_FACTORY.core.info('Logout: %s', ', '.join(a))
 
     def decode_session_token(self, session_token: typing.AnyStr) -> typing.Dict:
+        LOGGING_FACTORY.core.debug('Decoding session token: %s', session_token)
         now = int(time.time())
         token = json.loads(self.encryption_service.decrypt(session_token))
+        LOGGING_FACTORY.core.debug('Decoding session token: %s - %s', session_token, token)
         expires_at = token['ttl'] + token['created_at']
         if expires_at < now:
             raise exceptions.SessionExpiredException

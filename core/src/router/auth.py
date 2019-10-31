@@ -3,11 +3,10 @@ import json
 import flask
 from flask import request
 
-from core.src.authentication.scope import ensure_not_logged_in, ensure_logged_in
+from core.src.utils import ensure_not_logged_in, ensure_logged_in, handle_exception
 from core.src.builder import auth_service, psql_character_repository
 from core.src.database import db_close
 from core.src.logging_factory import LOGGING_FACTORY
-from core.src.utils.tools import handle_exception
 
 bp = flask.Blueprint('auth', __name__)
 

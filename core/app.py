@@ -7,7 +7,7 @@ from core.src.database import init_db, db
 from core.src.exceptions import ResourceDuplicated
 from core.src.logging_factory import LOGGING_FACTORY
 from core.src.router.websocket import build_base_websocket_route
-from core.src.utils.tools import FlaskUUID
+from core.src.utils import FlaskUUID
 
 from core.src.router.auth import bp as auth_bp
 from core.src.router.system import bp as system_bp
@@ -43,6 +43,8 @@ app.config.update(
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(system_bp, url_prefix='/system')
 app.register_blueprint(user_bp, url_prefix='/user')
+app.add_url_rule('/favicon.ico', 'favico', lambda *a, **kw: '')
+
 socketio = SocketIO(app, message_queue='redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
 
 
