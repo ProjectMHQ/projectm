@@ -15,6 +15,7 @@ bp = flask.Blueprint('auth', __name__)
 @handle_exception
 @ensure_not_logged_in
 def handle_email_address_confirmation(email_token):
+    LOGGER.core.info('handle_email_address_confirmation: %s', email_token)
     auth_service.confirm_email_address(email_token)
     return flask.Response(response='EMAIL_CONFIRMED')
 
@@ -23,8 +24,8 @@ def handle_email_address_confirmation(email_token):
 @handle_exception
 @ensure_not_logged_in
 def handle_signup():
+    LOGGER.core.info('handle_signup: %s', request.data)
     payload = json.loads(request.data)
-    LOGGER.core.info('Signup: %s', payload)
     auth_service.signup(payload.get('email'), payload.get('password'))
     return flask.Response(response='SIGNUP_CONFIRMED')
 
@@ -33,8 +34,8 @@ def handle_signup():
 @handle_exception
 @ensure_not_logged_in
 def handle_login():
+    LOGGER.core.info('handle_login: %s', request.data)
     payload = json.loads(request.data)
-    LOGGER.core.info('Login: %s', payload)
     login_response = auth_service.login(payload.get('email'), payload.get('password'))
     response = flask.jsonify({"user_id": login_response['user_id']})
     response.set_cookie(
@@ -48,7 +49,7 @@ def handle_login():
 @handle_exception
 @ensure_logged_in
 def handle_logout():
-    LOGGER.core.info('Logout')
+    LOGGER.core.info('handle_logut')
     auth_service.logout()
     response = flask.Response(response='LOGOUT_CONFIRMED')
     response.set_cookie('Authorization', '', expires=0)
@@ -60,6 +61,7 @@ def handle_logout():
 @handle_exception
 @ensure_logged_in
 def handle_new_token():
+    LOGGER.core.info('handle_new_token: %s', request.data)
     payload = json.loads(request.data)
     if payload['context'] == 'world':
         character = psql_character_repository.get_character_by_field(

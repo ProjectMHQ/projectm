@@ -7,12 +7,14 @@ from werkzeug.routing import UUIDConverter
 
 from core.src import exceptions
 from core.src.exceptions import CoreException
+from core.src.logging_factory import LOGGER
 
 
 def deserialize_message(deserializer):
     def _fn(fun):
         @wraps(fun)
         def wrapper(a, **kw):
+            LOGGER.core.debug('deserialize_message: %s, %s', deserializer, a)
             fun(deserializer(a), **kw)
         return wrapper
     return _fn
@@ -40,6 +42,7 @@ def ensure_not_logged_in(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
         from core.src.builder import auth_service
+        LOGGER.core.debug('ensure_not_logged_in. path: %s request.cookies: %s', request.path, request.cookies)
         if request and request.cookies and request.cookies.get('Authorization') and auth_service.decode_session_token(
             request.cookies['Authorization'].replace('Bearer ', '')
         ):
@@ -51,6 +54,7 @@ def ensure_not_logged_in(fun):
 def ensure_logged_in(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
+        LOGGER.core.debug('ensure_logged_in, path: %s, request.cookies: %s', request.path, request.cookies)
         from core.src.builder import auth_service
         if not request or not request.cookies or not request.cookies.get('Authorization'):
             raise exceptions.NotLoggedInException()
@@ -64,6 +68,9 @@ def ensure_logged_in(fun):
 def ensure_websocket_authentication(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
+        LOGGER.core.debug(
+            'ensure_websocket_authentication, path: %s request.cookies: %s', request.path, request.cookies
+        )
         from core.src.builder import auth_service
         if not request or not request.cookies or not request.cookies.get('Authorization'):
             raise exceptions.NotLoggedInException()
@@ -79,6 +86,7 @@ def handle_exception(fun):
         try:
             return fun(*a, **kw)
         except CoreException as e:
+            LOGGER.core.exception('Exception caought')
             return flask.Response(response=e.message, status=e.status_code)
     return wrapper
 
