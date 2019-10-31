@@ -14,7 +14,7 @@ class EntitiesRepository:
         self.prefix = 'e'
         self.pipeline = None
         self.bitmap_key = self.prefix + ':idmap'
-        assert self.redis.getbit(self.bitmap_key, 0)
+        redis.setbit(self.bitmap_key, 0, 1)  # ensure the map is 1 based
 
     def create_entity(self):
         now = int(time.time())

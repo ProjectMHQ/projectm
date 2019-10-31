@@ -26,7 +26,7 @@ class WebsocketChannelsMonitor:
         self.socketio = socketio
         self.channels_repository = channels_repository
         self.ping_interval = 30
-        self.ping_timeout = 40
+        self.ping_timeout = 90
 
     def _on_presence_event(self, connection_id: str, message: str):
         LOGGER.websocket_monitor.debug(
