@@ -15,6 +15,11 @@ email_service = EmailServiceImpl(sendgrid_client)
 
 
 def process_locked_users():
+    """
+    send the confirmation email to locked users.
+
+    after a signup a new user turn into LOCKED status if settings.EMAIL_MUST_BE_CONFIRMED == True
+    """
     users = user_repository.get_multiple_users_by_field('status', UserStatus.LOCKED.value)
     for user in users:
         token = encryption_service.encrypt(
@@ -35,6 +40,9 @@ def process_locked_users():
 
 @atomic
 def discard_expired_users():
+    """
+    unconfirmed stales accounts are deleted after settings.EMAIL_CONFRIMATION_LINK_TTL seconds after creation.
+    """
     now = int(time.time())
     users = user_repository.get_multiple_users_by_field('status', UserStatus.EMAIL_CONFIRMATION_PENDING.value)
     for user in users:

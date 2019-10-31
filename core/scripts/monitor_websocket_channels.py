@@ -7,6 +7,12 @@ from etc import settings
 from core.src.logging_factory import LOGGING_FACTORY
 from core.src.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 
+"""
+this packet is intended to monitor the websockets channels statuses with PING\PONG messages.
+
+check PING_INTERVAL & PING_TIMEOUT options
+"""
+
 
 class WebsocketChannelsMonitor:
     def __init__(
