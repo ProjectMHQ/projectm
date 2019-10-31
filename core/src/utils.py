@@ -7,7 +7,6 @@ from werkzeug.routing import UUIDConverter
 
 from core.src import exceptions
 from core.src.exceptions import CoreException
-from core.src.logging_factory import LOGGER
 
 
 def deserialize_message(deserializer):
@@ -54,6 +53,7 @@ def ensure_not_logged_in(fun):
 def ensure_logged_in(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
+        from core.src.logging_factory import LOGGER
         LOGGER.core.debug('ensure_logged_in, path: %s, request.cookies: %s', request.path, request.cookies)
         from core.src.builder import auth_service
         if not request or not request.cookies or not request.cookies.get('Authorization'):
@@ -68,6 +68,7 @@ def ensure_logged_in(fun):
 def ensure_websocket_authentication(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
+        from core.src.logging_factory import LOGGER
         LOGGER.core.debug(
             'ensure_websocket_authentication, path: %s request.cookies: %s', request.path, request.cookies
         )
@@ -86,7 +87,8 @@ def handle_exception(fun):
         try:
             return fun(*a, **kw)
         except CoreException as e:
-            LOGGER.core.exception('Exception caought')
+            from core.src.logging_factory import LOGGER
+            LOGGER.core.exception('Exception caught')
             return flask.Response(response=e.message, status=e.status_code)
     return wrapper
 
