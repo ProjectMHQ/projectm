@@ -58,7 +58,7 @@ class WebsocketChannelsMonitor:
 
         if not self.connections_statuses.get(channel.connection_id):
             LOGGING_FACTORY.websocket_monitor.debug('Channel %s status never saved. Saving', channel)
-            self.connections_statuses[channel.connection_id] = {"seen_at": now}
+            self.connections_statuses[channel.connection_id] = {"seen_at": channel.created_at}
             self.subscribe_pong_from_channels(channel.connection_id)
 
         if not self.connections_statuses[channel.connection_id].get('last_ping') or now -\
