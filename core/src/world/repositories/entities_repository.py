@@ -4,8 +4,8 @@ import typing
 from redis import StrictRedis
 
 from core.src.logging_factory import LOGGING_FACTORY
-from core.src.world.domain.components import Components
-from core.src.world.domain.components.types import BaseComponentType
+from core.src.world.components import Components
+from core.src.world.components.types import BaseComponentType
 
 
 class EntitiesRepository:
@@ -13,16 +13,22 @@ class EntitiesRepository:
         self.redis = redis
         self.prefix = 'e'
         self.pipeline = None
+        self.bitmap_key = self.prefix + ':idmap'
+        assert self.redis.getbit(self.bitmap_key, 0)
 
     def create_entity(self):
         now = int(time.time())
         script = """
-            local val=redis.call('bitpos', 'e:idmap', 0)
-            redis.call('setbit', 'e:idmap', val, 1)
-            local key = string.format('e:%s', val)
-            redis.call('hmset', key, '{}', ARGV[1])
+            local val=redis.call('bitpos', '{0}', 0)
+            redis.call('setbit', '{0}', val, 1)
+            local key = string.format('{1}:%s', val)
+            redis.call('hmset', key, '{2}', ARGV[1])
             return val
-            """.format(Components.base.CREATED_AT.value)
+            """.format(
+            self.bitmap_key,
+            self.prefix,
+            Components.base.CREATED_AT.value
+        )
         response = self.redis.eval(script, 0, now)
         LOGGING_FACTORY.core.debug('EntityRepository.create_entity, response: %s', response)
         return response and int(response)

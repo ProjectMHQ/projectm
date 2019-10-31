@@ -1,7 +1,7 @@
 from redis import StrictRedis
 
 from core.src.logging_factory import LOGGING_FACTORY
-from core.src.world.domain.components.types import ComponentType
+from core.src.world.components.types import ComponentType
 from core.src.world.types import Bit
 
 

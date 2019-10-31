@@ -22,9 +22,9 @@ class WebsocketChannelsMonitor:
         while 1:
             channels = self.channels_repository.get_active_channels()
             for channel in channels:
-                print('Sending ping on channel %s (entity %s)' % (channel.channel_id, channel.entity_id))
+                print('Sending ping on channel %s (entity %s)' % (channel.connection_id, channel.entity_id))
                 self.socketio.emit(
-                    'msg', 'PING {}'.format(channel.connection_id), namespace='/' + channel.channel_id
+                    'msg', 'PING {}'.format(channel.connection_id), namespace='/' + channel.connection_id
                 )
             LOGGING_FACTORY.websocket_monitor.debug('Sleeping')
             await asyncio.sleep(3)
@@ -40,4 +40,5 @@ if __name__ == '__main__':
     socketio = SocketIO(message_queue='redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
     channels_factory = WebsocketChannelsRepository(redis)
     monitor = WebsocketChannelsMonitor(socketio, channels_factory, loop=loop)
-    loop.run_until_complete(monitor.start())
+    loop.create_task(monitor.start())
+    loop.run_forever()

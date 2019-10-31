@@ -3,7 +3,7 @@ from flask_socketio import emit
 from core.src.utils import ensure_websocket_authentication, deserialize_message
 from core.src.builder import auth_service, redis_characters_index_repository, ws_channels_repository
 from core.src.world.builder import world_entities_repository, world_components_repository
-from core.src.world.domain.components import Components
+from core.src.world.components import Components
 
 
 WS_MOTD = """{}\n\n
@@ -51,4 +51,4 @@ def build_base_websocket_route(socketio):
         channel = ws_channels_repository.create(entity_id)
         world_entities_repository.update_entity_properties(entity_id, connection_id=channel.connection_id)
         world_components_repository.activate_component_for_entity(Components.base.CONNECTION, entity_id)
-        emit('auth', {'data': {'connection_id': channel.connection_id}})
+        emit('auth', {'data': {'channel_id': channel.connection_id}})

@@ -49,7 +49,8 @@ class WebsocketChannelsRepository:
         return response
 
     def get_active_channels(self) -> typing.Iterable[WebsocketChannel]:
-        def _ws(k: bytes, v: bytes) -> WebsocketChannel:
+        def _ws(a: typing.Tuple[bytes, bytes]) -> WebsocketChannel:
+            k, v = a
             data = v.decode().split(',')
             assert len(data) == 2
             return WebsocketChannel(

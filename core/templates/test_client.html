@@ -200,6 +200,7 @@
             } );
 
             socket.io.on( 'auth', message => {
+                console.log(message)
                 socket.authenticated_channel = io('/' + message.data.channel_id)
                 socket.authenticated_channel.on('msg', x => {addMsg('PRIVCHAN: ' + x)})
                 socket.authenticated_channel.on('connect', y => {

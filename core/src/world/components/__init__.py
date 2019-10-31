@@ -1,4 +1,4 @@
-from core.src.world.domain.components.types import BaseComponentType
+from core.src.world.components.types import BaseComponentType
 
 
 class Components:
