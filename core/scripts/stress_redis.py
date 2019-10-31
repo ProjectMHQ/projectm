@@ -14,7 +14,7 @@ connections = [
 ) for _ in range(0, 30)]
 
 
-bla = 'padulo'
+bla = 'DONTRUNME!'
 
 
 def create_entity(connection):
