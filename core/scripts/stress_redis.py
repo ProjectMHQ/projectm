@@ -5,6 +5,7 @@ from redis import StrictRedis
 from core.src.world.domain.components.connection import Components
 from etc import settings
 
+exit()
 
 connections = [
     StrictRedis(
