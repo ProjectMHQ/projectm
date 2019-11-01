@@ -45,9 +45,9 @@ def build_base_websocket_route(socketio):
         token = auth_service.decode_session_token(payload['token'])
         assert token['context'] == 'world'
         entity = Entity().set(NameComponent(payload["name"])).set(CreatedAtComponent(int(time.time())))
-        entity_id = world_entities_repository.save_entity(entity)
-        character_id = psql_character_repository.store_new_character(NameComponent.get(entity_id))
-        redis_characters_index_repository.set_entity_id(character_id, entity_id)
+        entity = world_entities_repository.save_entity(entity)
+        character_id = psql_character_repository.store_new_character(NameComponent.get(entity.entity_id))
+        redis_characters_index_repository.set_entity_id(character_id, entity.entity_id)
         emit('create', {'success': True, 'character_id': character_id})
 
     @socketio.on('auth')

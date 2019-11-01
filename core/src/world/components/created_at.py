@@ -1,12 +1,19 @@
-from core.src.world.components.types import ComponentType, ComponentTypeEnum
+import typing
+
+from core.src.world.components import ComponentType
+from core.src.world.components.types import ComponentTypeEnum
 
 
 class CreatedAtComponent(ComponentType):
     key = ComponentTypeEnum.CREATED_AT.value
 
     def __init__(self, value: int):
-        self._value = value
+        super().__init__(value)
 
     @property
-    def value(self):
+    def value(self) -> int:
         return self._value
+
+    @classmethod
+    def get(cls, entity_id: int, repo=None) -> typing.Optional['CreatedAtComponent']:
+        return super().get(entity_id, repo)

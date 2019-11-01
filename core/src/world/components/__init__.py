@@ -1,18 +1,19 @@
+import abc
 import typing
 
-from core.src.world.components.component import ComponentTypeEnum
+from core.src.world.components.types import ComponentTypeEnum
 
 
-class ComponentType:
-    key = ComponentTypeEnum
+class ComponentType(metaclass=abc.ABCMeta):
+    key = ComponentTypeEnum.NULL
     ctype = NotImplementedError
 
     def __init__(self, value):
         self._value = value
 
-    @property
+    @abc.abstractmethod
     def value(self):
-        return self._value
+        pass  # pragma: no cover
 
     @classmethod
     def get(cls, entity_id: int, repository=None) -> typing.Optional['ComponentType']:

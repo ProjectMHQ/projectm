@@ -1,5 +1,7 @@
 import typing
-from core.src.world.components.types import ComponentType, ComponentTypeEnum
+
+from core.src.world.components import ComponentType
+from core.src.world.components.types import ComponentTypeEnum
 
 
 class NameComponent(ComponentType):
