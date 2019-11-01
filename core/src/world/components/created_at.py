@@ -1,10 +1,10 @@
 from core.src.world.components.types import ComponentType, ComponentTypeEnum
 
 
-class ConnectionComponent(ComponentType):
-    key = ComponentTypeEnum.CONNECTION.value
+class CreatedAtComponent(ComponentType):
+    key = ComponentTypeEnum.CREATED_AT.value
 
-    def __init__(self, value: str):
+    def __init__(self, value: int):
         self._value = value
 
     @property

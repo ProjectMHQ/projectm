@@ -1,11 +1,8 @@
-import time
 import typing
-
 from redis import StrictRedis
-
 from core.src.logging_factory import LOGGER
-from core.src.world.components import Components
-from core.src.world.components.types import BaseComponentType
+from core.src.world.components.types import ComponentType
+from core.src.world.entity import Entity
 
 
 class EntitiesRepository:
@@ -16,35 +13,42 @@ class EntitiesRepository:
         self.bitmap_key = self.prefix + ':idmap'
         redis.setbit(self.bitmap_key, 0, 1)  # ensure the map is 1 based
 
-    def create_entity(self):
-        now = int(time.time())
+    def _allocate_entity_id(self) -> int:
         script = """
             local val=redis.call('bitpos', '{0}', 0)
             redis.call('setbit', '{0}', val, 1)
             local key = string.format('{1}:%s', val)
-            redis.call('hmset', key, '{2}', ARGV[1])
+            redis.call('hmset', key, 'entity', 1)
             return val
-            """.format(
-            self.bitmap_key,
-            self.prefix,
-            Components.base.CREATED_AT.value
-        )
-        response = self.redis.eval(script, 0, now)
+            """\
+            .format(self.bitmap_key, self.prefix)
+        response = self.redis.eval(script, 0)
         LOGGER.core.debug('EntityRepository.create_entity, response: %s', response)
-        return response and int(response)
+        assert response
+        return int(response)
+
+    def save_entity(self, entity: Entity):
+        assert not entity.entity_id, 'entity_id: %s, use update, not save.' % entity.entity_id
+        entity_id = self._allocate_entity_id()
+        entity.entity_id = entity_id
+        self.update_entity(entity)
 
     def get_entity(
             self,
             entity_id: int,
-            components: typing.Optional[typing.Tuple[BaseComponentType]]
+            components: typing.Optional[typing.Tuple[ComponentType]]
     ) -> typing.Optional[typing.List]:
         response = self.redis.hmget('{}:{}'.format(self.prefix, entity_id), components)
         LOGGER.core.debug('EntityRepository.get_entity(%s, %s), response: %s', entity_id, components, response)
         return response
 
-    def update_entity_properties(self, entity_id: int, **components: typing.Dict[str, str]):
-        response = self.redis.hmget('{}:{}'.format(self.prefix, entity_id), components)
+    def update_entity(self, entity: Entity):
+        assert entity.entity_id
+        entity_updates = {c.key: c.value for c in entity.pending_changes.items()}
+        response = self.redis.hmset(entity.entity_id, entity_updates)
+        entity.pending_changes.clear()
         LOGGER.core.debug(
-            'EntityRepository.update_entity_properties(%s, %s), response: %s', entity_id, components, response
+            'EntityRepository.update_entity_components(%s, %s), response: %s',
+            entity.entity_id, entity_updates, response
         )
         return response

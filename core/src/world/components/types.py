@@ -1,12 +1,18 @@
 import enum
 
 
-class ComponentType(enum.Enum):
-    pass
+@enum.unique
+class ComponentTypeEnum(enum.IntEnum):
+    """
+    enumerate components here to avoid mistakes on duplicates keys.
+    """
+    NULL = 0
+    CREATED_AT = 1
+    NAME = 3
+    CONNECTION = 2
+    POS = 3
 
 
-class BaseComponentType(ComponentType):
-    CREATED_AT = 'created_at'
-    CONNECTION = 'connection'
-    POS = 'pos'
-    NAME = 'name'
+class ComponentType:
+    key = ComponentTypeEnum
+    value = None
