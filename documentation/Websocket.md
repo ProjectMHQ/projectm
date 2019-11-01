@@ -10,7 +10,7 @@ Endpoints:
  - staging: `staging.pm.chatsubo.it`
 
 
-#### Character Creation & Authentication on '/' namespace
+#### Character Creation & Authentication on '/' namespac
 
 ##### Create Character
 - Requires Bearer Token: YES
@@ -28,11 +28,11 @@ Endpoints:
 
 
 
-##### Character Impersonation on the private namespace
+#### Character Impersonation on the private namespace
 
 Flow:
 - Once authenticated, quit the main namespace
 - Join the private namespace returned by the authentication process before `timeout`.
 - From this point, messages must be sent on the private namespace (namespace `/<channel_id>`). The namespace is ephemeral and changes at every authentication.
-- Client disconnected by legacy network disconnections may rejoin a previous channel before timeout without re-authenticating. 
-- To keep the namespace alive client must answer `PING` messages with `PONG` responses on the `presence` topic.
+- Clients disconnected by legacy network disconnections may rejoin a previous channel before timeout without re-authenticating. 
+- To keep the namespace alive client must answers `PING` messages with `PONG` responses on the `presence` topic.
