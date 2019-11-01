@@ -1,3 +1,5 @@
+import typing
+
 from core.src.world.components.types import ComponentType
 
 
@@ -5,7 +7,6 @@ class Entity:
     def __init__(self, entity_id: int = None):
         self._entity_id = entity_id
         self._pending_changes = {}
-        self._changes_lock = None
 
     def set(self, component: ComponentType):
         self._pending_changes[component.key] = component.value
@@ -24,3 +25,10 @@ class Entity:
     @property
     def pending_changes(self):
         return self._pending_changes
+
+    def get_values(self, *components: ComponentType, repository=None) \
+            -> typing.Iterable[typing.Optional[(str, int, list)]]:
+        if not repository:
+            from core.src.world.builder import world_components_repository as repository
+        data = repository.get_components_values(self.entity_id, *components)
+        return (components[i](components[i].ctype(v)) for i, v in enumerate(data))

@@ -44,13 +44,13 @@ class SQLCharactersRepositoryImpl:
         ]
 
     @atomic
-    def create_character(
+    def store_new_character(
             self,
-            user: UserDOAbstract,
+            user_id: str,
             name: str
     ) -> CharacterDOAbstract:
         character = models.Character(
-            user=self.session.query(models.User).filter(models.User.user_id == user.user_id).one(),
+            user=self.session.query(models.User).filter(models.User.user_id == user_id).one(),
             character_id=self._get_random_uuid(),
             name=name,
             meta={}

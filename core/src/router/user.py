@@ -32,7 +32,7 @@ class CharacterView(MethodView):
     def post(self):
         payload = json.loads(request.data.decode())
         user = user_repository.get_user_by_field('user_id', request.user['user_id'])
-        character = psql_character_repository.create_character(user, payload['name'])
+        character = psql_character_repository.store_new_character(user.user_id, payload['name'])
         return flask.jsonify({"data": character.as_dict()})
 
 
