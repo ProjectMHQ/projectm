@@ -11,7 +11,6 @@ from core.src.database import db_close
 bp = flask.Blueprint('profile', __name__)
 
 
-@db_close
 @handle_exception
 @ensure_logged_in
 def get_details():
@@ -20,7 +19,6 @@ def get_details():
 
 
 class CharacterView(MethodView):
-    @db_close
     @handle_exception
     @ensure_logged_in
     def get(self, character_id):
@@ -33,7 +31,6 @@ class CharacterView(MethodView):
             data = character.as_dict()
         return flask.jsonify({"data": data})
 
-    @db_close
     @handle_exception
     @ensure_logged_in
     def post(self):

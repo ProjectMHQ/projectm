@@ -42,6 +42,7 @@ def ensure_not_logged_in(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
         from core.src.builder import auth_service
+        from core.src.logging_factory import LOGGER
         LOGGER.core.debug('ensure_not_logged_in. path: %s request.cookies: %s', request.path, request.cookies)
         if request and request.cookies and request.cookies.get('Authorization') and auth_service.decode_session_token(
             request.cookies['Authorization'].replace('Bearer ', '')

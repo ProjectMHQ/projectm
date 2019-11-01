@@ -2,10 +2,11 @@ import json
 
 import time
 from flask_socketio import emit
+
+from core.src.business.character import exceptions
 from core.src.utils import ensure_websocket_authentication, deserialize_message
 from core.src.builder import auth_service, redis_characters_index_repository, ws_channels_repository
-from core.src.world.builder import world_entities_repository, world_components_repository
-from core.src.world.components import Components
+from core.src.world.builder import world_entities_repository
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.components.name import NameComponent
@@ -36,7 +37,7 @@ def build_base_websocket_route(socketio):
     def connect():
         emit('msg', {'data': WS_MOTD})
 
-    @socketio.on('crete')
+    @socketio.on('create')
     @ensure_websocket_authentication
     @deserialize_message(json.loads)
     def create_character(payload):
@@ -54,6 +55,8 @@ def build_base_websocket_route(socketio):
         token = auth_service.decode_session_token(payload['token'])
         assert token['context'] == 'world'
         entity_id = redis_characters_index_repository.get_entity_id(token['data']['character_id'])
+        if not entity_id:
+            raise exceptions.CharacterNotAllocated('create first')
         channel = ws_channels_repository.create(entity_id)
         entity = Entity(entity_id).set(ConnectionComponent(channel.connection_id))
         world_entities_repository.update_entity(entity)

@@ -8,9 +8,9 @@ class ComponentTypeEnum(enum.IntEnum):
     """
     NULL = 0
     CREATED_AT = 1
-    NAME = 3
-    CONNECTION = 2
-    POS = 3
+    NAME = 2
+    CONNECTION = 3
+    POS = 4
 
 
 class ComponentType:

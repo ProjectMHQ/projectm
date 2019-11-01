@@ -11,7 +11,6 @@ from core.src.logging_factory import LOGGER
 bp = flask.Blueprint('auth', __name__)
 
 
-@db_close
 @handle_exception
 @ensure_not_logged_in
 def handle_email_address_confirmation(email_token):
@@ -20,7 +19,6 @@ def handle_email_address_confirmation(email_token):
     return flask.Response(response='EMAIL_CONFIRMED')
 
 
-@db_close
 @handle_exception
 @ensure_not_logged_in
 def handle_signup():
@@ -30,7 +28,6 @@ def handle_signup():
     return flask.Response(response='SIGNUP_CONFIRMED')
 
 
-@db_close
 @handle_exception
 @ensure_not_logged_in
 def handle_login():
@@ -45,7 +42,6 @@ def handle_login():
     return response
 
 
-@db_close
 @handle_exception
 @ensure_logged_in
 def handle_logout():
@@ -57,7 +53,6 @@ def handle_logout():
     return response
 
 
-@db_close
 @handle_exception
 @ensure_logged_in
 def handle_new_token():

@@ -27,25 +27,25 @@ class EntitiesRepository:
         assert response
         return int(response)
 
-    def save_entity(self, entity: Entity):
+    def save_entity(self, entity: Entity) -> Entity:
         assert not entity.entity_id, 'entity_id: %s, use update, not save.' % entity.entity_id
         entity_id = self._allocate_entity_id()
         entity.entity_id = entity_id
         self.update_entity(entity)
+        return entity
 
-    def get_entity(
-            self,
-            entity_id: int,
-            components: typing.Optional[typing.Tuple[ComponentType]]
-    ) -> typing.Optional[typing.List]:
+    def get_entity(self, entity_id: int, components: typing.Optional[typing.Tuple[ComponentType]]) \
+            -> typing.Optional[typing.List]:
         response = self.redis.hmget('{}:{}'.format(self.prefix, entity_id), components)
         LOGGER.core.debug('EntityRepository.get_entity(%s, %s), response: %s', entity_id, components, response)
         return response
 
-    def update_entity(self, entity: Entity):
+    def update_entity(self, entity: Entity) -> Entity:
         assert entity.entity_id
         entity_updates = {c.key: c.value for c in entity.pending_changes.items()}
         response = self.redis.hmset(entity.entity_id, entity_updates)
+        # TODO FIXME
+        # Entity update MUST be smarter, it couldn't work like that.
         entity.pending_changes.clear()
         LOGGER.core.debug(
             'EntityRepository.update_entity_components(%s, %s), response: %s',

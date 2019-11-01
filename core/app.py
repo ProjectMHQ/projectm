@@ -2,6 +2,7 @@ import eventlet
 eventlet.monkey_patch()
 
 import flask
+from flask.logging import default_handler
 from flask_socketio import SocketIO
 from core.src.database import init_db, db
 from core.src.exceptions import ResourceDuplicated
@@ -16,6 +17,7 @@ from etc import settings
 
 
 app = flask.Flask(__name__)
+app.logger.removeHandler(default_handler)
 FlaskUUID(app)
 
 
@@ -70,6 +72,7 @@ def _tear_db(response):
 
 @app.errorhandler(ResourceDuplicated)
 def handler(exception):
+    LOGGER.core.exception('Exception caught')
     return flask.Response(
         response=str(exception),
         status=getattr(exception, 'status_code', 400)
@@ -78,7 +81,7 @@ def handler(exception):
 
 @app.errorhandler(Exception)
 def all_exceptions_handler(exception):
-    LOGGER.core.exception('Exception catched')
+    LOGGER.core.exception('Exception caught')
     _h = {}
     if settings.ENABLE_CORS:
         _h['Access-Control-Allow-Origin'] = '*'

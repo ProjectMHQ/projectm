@@ -9,10 +9,11 @@ class Entity:
 
     def set(self, component: ComponentType):
         self._pending_changes[component.key] = component.value
+        return self
 
     @property
     def entity_id(self):
-        return self.entity_id
+        return self._entity_id
 
     @entity_id.setter
     def entity_id(self, value: int):
