@@ -1,20 +1,15 @@
+import typing
+
 from redis import StrictRedis
 
-from core.src.logging_factory import LOGGER
-from core.src.world.components.types import ComponentType
-from core.src.world.types import Bit
+from core.src.world.components import ComponentTypeEnum
 
 
 class ComponentsRepository:
     def __init__(self, redis: StrictRedis):
         self.redis = redis
+        self.entities_prefix = 'e'
 
-    def activate_component_for_entity(self, component_type: ComponentType, entity_id: int) -> Bit:
-        LOGGER.core.debug('Component %s, Entity %s, Bit ON', component_type.value, entity_id)
-        self.redis.setbit(component_type.value, int(entity_id), Bit.ON)
-        return Bit.ON
-
-    def deactivate_component_for_entity(self, component_type: ComponentType, entity_id: int) -> Bit:
-        LOGGER.core.debug('Component %s, Entity %s, Bit OFF', component_type.value, entity_id)
-        self.redis.setbit(component_type.value, int(entity_id), Bit.OFF)
-        return Bit.OFF
+    def get_components_values(self, entity_id: str, *component_key: ComponentTypeEnum) -> \
+            typing.Iterable[typing.Optional[bytes]]:
+        return self.redis.hmget('{}:{}'.format(self.entities_prefix, entity_id), *component_key)

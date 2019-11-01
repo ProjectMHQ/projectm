@@ -52,7 +52,7 @@ class WebsocketChannelsMonitor:
     async def start(self):
         while 1:
             await self.monitor_connection_statuses()
-            await asyncio.sleep(3)
+            await asyncio.sleep(0.1)
 
     async def monitor_connection_statuses(self):
         channels = self.channels_repository.get_active_channels()
