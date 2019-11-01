@@ -23,8 +23,8 @@ Endpoints:
 - Requires Bearer Token: YES
 - Namespace: `/`
 - Topic: `auth`
-- Payload: ` {token: String, character_id: String}`
-- OnSuccess: ` {channel_id: String[UUID], success: true, timeout: int} `
+- Payload: ` {token: String, character_id: String[UUID]}`
+- OnSuccess: ` {channel_id: String[256bit hex], timeout: int} `
 
 
 
