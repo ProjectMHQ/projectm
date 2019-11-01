@@ -5,3 +5,4 @@ from core.src.world.repositories.entities_repository import EntitiesRepository
 
 world_entities_repository = EntitiesRepository(strict_redis)
 world_components_repository = ComponentsRepository(strict_redis)
+world_map_repository = NotImplementedError

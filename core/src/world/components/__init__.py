@@ -6,7 +6,7 @@ from core.src.world.components.types import ComponentTypeEnum
 
 class ComponentType(metaclass=abc.ABCMeta):
     key = ComponentTypeEnum.NULL
-    ctype = NotImplementedError
+    component_type = NotImplementedError
 
     def __init__(self, value):
         self._value = value
@@ -16,8 +16,8 @@ class ComponentType(metaclass=abc.ABCMeta):
         pass  # pragma: no cover
 
     @classmethod
-    def get(cls, entity_id: int, repository=None) -> typing.Optional['ComponentType']:
-        if not repository:
-            from core.src.world.builder import world_components_repository as repository
-        data = repository.get_component_value(entity_id, cls.key)
-        return data and cls(cls.ctype(data))
+    def get(cls, entity_id: int, repo=None) -> typing.Optional['ComponentType']:
+        if not repo:
+            from core.src.world.builder import world_components_repository as repo
+        data = repo.get_component_value(entity_id, cls.key)
+        return data and cls(cls.component_type(data))

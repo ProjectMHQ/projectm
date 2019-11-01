@@ -15,7 +15,7 @@ class EntitiesRepository:
 
     def _allocate_entity_id(self) -> int:
         script = """
-            local val=redis.call('bitpos', '{0}', 0)
+            local val = redis.call('bitpos', '{0}', 0)
             redis.call('setbit', '{0}', val, 1)
             local key = string.format('{1}:%s', val)
             redis.call('hmset', key, 'entity', 1)

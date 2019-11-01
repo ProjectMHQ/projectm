@@ -6,6 +6,7 @@ from core.src.world.components.types import ComponentTypeEnum
 
 class CreatedAtComponent(ComponentType):
     key = ComponentTypeEnum.CREATED_AT.value
+    component_type = int
 
     def __init__(self, value: int):
         super().__init__(value)
