@@ -48,3 +48,10 @@ Notes:
 - Keys with typos are ignored and the default settings is used.
 
 ```
+
+Note:
+edit ~/.bashrc and add
+```
+export PROJECTM_ENV=development
+```
+at the end of the file, to avoid explicitly declare the variable at every execution.
