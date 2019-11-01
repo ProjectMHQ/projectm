@@ -33,8 +33,7 @@ Endpoints:
 Flow:
 - Once authenticated, quit the main namespace
 - Join the private namespace returned by the authentication process before `timeout`.
-- From this point, messages must be sent on the private namespace.
-- The namespace is ephemeral and changes at every authentication.
+- From this point, messages must be sent on the private namespace (namespace `/<channel_id>`). The namespace is ephemeral and changes at every authentication.
 - Client disconnected by legacy network disconnections may rejoin a previous channel before timeout without re-authenticating. 
 - To keep the namespace alive client must answer `PING` messages with `PONG` responses on the `presence` channel.
 
