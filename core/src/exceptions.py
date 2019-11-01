@@ -9,8 +9,8 @@ class CoreException(Exception):
         return self.kw.get('message')
 
     @property
-    def status_code(self):
-        return int(self.kw.get('status_code', 400))
+    def code(self):
+        return int(self.kw.get('code', 400))
 
 
 class BadRequest(CoreException):
@@ -67,31 +67,31 @@ class EmailConfirmationTokenExpiredException(CoreException):
 
 class AlreadyLoggedInException(CoreException):
     @property
-    def status_code(self):
+    def code(self):
         return 401
 
     @property
-    def message(self):
+    def description(self):
         return 'ALREADY_LOGGED_IN'
 
 
 class NotLoggedInException(CoreException):
     @property
-    def status_code(self):
+    def code(self):
         return 401
 
     @property
-    def message(self):
+    def description(self):
         return 'NOT_LOGGED_IN'
 
 
 class SessionExpiredException(CoreException):
     @property
-    def status_code(self):
+    def code(self):
         return 401
 
     @property
-    def message(self):
+    def description(self):
         return 'SESSION_EXPIRED'
 
 

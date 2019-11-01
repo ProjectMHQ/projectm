@@ -4,14 +4,12 @@ import flask
 from flask import request
 from flask.views import MethodView
 
-from core.src.utils import ensure_not_logged_in, ensure_logged_in, handle_exception
-from core.src.builder import auth_service, user_repository, psql_character_repository
-from core.src.database import db_close
+from core.src.utils import ensure_logged_in
+from core.src.builder import user_repository, psql_character_repository
 
 bp = flask.Blueprint('profile', __name__)
 
 
-@handle_exception
 @ensure_logged_in
 def get_details():
     user = user_repository.get_user_by_field('user_id', request.user['user_id'])
@@ -19,7 +17,6 @@ def get_details():
 
 
 class CharacterView(MethodView):
-    @handle_exception
     @ensure_logged_in
     def get(self, character_id):
         user = user_repository.get_user_by_field('user_id', request.user['user_id'])
@@ -31,7 +28,6 @@ class CharacterView(MethodView):
             data = character.as_dict()
         return flask.jsonify({"data": data})
 
-    @handle_exception
     @ensure_logged_in
     def post(self):
         payload = json.loads(request.data.decode())

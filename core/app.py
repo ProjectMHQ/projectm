@@ -93,15 +93,16 @@ def core_handler(exception):
 @app.errorhandler(Exception)
 def all_exceptions_handler(exception):
     LOGGER.core.exception('Exception caught')
-    if isinstance(exception, EventletHTTPException) or isinstance(exception, WerkzeugHTTPException):
+    if isinstance(exception, EventletHTTPException) \
+            or isinstance(exception, WerkzeugHTTPException):
         return flask.Response(
             response=exception.description,
             status=exception.code
         )
 
     return flask.Response(
-        response=str(exception),
-        status=getattr(exception, 'status_code', 500),
+        response=getattr(exception, 'description', str(exception)),
+        status=getattr(exception, 'code', 500),
     )
 
 

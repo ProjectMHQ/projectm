@@ -3,15 +3,13 @@ import json
 import flask
 from flask import request
 
-from core.src.utils import ensure_not_logged_in, ensure_logged_in, handle_exception
+from core.src.utils import ensure_not_logged_in, ensure_logged_in
 from core.src.builder import auth_service, psql_character_repository
-from core.src.database import db_close
 from core.src.logging_factory import LOGGER
 
 bp = flask.Blueprint('auth', __name__)
 
 
-@handle_exception
 @ensure_not_logged_in
 def handle_email_address_confirmation(email_token):
     LOGGER.core.info('handle_email_address_confirmation: %s', email_token)
@@ -19,7 +17,6 @@ def handle_email_address_confirmation(email_token):
     return flask.Response(response='EMAIL_CONFIRMED')
 
 
-@handle_exception
 @ensure_not_logged_in
 def handle_signup():
     LOGGER.core.info('handle_signup: %s', request.data)
@@ -28,7 +25,6 @@ def handle_signup():
     return flask.Response(response='SIGNUP_CONFIRMED')
 
 
-@handle_exception
 @ensure_not_logged_in
 def handle_login():
     LOGGER.core.info('handle_login: %s', request.data)
@@ -42,7 +38,6 @@ def handle_login():
     return response
 
 
-@handle_exception
 @ensure_logged_in
 def handle_logout():
     LOGGER.core.info('handle_logut')
@@ -53,7 +48,6 @@ def handle_logout():
     return response
 
 
-@handle_exception
 @ensure_logged_in
 def handle_new_token():
     LOGGER.core.info('handle_new_token: %s', request.data)

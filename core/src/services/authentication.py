@@ -52,8 +52,8 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         user = self.user_repository.get_user_by_field('email', email)
         if user.status != UserStatus.ACTIVE:
             raise exceptions.UnauthorizedError(
-                message='USER_NOT_ACTIVE',
-                status_code=401
+                description='USER_NOT_ACTIVE',
+                code=401
             )
         user.validate_password(password)
         return {

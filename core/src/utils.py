@@ -83,18 +83,6 @@ def ensure_websocket_authentication(fun):
     return wrapper
 
 
-def handle_exception(fun):
-    @wraps(fun)
-    def wrapper(*a, **kw):
-        try:
-            return fun(*a, **kw)
-        except CoreException as e:
-            from core.src.logging_factory import LOGGER
-            LOGGER.core.exception('Exception caught')
-            return flask.Response(response=e.message, status=e.status_code)
-    return wrapper
-
-
 def namedtuple_to_dict(data: typing.NamedTuple):
     res = {}
     for field in data._fields:
