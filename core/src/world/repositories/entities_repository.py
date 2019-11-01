@@ -42,7 +42,7 @@ class EntitiesRepository:
 
     def update_entity(self, entity: Entity) -> Entity:
         assert entity.entity_id
-        entity_updates = {c.key: c.value for c in entity.pending_changes.items()}
+        entity_updates = {c.key: c.value for c in entity.pending_changes}
         response = self.redis.hmset(entity.entity_id, entity_updates)
         # TODO FIXME
         # Entity update MUST be smarter, it couldn't work like that.

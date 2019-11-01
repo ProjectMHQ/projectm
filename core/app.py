@@ -1,11 +1,13 @@
 import eventlet
+from eventlet.green.http.client import HTTPException as EventletHTTPException
+from werkzeug.exceptions import HTTPException as WerkzeugHTTPException
 eventlet.monkey_patch()
 
 import flask
 from flask.logging import default_handler
 from flask_socketio import SocketIO
 from core.src.database import init_db, db
-from core.src.exceptions import ResourceDuplicated
+from core.src.exceptions import CoreException
 from core.src.logging_factory import LOGGER
 from core.src.router.websocket import build_base_websocket_route
 from core.src.utils import FlaskUUID
@@ -70,8 +72,17 @@ def _tear_db(response):
     return response
 
 
-@app.errorhandler(ResourceDuplicated)
-def handler(exception):
+@app.after_request
+def _tear_cors(response):
+    if settings.ENABLE_CORS:
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = '*'
+        response.headers['Access-Control-Expose-Headers'] = '*'
+    return response
+
+
+@app.errorhandler(CoreException)
+def core_handler(exception):
     LOGGER.core.exception('Exception caught')
     return flask.Response(
         response=str(exception),
@@ -82,14 +93,15 @@ def handler(exception):
 @app.errorhandler(Exception)
 def all_exceptions_handler(exception):
     LOGGER.core.exception('Exception caught')
-    _h = {}
-    if settings.ENABLE_CORS:
-        _h['Access-Control-Allow-Origin'] = '*'
-        _h['Access-Control-Allow-Headers'] = '*'
+    if isinstance(exception, EventletHTTPException) or isinstance(exception, WerkzeugHTTPException):
+        return flask.Response(
+            response=exception.description,
+            status=exception.code
+        )
+
     return flask.Response(
         response=str(exception),
         status=getattr(exception, 'status_code', 500),
-        headers=_h
     )
 
 
