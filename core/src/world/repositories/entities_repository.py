@@ -1,7 +1,7 @@
 import typing
 from redis import StrictRedis
 from core.src.logging_factory import LOGGER
-from core.src.world.components.types import ComponentType
+from core.src.world.components import ComponentType
 from core.src.world.entity import Entity
 
 
