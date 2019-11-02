@@ -1,12 +1,6 @@
-import hashlib
-import time
-import typing
 import sqlalchemy
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
-
-from core.src import exceptions
-from core.src.business.user.types import UserStatus
 from core.src.database import Base, json_column_type
 
 

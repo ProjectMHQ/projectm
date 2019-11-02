@@ -1,60 +1,42 @@
-import hashlib
-import json
+import asyncio
 import unittest
 import binascii
 import os
-import uuid
-
-from flask_testing import TestCase
-from gevent import threading
-
-import socketIO_client
+from tests.bake_user import BakeUserTestCase
 
 
-class TestWebsocketCharacterAuthentication(TestCase):
-    socketio = None
-    socketioport = 13254
+class TestWebsocketCharacterAuthentication(BakeUserTestCase):
+    def setUp(self):
+        self.connected = False
+        self.socketioport = 12349
 
-    def create_app(self):
-        from core.app import app
-        self.app = app
-        return app
+    async def async_test(self):
+        import socketio
+        sio = socketio.AsyncClient()
 
-    def _create_user(self, email, password):
-        response = self.client.post('/auth/signup', data=json.dumps({'email': email, 'password': password}))
-        self.assert200(response)
-        self.assertEqual(response.data, b'SIGNUP_CONFIRMED')
+        @sio.on('connect')
+        async def connect(*a, **kw):
+            await sio.emit(
+                'create', {
+                    'token': self._get_websocket_token('world:create'),
+                    'name': 'Hero %s' % binascii.hexlify(os.urandom(8))
+                }
+            )
 
-    def _auth_user(self, email, password):
-        response = self.client.post('/auth/login', data=json.dumps({'email': email, 'password': password}))
-        self.assert200(response)
-        user = uuid.UUID(response.json['user_id'])
-        t = response.headers['Set-Cookie'].replace('Authorization=', '').replace('Bearer ', '').split(';')
-        return user, t[0].strip('"').strip(' ')
+        @sio.on('auth')
+        async def auth(*a, **kw):
+            raise ValueError('auth response HERE')
 
-    def _run_websocket_server(self):
-        from core.app import socketio
+        @sio.on('msg')
+        async def msg(*data):
+            print(data)
 
-        def _d():
-
-            self.socketio = socketio
-        self.socketio_thread = threading.Thread(target=_d, daemon=True)
-        self.socketio_thread.start()
-
+        await sio.connect('http://127.0.0.1:{}'.format(self.socketioport))
+        await asyncio.sleep(1)
 
     def test(self):
-        ping_timeout = 5
-        email = binascii.hexlify(os.urandom(8)).decode() + '@tests.com'
-        password = hashlib.sha256(b'password').hexdigest()
-        self._create_user(email, password)
-        user_id, auth_token = self._auth_user(email, password)
-        self._run_websocket_server()
-        with socketIO_client.SocketIO(
-                '127.0.0.1', self.socketioport, headers={'Authorization': 'Bearer %s' % auth_token}
-        ) as ws:
-            ws.connect('/')
-
-        exit()
+        self._bake_user()
+        self._run_test()
 
 
 if __name__ == '__main__':

@@ -1,7 +1,6 @@
 import asyncio
 import socketio
 from aiohttp import web
-import json
 import time
 from core.scripts.monitor_websocket_channels import builder
 from core.src.business.character import exceptions
@@ -13,7 +12,7 @@ from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.components.name import NameComponent
 from core.src.world.entity import Entity
-from core.src.utils import deserialize_message
+
 from etc import settings
 
 mgr = socketio.AsyncRedisManager('redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
@@ -49,33 +48,31 @@ WS_MOTD = """{}\n\n
 @sio.event
 async def connect(sid, environ):
     LOGGER.core.debug('Sending MOTD')
-    await sio.emit('msg', {'data': WS_MOTD})
+    await sio.emit('msg', {'data': WS_MOTD}, to=sid)
 
 
 @sio.on('create')
-@deserialize_message(json.loads)
 async def create_character(sid, payload):
     token = auth_service.decode_session_token(payload['token'])
-    assert token['context'] == 'world'
+    assert token['context'] == 'world:create'
     entity = Entity().set(NameComponent(payload["name"])).set(CreatedAtComponent(int(time.time())))
     entity = world_repository.save_entity(entity)
     character_id = psql_character_repository.store_new_character(NameComponent.get(entity.entity_id))
     redis_characters_index_repository.set_entity_id(character_id, entity.entity_id)
-    await sio.emit('create', {'success': True, 'character_id': character_id})
+    await sio.emit('create', {'success': True, 'character_id': character_id}, to=sid)
 
 
 @sio.on('auth')
-@deserialize_message(json.loads)
 async def authenticate_character(sid, payload):
     token = auth_service.decode_session_token(payload['token'])
-    assert token['context'] == 'world'
+    assert token['context'] == 'world:auth'
     entity_id = redis_characters_index_repository.get_entity_id(token['data']['character_id'])
     if not entity_id:
         raise exceptions.CharacterNotAllocated('create first')
     channel = ws_channels_repository.create(entity_id)
     entity = Entity(entity_id).set(ConnectionComponent(channel.connection_id))
     world_repository.update_entity(entity)
-    await sio.emit('auth', {'data': {'channel_id': channel.connection_id}})
+    await sio.emit('auth', {'data': {'channel_id': channel.connection_id}}, to=sid)
 
 
 if __name__ == '__main__':

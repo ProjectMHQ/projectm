@@ -12,6 +12,8 @@ Endpoints:
 
 #### Character Creation & Authentication on '/' namespace
 
+Before proceeding request a token on the REST for the 'world' topic.
+
 ##### Create Character
 - Requires Bearer Token: NO
 - Namespace: `/`

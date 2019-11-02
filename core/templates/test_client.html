@@ -174,7 +174,6 @@
                 socket.io.emit(
                     'auth',
                     JSON.stringify( {
-                        'character_id': character_id,
                         'token': token
                     } ),
                     function () {
