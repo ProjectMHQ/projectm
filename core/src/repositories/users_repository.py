@@ -9,7 +9,7 @@ from core.src import models, exceptions
 from core.src.database import atomic
 
 
-class UserRepositoryImpl:
+class UsersRepositoryImpl:
     def __init__(self, session_factory: scoped_session):
         self._session_factory = session_factory
 

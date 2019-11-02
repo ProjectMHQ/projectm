@@ -2,12 +2,11 @@ import json
 import time
 import typing
 
-from core.src.business.user.abstract import UserDOAbstract
 from etc import settings
 from core.src import exceptions, models
 from core.src.business.user.types import UserStatus
 from core.src.database import atomic
-from core.src.logging_factory import LOGGING_FACTORY
+from core.src.logging_factory import LOGGER
 from core.src.services.abstracts import AuthenticationServiceAbstract
 
 
@@ -53,8 +52,8 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         user = self.user_repository.get_user_by_field('email', email)
         if user.status != UserStatus.ACTIVE:
             raise exceptions.UnauthorizedError(
-                message='USER_NOT_ACTIVE',
-                status_code=401
+                description='USER_NOT_ACTIVE',
+                code=401
             )
         user.validate_password(password)
         return {
@@ -64,11 +63,13 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         }
 
     def logout(self, *a, **kw):
-        LOGGING_FACTORY.core.info('Logout: %s', ', '.join(a))
+        LOGGER.core.info('Logout: %s', ', '.join(a))
 
     def decode_session_token(self, session_token: typing.AnyStr) -> typing.Dict:
+        LOGGER.core.debug('Decoding session token: %s', session_token)
         now = int(time.time())
         token = json.loads(self.encryption_service.decrypt(session_token))
+        LOGGER.core.debug('Decoding session token: %s', session_token)
         expires_at = token['ttl'] + token['created_at']
         if expires_at < now:
             raise exceptions.SessionExpiredException

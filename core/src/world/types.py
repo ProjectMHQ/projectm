@@ -1,14 +1,4 @@
 import enum
-import typing
-
-Pos = typing.NamedTuple(
-    'Pos',
-    (
-        ('x', int),
-        ('y', int),
-        ('z', typing.Optional[int])
-    )
-)
 
 
 @enum.unique
@@ -17,3 +7,9 @@ class Direction(enum.IntEnum):
     SOUTH = 1
     WEST = 2
     EAST = 3
+
+
+@enum.unique
+class Bit(enum.IntEnum):
+    OFF = 0
+    ON = 1

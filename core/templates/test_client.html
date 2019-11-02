@@ -16,35 +16,6 @@
             margin: 5px
         }
 
-        form {
-            background-color: #36393F;
-            padding: 3px;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            border: 1px solid #ffffff;
-        }
-
-        form input {
-            border: 0;
-            padding: 10px;
-            width: 90%;
-            margin-right: .5%;
-        }
-
-        form button {
-            width: 9%;
-            background: rgb(130, 224, 255);
-            border: none;
-            padding: 10px;
-        }
-
-        input[type=text] {
-            background-color: #36393F;
-            color: white;
-            font-size: 18px;
-        }
-
         #specialEffects {
             width: auto;
             height: 22pt;
@@ -87,17 +58,25 @@
 
         #server-info {
             width: auto;
-            height: auto;
             border-style: solid;
             border-width: 1px;
             border-color: #CCBBBB;
             font-family: monospace;
             font-size: 10pt;
-            vertical-align: middle;
             text-align: left;
-            top: 180pt;
+            vertical-align: middle;
+            top: 185pt;
             position: relative;
+            padding: 5px;
         }
+
+        #server-info input[type=text] {
+            background-color: #36393F;
+            color: white;
+            font-size: 10pt;
+            font-family: monospace;
+        }
+
 
         #regionInfo {
             width: 250px;
@@ -129,7 +108,6 @@
         }
 
         #boxMsg {
-            width: auto;
             background: #AABBAA;
             color: #FFF;
             bottom: 0;
@@ -138,7 +116,14 @@
             z-index: 1000;
         }
 
-        #messages {
+        #boxMsg input[type=text] {
+            background-color: #36393F;
+            color: white;
+            font-size: 16pt;
+            width: 950pt;
+        }
+
+        #messagesFromSrv {
             padding: 10px;
             color: white;
         }
@@ -147,82 +132,115 @@
             padding: px 10px;
         }
 
-        #messages p:nth-child(odd) {
+        #messagesFromSrv p:nth-child(odd) {
             background: #36393F;
             font-family: monospace;
             font-size: 12pt;
             color: #fff;
         }
     </style>
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
-        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
     <script>
+        console.ok = msg => {
+            console.log( `%c ${msg}`, "font-weight: bold; font-color: green" );
+        };
+
+        console.err = msg => {
+            console.log( `%c ${msg}`, "font-weight: bold; font-color: red" );
+        };
+
+        var test_client = {};
+        test_client.deleteCnn = s => {
+            s.disconnect();
+            delete s;
+        };
+
         $( document ).ready( function () {
             const urlParams = new URLSearchParams( window.location.search );
             const token = urlParams.get( 'token' );
-            const character_id = urlParams.get( 'character_id' );
-            var socket = {};
-
-
             var add = $( "#serverAddress" ).val();
             var port = $( "#serverPort" ).val();
-            var cnnStr = "http://" + add + ":" + port;
 
-            authenticate = function () {
-                console.log( 'Authenticating character id ' + character_id + ' with token: ' + token )
-                socket.io.emit(
-                    'auth',
-                    JSON.stringify( {
-                        'character_id': character_id,
-                        'token': token
-                    } ),
-                    function () {
-                        console.log( 'auth call done' );
-                    }
-                )
-            }
-            addMsg = function ( msg ) {
-                const pre = $( ' <pre> </pre>' );
-                $( '#messages' ).append( pre.text( msg ) );
-            }
+            var socket = {};
+            socket.io = io( `http://${add}:${port}` );
 
+            socket.io.on( 'connect', d => {
+                // Client side event listener. It takes new messages from the server and appends it to HTML.
+                console.ok( 'Connected' );
 
-            socket.io = io( cnnStr );
-            // Client side event listener. It takes new messages from the server and appends it to HTML.
-            socket.io.on('connect', function() {
-                console.log( 'connected' );
-                authenticate()
-            });
+                if ( !socket.io.connected )
+                    return;
+
+                console.ok( "Connected" );
+                $( "#btnAddProfile" ).prop( 'value', 'Disconnect' );
+            } ); // socket connected
+
+            socket.io.on( 'connect_error', error => {
+                console.err( `CNN ERROR: ${error}` );
+                test_client.deleteCnn( socket.io );
+            } );
+            socket.io.on( 'error', error => {
+                console.err( `CNN ERROR: ${error}` );
+                test_client.deleteCnn( socket.io );
+            } );
+            socket.io.on( 'connect_timeout', error => {
+                console.err( `CNN ERROR: ${error}` );
+                test_client.deleteCnn( socket.io );
+            } );
+
             socket.io.on( 'msg', message => {
-                $( '#cnn' ).val( "connected" );
-                addMsg(message.data)
+                appendMsg( message.data )
             } );
 
             socket.io.on( 'auth', message => {
-                socket.authenticated_channel = io('/' + message.data.channel_id)
-                socket.authenticated_channel.on('msg', x => {addMsg('PRIVCHAN: ' + x)})
-                socket.authenticated_channel.on('connect', y => {
-                    addMsg('Connected to PRIVCHAN ' + message.data.channel_id)
-                })
+                socket.authenticated_channel = io( '/' + message.data.channel_id );
 
-            });
+                socket.authenticated_channel.on( 'msg', x => {
+                    appendMsg( 'PRIVCHAN: ' + x )
+                } );
 
-            $('#message').on('keypress',function(e) {
-                if(e.which == 13) {
-                    console.log('enter')
+                socket.authenticated_channel.on( 'connect', y => {
+                    appendMsg( 'Connected to PRIVCHAN ' + message.data.channel_id )
+                } );
+            } );
+
+            var target = document.getElementById( 'messagesFromSrv' )
+            // create an observer instance
+            var observer = new MutationObserver( m => {
+                target.scrollTop = target.scrollHeight;
+                console.log( "Scroll bottom" );
+            } );
+
+            // pass in the target node, as well as the observer options
+            observer.observe( target, {
+                attributes: true,
+                childList: true,
+                characterData: true
+            } );
+
+            appendMsg = m => {
+                const pre = $( ' <pre> </pre>' );
+                $( '#messagesFromSrv' ).append( pre.text( m ) );
+            };
+
+            $( '#msgToServer' ).on( 'keypress', function ( e ) {
+                if ( e.which == 13 ) {
+                    console.log( 'enter' )
                     socket.io.emit(
                         'msg',
-                        JSON.stringify({"ctx": "world", "data": $( '#message' ).val()}),
+                        JSON.stringify( {
+                            "ctx": "world",
+                            "data": $( '#msgToServer' ).val()
+                        } ),
                         () => {
-                            $( '#message' ).val( '' )
+                            $( '#msgToServer' ).val( '' )
                         }
                     );
                 }
-            }
-        );
+            } );
 
-        } );
+        } ); // document ready
     </script>
 </head>
 
@@ -232,27 +250,24 @@
     </div>
 
     <div id="output">
-        <div id="messages" style="overflow-y: scroll;">
+        <div id="messagesFromSrv" style="overflow-y: scroll;">
         </div>
     </div>
 
     <div id="columnRight">
         <div id="map">
-
             Map
+        </div>
+        <div id="server-info">
 
-
-            <div id="server-info">
-
-                <!-- I tag tipo con parentesi graffe sono jinja template. leave it here, gli hostname li setta
+            <!-- I tag tipo con parentesi graffe sono jinja template. leave it here, gli hostname li setta
                      il server. -->
 
-                <span>server address:</span>&nbsp;<input id="serverAddress" type="text" value="{{context.ws_host}}">
-                <br />
-                <span>port:</span>&nbsp;<input id="serverPort" type="text" value="{{context.ws_port}}">
-                <br />
-                <button type="button" name="cnn" id="cnn">Connect</button>
-            </div>
+            <span>add:</span>&nbsp;<input id="serverAddress" type="text" value="{{context.ws_host}}">
+            <p></p>
+            <span>port:</span>&nbsp;<input id="serverPort" type="text" value="{{context.ws_port}}">
+            <p></p>
+            <button type="button" name="cnn" id="cnn">Connect</button>
         </div>
     </div>
 
@@ -265,7 +280,7 @@
     </div>
 
     <div id="boxMsg">
-        <input autocomplete="off" type="text" name="message" id="message" placeholder="enter message" size="150">
+        <input autocomplete="off" type="text" id="msgToServer" placeholder="enter message">
     </div>
 
 </body>

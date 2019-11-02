@@ -1,8 +1,23 @@
 import typing
 from functools import wraps
+
+import flask
 from flask import request
+from werkzeug.routing import UUIDConverter
+
 from core.src import exceptions
-from core.src.business.character.character import CharacterDOImpl
+from core.src.exceptions import CoreException
+
+
+def deserialize_message(deserializer):
+    def _fn(fun):
+        @wraps(fun)
+        def wrapper(a, **kw):
+            from core.src.logging_factory import LOGGER
+            LOGGER.core.debug('deserialize_message: %s, %s', deserializer, a)
+            fun(deserializer(a), **kw)
+        return wrapper
+    return _fn
 
 
 def get_current_user_id():
@@ -27,6 +42,8 @@ def ensure_not_logged_in(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
         from core.src.builder import auth_service
+        from core.src.logging_factory import LOGGER
+        LOGGER.core.debug('ensure_not_logged_in. path: %s request.cookies: %s', request.path, request.cookies)
         if request and request.cookies and request.cookies.get('Authorization') and auth_service.decode_session_token(
             request.cookies['Authorization'].replace('Bearer ', '')
         ):
@@ -38,6 +55,8 @@ def ensure_not_logged_in(fun):
 def ensure_logged_in(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
+        from core.src.logging_factory import LOGGER
+        LOGGER.core.debug('ensure_logged_in, path: %s, request.cookies: %s', request.path, request.cookies)
         from core.src.builder import auth_service
         if not request or not request.cookies or not request.cookies.get('Authorization'):
             raise exceptions.NotLoggedInException()
@@ -51,6 +70,10 @@ def ensure_logged_in(fun):
 def ensure_websocket_authentication(fun):
     @wraps(fun)
     def wrapper(*a, **kw):
+        from core.src.logging_factory import LOGGER
+        LOGGER.core.debug(
+            'ensure_websocket_authentication, path: %s request.cookies: %s', request.path, request.cookies
+        )
         from core.src.builder import auth_service
         if not request or not request.cookies or not request.cookies.get('Authorization'):
             raise exceptions.NotLoggedInException()
@@ -58,3 +81,20 @@ def ensure_websocket_authentication(fun):
         request.user_token = user_token
         fun(*a, **kw)
     return wrapper
+
+
+def namedtuple_to_dict(data: typing.NamedTuple):
+    res = {}
+    for field in data._fields:
+        res[field] = getattr(data, field)
+    return res
+
+
+class FlaskUUID(object):
+    """Flask extension providing a UUID url converter"""
+    def __init__(self, app=None):
+        if app is not None:
+            self.init_app(app)
+
+    def init_app(self, app):
+        app.url_map.converters['uuid'] = UUIDConverter

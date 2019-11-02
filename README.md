@@ -26,7 +26,7 @@ $ PROJECTM_ENV=development python -m core.app
 ```
 
 
-CLIENT (API test):
+CLIENT (API test)
 
 ```bash
 $ cd projectm
@@ -35,7 +35,7 @@ $ python -m manage --help
 ```
 
 
-CUSTOMIZING APP SETTINGS VIA `local-settings.conf`:
+IN THE NEED OF CUSTOMIZED SETTINGS:
 ```bash
 $ cd projectm
 $ cd etc/<your_env_name, i.e. development>
@@ -48,3 +48,10 @@ Notes:
 - Keys with typos are ignored and the default settings is used.
 
 ```
+
+Note:
+edit ~/.bashrc and add
+```
+export PROJECTM_ENV=development
+```
+at the end of the file, to avoid explicitly declare the variable at every execution.
