@@ -3,6 +3,7 @@ import socketio
 from aiohttp import web
 import json
 import time
+from core.scripts.monitor_websocket_channels import builder
 from core.src.business.character import exceptions
 from core.src.builder import auth_service, redis_characters_index_repository, ws_channels_repository, \
     psql_character_repository
@@ -78,8 +79,6 @@ async def authenticate_character(sid, payload):
 
 
 if __name__ == '__main__':
-    web.run_app(
-        app,
-        host=settings.SOCKETIO_HOSTNAME,
-        port=settings.SOCKETIO_PORT
-    )
+    ws_channels_monitor = builder(sio)
+    loop.create_task(ws_channels_monitor.start())
+    web.run_app(app, host=settings.SOCKETIO_HOSTNAME, port=settings.SOCKETIO_PORT)

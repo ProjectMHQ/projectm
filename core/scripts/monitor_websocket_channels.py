@@ -1,7 +1,8 @@
 import asyncio
-from flask_socketio import SocketIO
 from redis import StrictRedis
 import time
+
+from socketio import AsyncRedisManager
 
 from etc import settings
 from core.src.logging_factory import LOGGER
@@ -17,7 +18,7 @@ check PING_INTERVAL & PING_TIMEOUT options
 class WebsocketChannelsMonitor:
     def __init__(
             self,
-            socketio: SocketIO,
+            socketio,
             channels_repository: WebsocketChannelsRepository,
             loop=asyncio.get_event_loop()
     ):
@@ -36,7 +37,7 @@ class WebsocketChannelsMonitor:
             self.connections_statuses[connection_id]['last_pong'] = int(time.time())
         if message == 'PING':
             if connection_id in self.connections_statuses:
-                socketio.emit('presence', 'PONG', namespace=connection_id)
+                self.socketio.emit('presence', 'PONG', namespace=connection_id)
 
     def subscribe_pong_from_channels(self, connection_id: str):
         LOGGER.websocket_monitor.info('Subscribe presence for channel %s', connection_id)
@@ -79,11 +80,9 @@ class WebsocketChannelsMonitor:
             self.channels_repository.delete(channel.connection_id)
 
 
-if __name__ == '__main__':
-    redis = StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB)
-    loop = asyncio.get_event_loop()
-    socketio = SocketIO(message_queue='redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
-    channels_factory = WebsocketChannelsRepository(redis)
+def builder(sio=None, loop=None):
+    redis_data = StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB)
+    socketio = sio or AsyncRedisManager('redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
+    channels_factory = WebsocketChannelsRepository(redis_data)
     monitor = WebsocketChannelsMonitor(socketio, channels_factory, loop=loop)
-    loop.create_task(monitor.start())
-    loop.run_forever()
+    return monitor
