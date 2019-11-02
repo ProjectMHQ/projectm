@@ -71,8 +71,10 @@ class EntitiesRepository:
             self, entity_id: int, components: typing.Optional[typing.Tuple[ComponentType]]
     ) -> typing.List[typing.Optional[bytes]]:
         response = self.redis.hmget('{}:{}'.format(self._entity_prefix, entity_id), (c.key for c in components))
-        LOGGER.core.debug('EntityRepository.get_components_values_per_entity(%s, %s), response: %s', entity_id,
-                          components, response)
+        LOGGER.core.debug(
+            'EntityRepository.get_components_values_per_entity(%s, %s), response: %s',
+            entity_id, components, response
+        )
         return response
 
     def get_components_values_per_entities(
@@ -87,10 +89,11 @@ class EntitiesRepository:
         response = pipeline.execute()
         return response
 
-    def get_entity_ids_with_components(self, *components: ComponentType) -> typing.Iterable[int]:
-        randkey = binascii.hexlify(os.urandom(8))
-        self.redis.bitop('AND', randkey, *(c.key for c in components))
-        bitmap = self.redis.get(randkey)
-        array = bitarray.bitarray()
-        array.frombytes(bitmap)
-        return (i for i, v in enumerate(array) if v)
+    def get_entity_ids_with_components(self, *components: ComponentType) -> typing.Iterator[int]:
+        _key = binascii.hexlify(os.urandom(8))
+        self.redis.bitop('AND', _key, *(c.key for c in components))
+        p = self.redis.pipeline()
+        self.redis.get(_key)
+        self.redis.delete(_key)
+        bitmap, _ = p.execute()
+        return (i for i, v in enumerate(bitarray.bitarray().frombytes(bitmap)) if v)

@@ -28,20 +28,10 @@ class CharacterView(MethodView):
             data = character.as_dict()
         return flask.jsonify({"data": data})
 
-    @ensure_logged_in
-    def post(self):
-        payload = json.loads(request.data.decode())
-        user = user_repository.get_user_by_field('user_id', request.user['user_id'])
-        character = psql_character_repository.store_new_character(user.user_id, payload['name'])
-        return flask.jsonify({"data": character.as_dict()})
-
 
 bp.add_url_rule(
     '/', view_func=get_details, methods=['GET']
 )
 bp.add_url_rule(
     '/character', view_func=CharacterView.as_view('CharactersGet'), methods=['GET'], defaults={'character_id': None}
-)
-bp.add_url_rule(
-    '/character', view_func=CharacterView.as_view('CharacterCreate'), methods=['POST'],
 )

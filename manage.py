@@ -235,17 +235,6 @@ def ls():
 
 
 @character.command()
-def create():
-    client = get_client()
-    if not client.is_logged_in:
-        click.echo('Not logged in')
-        return
-    character_name = input('Enter your chacter name: ')
-    response = client.create_character({"name": character_name})
-    click.echo('Create Character response:\n%s' % json.dumps(response, indent=2))
-
-
-@character.command()
 def authenticate():
     client = get_client()
 

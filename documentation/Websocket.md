@@ -10,17 +10,17 @@ Endpoints:
  - staging: `staging.pm.chatsubo.it`
 
 
-#### Character Creation & Authentication on '/' namespac
+#### Character Creation & Authentication on '/' namespace
 
 ##### Create Character
-- Requires Bearer Token: YES
+- Requires Bearer Token: NO
 - Namespace: `/`
 - Topic: `create`
 - Payload: ` {token: String, name: String}`
 - OnSuccess: ` {character_id: String[UUID], success: true} `
 
 ##### Authenticate Character
-- Requires Bearer Token: YES
+- Requires Bearer Token: NO
 - Namespace: `/`
 - Topic: `auth`
 - Payload: ` {token: String, character_id: String[UUID]}`

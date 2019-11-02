@@ -55,7 +55,7 @@ class WebsocketChannelsRepository:
             assert len(data) == 2
             return WebsocketChannel(
                 connection_id=k.decode().replace('c:', ''),
-                entity_id=int(data[0]),
+                entity_id=data[0] and int(data[0]),
                 created_at=int(data[1])
             )
         return map(_ws, self.redis.hscan(self._prefix)[1].items())
