@@ -16,8 +16,11 @@
             margin: 5px
         }
 
+        #columnLeft {
+            width: 80%;
+        }
+
         #specialEffects {
-            width: auto;
             height: 22pt;
             border-style: solid;
             border-width: 1px;
@@ -27,22 +30,69 @@
             text-align: center;
         }
 
-        #columnRight {
-            width: 250px;
-            height: 100vh;
+        #output {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #messagesFromSrv {
+            flex: 1;
+            padding: 10px;
+            color: white;
+            overflow-y: scroll;
+        }
+
+        pre {
+            padding: px 10px;
+        }
+
+        #messagesFromSrv p:nth-child(odd) {
+            background: #36393F;
+            font-family: monospace;
+            font-size: 12pt;
+            color: #fff;
+        }
+
+        #msgBox {
+            bottom: 0;
+            left: 0;
+            position: absolute;
+            width: 78%;
+            padding: 10px;
+            border-top: 1px solid #D1D1D1;
+        }
+
+        #msgBox input[type=text] {
+            background-color: #36393F;
+            color: white;
+            font-size: 16pt;
+            border: none;
+            width: 100%;
+        }
+
+        #statusAndQA {
+            height: 24pt;
             border-style: solid;
             border-width: 1px;
-            border-color: #CC0000;
+            border-color: #AABBAA;
+            color: #FFF;
+            text-align: center;
+            left: 0;
+        }
+
+        #columnRight {
+            width: 20%;
+            height: 100vh;
             color: #FFF;
             padding: 5px 2px;
-            text-align: center;
             top: 0;
-            position: absolute;
             right: 0;
+            position: absolute;
         }
 
         #map {
-            width: 250px;
+            width: auto;
             height: 250px;
             border-style: solid;
             border-width: 1px;
@@ -52,7 +102,6 @@
             text-align: center;
             vertical-align: middle;
             top: 0;
-            position: absolute;
             right: 0;
         }
 
@@ -65,21 +114,61 @@
             font-size: 10pt;
             text-align: left;
             vertical-align: middle;
-            top: 185pt;
-            position: relative;
             padding: 5px;
         }
 
         #server-info input[type=text] {
             background-color: #36393F;
-            color: white;
             font-size: 10pt;
             font-family: monospace;
+            display: inline-block;
+            color: white;
+            padding: 10px;
+            width: 150pt;
+            box-sizing: border-box;
+            background-color: rgba(0, 0, 0, 0.25);
+            border: none;
+            border-radius: 2px;
+            margin: 10px auto;
+            transition: background-color 0.5s ease;
         }
 
+        .button {
+            border: none;
+            color: white;
+            display: inline-block;
+            text-transform: uppercase;
+            text-decoration: none;
+            padding: 10px 25px;
+            border-radius: 3px;
+            margin: 2px;
+            border-bottom-style: solid;
+            border-bottom-width: 3px;
+            transition: text-shadow 0.3s ease;
+        }
+
+        .button:active {
+            position: relative;
+            top: 1px;
+            border-bottom-width: 2px;
+        }
+
+        .button:hover {
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, .3)
+        }
+
+        .red {
+            background-color: salmon;
+            border-color: rgb(150, 120, 120);
+        }
+
+        .green {
+            background-color: #4CDF78;
+            border-color: #53A574;
+        }
 
         #regionInfo {
-            width: 250px;
+            width: 100%;
             height: 150px;
             border-style: solid;
             border-width: 1px;
@@ -87,56 +176,10 @@
             color: #FFF;
             padding: 5px 2px;
             bottom: 0;
-            text-align: center;
-            position: absolute;
             right: 0;
-        }
-
-        #statusAndQA {
-            width: 100vh;
-            height: 24pt;
-            border-style: solid;
-            border-width: 1px;
-            border-color: #AABBAA;
-            color: #FFF;
-            padding: 5px 2px;
+            vertical-align: middle;
             text-align: center;
-            bottom: 32pt;
             position: absolute;
-            left: 0;
-            z-index: 1000;
-        }
-
-        #boxMsg {
-            background: #AABBAA;
-            color: #FFF;
-            bottom: 0;
-            position: absolute;
-            left: 0;
-            z-index: 1000;
-        }
-
-        #boxMsg input[type=text] {
-            background-color: #36393F;
-            color: white;
-            font-size: 16pt;
-            width: 950pt;
-        }
-
-        #messagesFromSrv {
-            padding: 10px;
-            color: white;
-        }
-
-        pre {
-            padding: px 10px;
-        }
-
-        #messagesFromSrv p:nth-child(odd) {
-            background: #36393F;
-            font-family: monospace;
-            font-size: 12pt;
-            color: #fff;
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
@@ -150,10 +193,64 @@
             console.log( `%c ${msg}`, "font-weight: bold; font-color: red" );
         };
 
-        var test_client = {};
-        test_client.deleteCnn = s => {
-            s.disconnect();
-            delete s;
+        var test_client = {
+            io: {},
+            deleteCnn: () => {
+                let selfio = this.io;
+                selfio().disconnect();
+                selfio = {};
+                $( '#messagesFromSrv' ).empty();
+            },
+            makeCnn: ( add, port ) => {
+                let selfio = this.io;
+
+                selfio = io( `http://${add}:${port}` );
+
+                selfio.on( 'connect', d => {
+                    // Client side event listener. It takes new messages from the server and appends it to HTML.
+                    console.ok( 'Connected' );
+
+                    if ( !selfio.connected )
+                        return;
+
+                    console.ok( "Connected" );
+                } ); // socket connected
+
+                selfio.on( 'connect_error', error => {
+                    console.err( `CNN ERROR: ${error}` );
+                    test_client.deleteCnn();
+                } );
+                selfio.on( 'error', error => {
+                    console.err( `CNN ERROR: ${error}` );
+                    test_client.deleteCnn();
+                } );
+                selfio.on( 'connect_timeout', error => {
+                    console.err( `CNN ERROR: ${error}` );
+                    test_client.deleteCnn();
+                } );
+
+                selfio.on( 'msg', m => {
+                    const pre = $( "<pre></pre>" );
+                    $( '#messagesFromSrv' ).append( pre.text( m.data ) );
+                } );
+
+                selfio.on( 'sid', m => {
+                    const pre = $( "<pre></pre>" );
+                    $( '#messagesFromSrv' ).append( pre.text( m.data ) );
+                } );
+
+                selfio.on( 'auth', message => {
+                    socket.authenticated_channel = io( '/' + message.data.channel_id );
+
+                    socket.authenticated_channel.on( 'msg', x => {
+                        appendMsg( 'PRIVCHAN: ' + x )
+                    } );
+
+                    socket.authenticated_channel.on( 'connect', y => {
+                        appendMsg( 'Connected to PRIVCHAN ' + message.data.channel_id )
+                    } );
+                } );
+            }
         };
 
         $( document ).ready( function () {
@@ -162,54 +259,12 @@
             var add = $( "#serverAddress" ).val();
             var port = $( "#serverPort" ).val();
 
-            var socket = {};
-            socket.io = io( `http://${add}:${port}` );
-
-            socket.io.on( 'connect', d => {
-                // Client side event listener. It takes new messages from the server and appends it to HTML.
-                console.ok( 'Connected' );
-
-                if ( !socket.io.connected )
-                    return;
-
-                console.ok( "Connected" );
-                $( "#btnAddProfile" ).prop( 'value', 'Disconnect' );
-            } ); // socket connected
-
-            socket.io.on( 'connect_error', error => {
-                console.err( `CNN ERROR: ${error}` );
-                test_client.deleteCnn( socket.io );
-            } );
-            socket.io.on( 'error', error => {
-                console.err( `CNN ERROR: ${error}` );
-                test_client.deleteCnn( socket.io );
-            } );
-            socket.io.on( 'connect_timeout', error => {
-                console.err( `CNN ERROR: ${error}` );
-                test_client.deleteCnn( socket.io );
-            } );
-
-            socket.io.on( 'msg', message => {
-                appendMsg( message.data )
-            } );
-
-            socket.io.on( 'auth', message => {
-                socket.authenticated_channel = io( '/' + message.data.channel_id );
-
-                socket.authenticated_channel.on( 'msg', x => {
-                    appendMsg( 'PRIVCHAN: ' + x )
-                } );
-
-                socket.authenticated_channel.on( 'connect', y => {
-                    appendMsg( 'Connected to PRIVCHAN ' + message.data.channel_id )
-                } );
-            } );
+            test_client.makeCnn( add, port );
 
             var target = document.getElementById( 'messagesFromSrv' )
             // create an observer instance
             var observer = new MutationObserver( m => {
                 target.scrollTop = target.scrollHeight;
-                console.log( "Scroll bottom" );
             } );
 
             // pass in the target node, as well as the observer options
@@ -219,15 +274,31 @@
                 characterData: true
             } );
 
-            appendMsg = m => {
-                const pre = $( ' <pre> </pre>' );
-                $( '#messagesFromSrv' ).append( pre.text( m ) );
-            };
+
+            $( "#btnCnn" ).click( function () {
+                let self = $( this );
+
+                if ( self.attr( "status" ) === "true" ) {
+                    self.text( "Disconnected" )
+                        .removeClass( "green" )
+                        .addClass( "red" )
+                        .attr( "status", "false" );
+                    test_client.deleteCnn();
+                } else {
+                    self.text( "Connected" )
+                        .removeClass( "red" )
+                        .addClass( "green" )
+                        .attr( "status", "true" );
+                    let add = $( "#serverAddress" ).val();
+                    let port = $( "#serverPort" ).val();
+                    test_client.makeCnn( add, port );
+                }
+            } );
 
             $( '#msgToServer' ).on( 'keypress', function ( e ) {
                 if ( e.which == 13 ) {
                     console.log( 'enter' )
-                    socket.io.emit(
+                    socket.emit(
                         'msg',
                         JSON.stringify( {
                             "ctx": "world",
@@ -239,18 +310,24 @@
                     );
                 }
             } );
-
         } ); // document ready
     </script>
 </head>
 
 <body>
-    <div id="specialEffects">
-        Special effect in the room
-    </div>
+    <div id="columnLeft">
+        <div id="specialEffects">
+            Special effect in the room
+        </div>
 
-    <div id="output">
-        <div id="messagesFromSrv" style="overflow-y: scroll;">
+        <div id="output">
+            <div id="messagesFromSrv"></div>
+            <div id="msgBox">
+                <div id="statusAndQA">Status and Quick actions</div>
+                <div id="inputbox">
+                    <input autocomplete="off" type="text" id="msgToServer" placeholder="enter message">
+                </div>
+            </div>
         </div>
     </div>
 
@@ -267,21 +344,13 @@
             <p></p>
             <span>port:</span>&nbsp;<input id="serverPort" type="text" value="{{context.ws_port}}">
             <p></p>
-            <button type="button" name="cnn" id="cnn">Connect</button>
+            <a class="button green" id="btnCnn" href="#" status="true">Connected</a>
+        </div>
+        <div id="regionInfo">
+            Region info
         </div>
     </div>
 
-    <div id="regionInfo">
-        Region info
-    </div>
-
-    <div id="statusAndQA">
-        Status and Quick actions
-    </div>
-
-    <div id="boxMsg">
-        <input autocomplete="off" type="text" id="msgToServer" placeholder="enter message">
-    </div>
 
 </body>
 
