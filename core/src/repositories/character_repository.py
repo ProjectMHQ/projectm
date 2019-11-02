@@ -10,7 +10,7 @@ from core.src.business.user.abstract import UserDOAbstract
 from core.src.database import atomic
 
 
-class SQLCharactersRepositoryImpl:
+class CharacterRepositoryImpl:
     def __init__(self, session_factory: scoped_session):
         self._session_factory = session_factory
 
@@ -44,13 +44,13 @@ class SQLCharactersRepositoryImpl:
         ]
 
     @atomic
-    def store_new_character(
+    def create_character(
             self,
-            user_id: str,
+            user: UserDOAbstract,
             name: str
     ) -> CharacterDOAbstract:
         character = models.Character(
-            user=self.session.query(models.User).filter(models.User.user_id == user_id).one(),
+            user=self.session.query(models.User).filter(models.User.user_id == user.user_id).one(),
             character_id=self._get_random_uuid(),
             name=name,
             meta={}

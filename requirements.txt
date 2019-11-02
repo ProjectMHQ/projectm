@@ -6,6 +6,7 @@ sendgrid==6.1.0
 alembic==1.2.1
 click==7.0
 requests==2.22.0
+gunicorn==19.9.0
 redis==3.3.11
 psycopg2==2.8.4
 eventlet==0.25.1

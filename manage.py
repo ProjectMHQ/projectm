@@ -29,10 +29,7 @@ class Client:
         return self._user_id
 
     def _clean_localstorage(self):
-        try:
-            os.remove(self.token_file)
-        except FileNotFoundError:
-            pass
+        os.remove(self.token_file)
 
     @property
     def has_token(self):
@@ -85,12 +82,10 @@ class Client:
         return self._user_id, res.cookies
 
     def logout(self):
-        try:
-            res = requests.post(self.url + '/auth/logout', cookies=self._get_cookie_from_token())
-        except:
-            pass
+        res = requests.post(self.url + '/auth/logout', cookies=self._get_cookie_from_token())
+        res.raise_for_status()
         self._clean_localstorage()
-        return True
+        return res.content
 
     def get_details(self):
         res = requests.get(
@@ -146,10 +141,8 @@ def get_client() -> Client:
         try:
             with open('/tmp/__pm_client_url', 'r') as f:
                 d = f.read()
-                click.echo('using url %s' % d)
         except FileNotFoundError:
-            d = input('Enter projectm base URL (default http://localhost:60160) : ')
-            d = d or 'http://localhost:60160'
+            d = input('Enter projectm base URL (i.e. http://localhost:60160) : ')
             check_res = requests.get(d + '/auth/login')
             try:
                 check_res.raise_for_status()
@@ -163,8 +156,8 @@ def get_client() -> Client:
             with open('/tmp/__pm_client_url', 'w') as f:
                 f.write(d)
         return d
-    url = get_client_url()
-    return Client(url)
+
+    return Client(get_client_url())
 
 
 @click.group(name='client')

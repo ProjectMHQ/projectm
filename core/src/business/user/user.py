@@ -49,8 +49,8 @@ class UserDOImpl(UserDOAbstract):
     def _get_characters_repository(repository):
         if repository:
             return repository
-        from core.src.builder import psql_character_repository
-        return psql_character_repository
+        from core.src.builder import character_repository
+        return character_repository
 
     @classmethod
     def get_by_user_id(cls, user_id: str, repository=None):

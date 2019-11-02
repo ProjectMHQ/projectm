@@ -23,8 +23,8 @@ class CharacterDOImpl(CharacterDOAbstract):
     def _get_characters_repository(repository):
         if repository:
             return repository
-        from core.src.builder import psql_character_repository
-        return psql_character_repository
+        from core.src.builder import character_repository
+        return character_repository
 
     @property
     def user_id(self) -> str:

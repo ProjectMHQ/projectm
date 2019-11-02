@@ -1,4 +1,4 @@
-class CoreException(Exception):
+class coreException(Exception):
     def __init__(self, *a, **kw):
         self.kw = kw
         self.a = a
@@ -9,89 +9,89 @@ class CoreException(Exception):
         return self.kw.get('message')
 
     @property
-    def code(self):
-        return int(self.kw.get('code', 400))
+    def status_code(self):
+        return int(self.kw.get('status_code', 400))
 
 
-class BadRequest(CoreException):
+class BadRequest(coreException):
     pass
 
 
-class MethodNotAllowed(CoreException):
+class MethodNotAllowed(coreException):
     pass
 
 
-class InputValidationError(CoreException):
+class InputValidationError(coreException):
     pass
 
 
-class InvalidTypeException(CoreException):
+class InvalidTypeException(coreException):
     pass
 
 
-class ResourceNotFound(CoreException):
+class ResourceNotFound(coreException):
     pass
 
 
-class ResourceUnprocessable(CoreException):
+class ResourceUnprocessable(coreException):
     pass
 
 
-class ResourceDuplicated(CoreException):
+class ResourceDuplicated(coreException):
     pass
 
 
-class UnauthorizedError(CoreException):
+class UnauthorizedError(coreException):
     pass
 
 
-class ForbiddenError(CoreException):
+class ForbiddenError(coreException):
     pass
 
 
-class InvalidPayloadException(CoreException):
+class InvalidPayloadException(coreException):
     pass
 
 
-class InvalidPasswordException(CoreException):
+class InvalidPasswordException(coreException):
     pass
 
 
-class InvalidRoleException(CoreException):
+class InvalidRoleException(coreException):
     pass
 
 
-class EmailConfirmationTokenExpiredException(CoreException):
+class EmailConfirmationTokenExpiredException(coreException):
     pass
 
 
-class AlreadyLoggedInException(CoreException):
+class AlreadyLoggedInException(coreException):
     @property
-    def code(self):
+    def status_code(self):
         return 401
 
     @property
-    def description(self):
+    def message(self):
         return 'ALREADY_LOGGED_IN'
 
 
-class NotLoggedInException(CoreException):
+class NotLoggedInException(coreException):
     @property
-    def code(self):
+    def status_code(self):
         return 401
 
     @property
-    def description(self):
+    def message(self):
         return 'NOT_LOGGED_IN'
 
 
-class SessionExpiredException(CoreException):
+class SessionExpiredException(coreException):
     @property
-    def code(self):
+    def status_code(self):
         return 401
 
     @property
-    def description(self):
+    def message(self):
         return 'SESSION_EXPIRED'
 
 

@@ -1,0 +1,44 @@
+import json
+from flask import request
+from flask_socketio import emit
+from core.src.authentication.scope import ensure_websocket_authentication
+from core.src.builder import auth_service
+from core.src.websocket.builder import ws_messages_factory, ws_commands_extractor_factory, channels_factory
+
+
+def build_websocket_route(socketio):
+    @socketio.on('connect')
+    @ensure_websocket_authentication
+    def connect():
+        emit('msg', {
+            'data': ws_messages_factory.get_motd(),
+            'ctx': 'auth'
+        })
+        emit('msg', {
+            'data': ws_messages_factory.get_login_message(request),
+            'ctx': 'auth'
+        })
+
+    @socketio.on('msg')
+    @ensure_websocket_authentication
+    def message(msg):
+        json_message = json.loads(msg)
+        interface = ws_commands_extractor_factory.get_interface(json_message['ctx'])
+        if not json_message['data']:
+            return
+        interface.on_command(
+            json_message['data'],
+            lambda response: response and emit('msg', {'data': response, 'ctx': 'cmd'})
+        )
+
+    @socketio.on('auth')
+    @ensure_websocket_authentication
+    def authentication(msg):
+        payload = json.loads(msg)
+        emit('msg', {'data': ws_messages_factory.wait_for_auth(), 'ctx': 'auth'})
+        token = auth_service.decode_session_token(payload['token'])
+        assert token['context'] == 'world'
+        channel = channels_factory.get_from_entity_id(token['data']['character_id'])
+        if not channel:
+            channel = channels_factory.create(token['data']['character_id'])
+        emit('auth', {'data': {'channel_id': channel.channel_id}})
