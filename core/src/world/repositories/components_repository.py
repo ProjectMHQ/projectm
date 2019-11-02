@@ -1,4 +1,5 @@
 import typing
+
 from redis import StrictRedis
 from core.src.world.components import ComponentTypeEnum
 
