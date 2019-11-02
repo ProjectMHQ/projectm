@@ -15,8 +15,8 @@ from core.src.world.entity import Entity
 from core.src.utils import deserialize_message
 from etc import settings
 
-mgr = socketio.RedisManager('redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
-sio_settings = dict(async_mode='aiohttp')
+mgr = socketio.AsyncRedisManager('redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
+sio_settings = dict(client_manager=mgr, async_mode='aiohttp')
 if settings.ENABLE_CORS:
     sio_settings['cors_allowed_origins'] = '*'
 
