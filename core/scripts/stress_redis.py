@@ -9,7 +9,7 @@ exit()
 
 connections = [
     StrictRedis(
-    host=settings.REDIS_HOST,
+    host='removeme' + settings.REDIS_HOST,
     port=settings.REDIS_PORT,
     db=settings.REDIS_DB
 ) for _ in range(0, 30)]

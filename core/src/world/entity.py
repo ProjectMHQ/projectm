@@ -1,5 +1,3 @@
-import typing
-
 from core.src.world.components import ComponentType
 
 

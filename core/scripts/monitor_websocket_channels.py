@@ -8,7 +8,7 @@ from core.src.logging_factory import LOGGER
 from core.src.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 
 """
-this packet is intended to monitor the websockets channels statuses with PING\PONG messages.
+this agent is intended to monitor the websockets channels statuses with PING\PONG messages.
 
 check PING_INTERVAL & PING_TIMEOUT options
 """
