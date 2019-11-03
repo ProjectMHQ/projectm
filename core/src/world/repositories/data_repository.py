@@ -11,7 +11,7 @@ from core.src.world.components import ComponentType
 from core.src.world.entity import Entity
 
 
-class EntitiesRepository:
+class RedisDataRepository:
     def __init__(self, redis: StrictRedis):
         self.redis = redis
         self._entity_prefix = 'e'
@@ -54,11 +54,12 @@ class EntitiesRepository:
                 entity.entity_id,
                 c.is_active()
             )
-            components_updates[c.key] = {entity.entity_id: c.value}
-            pipeline.hmset(
-                '{}:{}:{}'.format(self._component_prefix, c.key, self._data_suffix),
-                components_updates[c.key]
-            )
+            if c.has_data:
+                components_updates[c.key] = {entity.entity_id: c.value}
+                pipeline.hmset(
+                    '{}:{}:{}'.format(self._component_prefix, c.key, self._data_suffix),
+                    components_updates[c.key]
+                )
         response = pipeline.execute()
         entity.pending_changes.clear()
         LOGGER.core.debug(
@@ -81,6 +82,7 @@ class EntitiesRepository:
             self, entities: typing.List[int], components: typing.List[ComponentType]
     ) -> typing.List[typing.Optional[bytes]]:
         pipeline = self.redis.pipeline()
+
         for c in components:
             pipeline.hmget(
                 self._component_prefix + ':' + c.key + ':' + self._data_suffix,

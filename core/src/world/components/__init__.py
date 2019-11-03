@@ -24,3 +24,6 @@ class ComponentType(metaclass=abc.ABCMeta):
 
     def is_active(self):
         return bool(self.value)
+
+    def has_data(self):
+        return self.component_type != bool
