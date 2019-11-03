@@ -258,27 +258,6 @@
             const token = urlParams.get( 'token' );
             var add = $( "#serverAddress" ).val();
             var port = $( "#serverPort" ).val();
-<<<<<<< HEAD
-=======
-            var cnnStr = "http://" + add + ":" + port;
-
-            authenticate = function () {
-                console.log( 'Authenticating character id ' + character_id + ' with token: ' + token )
-                socket.io.emit(
-                    'auth',
-                    JSON.stringify( {
-                        'token': token
-                    } ),
-                    function () {
-                        console.log( 'auth call done' );
-                    }
-                )
-            }
-            addMsg = function ( msg ) {
-                const pre = $( ' <pre> </pre>' );
-                $( '#messages' ).append( pre.text( msg ) );
-            }
->>>>>>> feature/base-ecs
 
             test_client.makeCnn( add, port );
 
