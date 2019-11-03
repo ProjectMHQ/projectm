@@ -1,5 +1,6 @@
 import random
-
+from unittest.mock import Mock
+from etc import settings
 from aiohttp.web import _run_app
 import asyncio
 import hashlib
@@ -16,9 +17,10 @@ class BakeUserTestCase(TestCase):
 
     def create_app(self):
         self.redis = strict_redis
+        assert not settings.INTEGRATION_TESTS
+        assert isinstance(self.redis, Mock)
         self.first_exec or self.redis.reset_mock()
         BakeUserTestCase.first_exec = False
-
         self.socketio = None
         self.socketioport = random.randint(10000, 50000)
         self.loop = asyncio.get_event_loop()

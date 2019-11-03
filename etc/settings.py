@@ -4,6 +4,8 @@ from configparser import ConfigParser
 
 ENV = os.environ['PROJECTM_ENV']
 RUNNING_TESTS = os.environ.get('RUNNING_TESTS')
+INTEGRATION_TESTS = os.environ.get('INTEGRATION_TESTS')
+
 INI_FILE = os.path.join(os.path.dirname(__file__), ENV, 'settings.conf')
 LOCAL_SETTINGS_INI_FILE = os.path.join(os.path.dirname(__file__), ENV, 'local-settings.conf')
 
@@ -62,3 +64,4 @@ REDIS_DB = int(config['database']['redis_db'] or 0)
 FLUENTD_HANDLER_HOST = config['logging']['fluentd_host']
 FLUENTD_HANDLER_PORT = config['logging']['fluentd_port']
 
+REDIS_TEST_DB = INTEGRATION_TESTS and config['database']['redis_test_db'] or NotImplementedError

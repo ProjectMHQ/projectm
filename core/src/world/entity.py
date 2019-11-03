@@ -23,7 +23,6 @@ class Entity:
 
     @entity_id.setter
     def entity_id(self, value: EntityID):
-        assert isinstance(value, EntityID)
         assert not self._entity_id
         self._entity_id = value
 

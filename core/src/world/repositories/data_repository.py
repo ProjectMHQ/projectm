@@ -1,5 +1,7 @@
 import typing
 import binascii
+from collections import OrderedDict
+
 import bitarray
 import os
 from redis import StrictRedis
@@ -48,7 +50,7 @@ class RedisDataRepository:
             for c in entity.pending_changes.values():
                 pipeline.setbit(
                     '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
-                    entity.entity_id, c.is_active() and Bit.ON.value or Bit.OFF.value
+                    entity.entity_id, Bit.ON.value if c.is_active() else Bit.OFF.value
                 )
                 if c.has_data() and not c.has_operation():
                     LOGGER.core.debug('Absolute value, component data set')
@@ -73,7 +75,10 @@ class RedisDataRepository:
                         '{}:{}'.format(self._entity_prefix, entity.entity_id),
                         c.key, int(c.operation)
                     )
+                elif c.is_active():
+                    LOGGER.core.debug('No data to set')
                 else:
+                    LOGGER.core.debug('Data to delete')
                     try:
                         deletions_by_component[c.key].append(entity.entity_id)
                     except KeyError:
@@ -81,11 +86,10 @@ class RedisDataRepository:
                     try:
                         deletions_by_entity[entity.entity_id].append(c.key)
                     except KeyError:
-                        deletions_by_entity[entity.entity_id] = c.key
-                    LOGGER.core.debug('No data to set')
+                        deletions_by_entity[entity.entity_id] = [c.key]
                 LOGGER.core.debug(
                     'EntityRepository.update_entity_components. ids: %s, updates: %s, deletions: %s)',
-                    entity.entity_id, entities_updates[entity.entity_id], deletions_by_entity[entity.entity_id]
+                    entity.entity_id, entities_updates.get(entity.entity_id), deletions_by_entity.get(entity.entity_id)
                 )
         for up_en_id, _up_values_by_en in entities_updates.items():
             pipeline.hmset('{}:{}'.format(self._entity_prefix, up_en_id), _up_values_by_en)
@@ -112,10 +116,15 @@ class RedisDataRepository:
     def get_components_values_by_entities(
             self,
             entities: typing.List[Entity],
-            components: typing.List[ComponentType]
+            components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[EntityID, typing.Dict[ComponentTypeEnum, bytes]]:
-        _filtered = self._get_components_statuses_by_entities(entities, components)
-        return self._get_components_values_from_entities_storage(_filtered)
+        _bits_statuses = self._get_components_statuses_by_entities(entities, components)
+        _filtered = self._get_components_values_from_entities_storage(_bits_statuses)
+        return {
+            EntityID(e.entity_id): {
+                c.component_enum: c.component_type(_filtered.get(e.entity_id, {}).get(c.key)) for c in components
+            } for e in entities
+        }
 
     def get_components_values_by_components(
             self,
@@ -128,32 +137,31 @@ class RedisDataRepository:
     def _get_components_statuses_by_entities(
             self,
             entities: typing.List[Entity],
-            components: typing.List[ComponentType]
-    ) -> typing.Dict:
+            components: typing.List[typing.Type[ComponentType]]
+    ) -> OrderedDict:
         pipeline = self.redis.pipeline()
-        data_by_entity = {}
-        # FIXME TODO - Think about that.
+        bits_by_entity = OrderedDict()
         for _c in components:
             for _e in entities:
-                pipeline.getbit('{}:{}:{}'.format(self._component_prefix, _c, self._map_suffix), _e)
+                pipeline.getbit('{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix), _e.entity_id)
         data = pipeline.execute()
         i = 0
         for comp in components:
             for ent in entities:
-                _ent_v = {comp.key: data[i]}
+                _ent_v = {comp.key: [data[i], comp.component_type != bool]}
                 try:
-                    data_by_entity[ent.entity_id].update(_ent_v)
+                    bits_by_entity[ent.entity_id].update(_ent_v)
                 except KeyError:
-                    data_by_entity[ent.entity_id] = _ent_v
-        return data_by_entity
+                    bits_by_entity[ent.entity_id] = _ent_v
+        return bits_by_entity
 
     def _get_components_statuses_by_components(
             self,
             entities: typing.List[Entity],
             components: typing.List[ComponentType]
-    ) -> typing.Dict:
+    ) -> OrderedDict:
         pipeline = self.redis.pipeline()
-        data_by_component = {}
+        bits_by_component = OrderedDict()
         for _c in components:
             for _e in entities:  # same
                 pipeline.getbit('{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix), _e.entity_id)
@@ -161,13 +169,13 @@ class RedisDataRepository:
         i = 0
         for comp in components:
             for ent in entities:
-                _comp_v = {ent.entity_id: data[i]}
+                _comp_v = {ent.entity_id: [data[i], comp.component_type != bool]}
                 try:
-                    data_by_component[comp.key].update(_comp_v)
+                    bits_by_component[comp.key].update(_comp_v)
                 except KeyError:
-                    data_by_component[comp.key] = _comp_v
+                    bits_by_component[comp.key] = _comp_v
                 i += 1
-        return data_by_component
+        return bits_by_component
 
     def get_entity_ids_with_components(self, *components: ComponentType) -> typing.Iterator[int]:
         _key = binascii.hexlify(os.urandom(8))
@@ -178,23 +186,37 @@ class RedisDataRepository:
         bitmap, _ = p.execute()
         return (i for i, v in enumerate(bitarray.bitarray().frombytes(bitmap)) if v)
 
-    def _get_components_values_from_components_storage(self, filtered_query: typing.Dict):
+    def _get_components_values_from_components_storage(self, filtered_query: OrderedDict):
         pipeline = self.redis.pipeline()
         for c_key in filtered_query:
             pipeline.hmget(
                 '{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix),
-                *(ent_id for ent_id, status in filtered_query[c_key].items() if status)
+                *(ent_id for ent_id, status_and_querable in filtered_query[c_key].items() if all(status_and_querable))
             )
         response = pipeline.execute()
         return response
 
-    def _get_components_values_from_entities_storage(self, filtered_query: typing.Dict):
+    def _get_components_values_from_entities_storage(self, filtered_query: OrderedDict):
         pipeline = self.redis.pipeline()
-        for entity_id in filtered_query.items():
-            pipeline.hmget(
-                '{}:{}'.format(self._entity_prefix, entity_id),
-                *(comp_key for comp_key, status in filtered_query[entity_id].items() if status)
-            )
+        for entity_id, value in filtered_query.items():
+            keys = [comp_key for comp_key, status_and_querable in value.items() if all(status_and_querable)]
+            if keys:
+                pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
         response = pipeline.execute()
-        return response
-
+        data = {}
+        i = 0
+        for entity_id, value in filtered_query.items():
+            c_i = 0
+            for c_key, status in value.items():
+                if not status[1]:
+                    try:
+                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): status[0]})
+                    except KeyError:
+                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): status[0]}
+                elif all(status):
+                    try:
+                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): response[i][c_i]})
+                    except KeyError:
+                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): response[i][c_i]}
+                    c_i += 1
+        return data

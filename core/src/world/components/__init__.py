@@ -5,7 +5,8 @@ from core.src.world.components.types import ComponentTypeEnum
 
 
 class ComponentType(metaclass=abc.ABCMeta):
-    key = ComponentTypeEnum.NULL
+    component_enum = ComponentTypeEnum.NULL
+    key = ComponentTypeEnum.NULL.value
     component_type = NotImplementedError
 
     def __init__(self, value):

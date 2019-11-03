@@ -5,6 +5,7 @@ from core.src.world.components.types import ComponentTypeEnum
 
 
 class PosComponent(ComponentType):
+    component_enum = ComponentTypeEnum.POS
     key = ComponentTypeEnum.POS.value
     component_type = list
 

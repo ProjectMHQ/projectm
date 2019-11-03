@@ -6,7 +6,7 @@ from etc import settings
 import asyncio
 import binascii
 import os
-from tests.bake_user import BakeUserTestCase
+from tests.unit.bake_user import BakeUserTestCase
 import socketio
 
 
