@@ -8,6 +8,7 @@ from core.src.builder import auth_service, redis_characters_index_repository, ws
     psql_character_repository
 from core.src.logging_factory import LOGGER
 from core.src.world.builder import world_repository
+from core.src.world.components.character import CharacterComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.components.name import NameComponent
@@ -55,10 +56,14 @@ async def connect(sid, environ):
 async def create_character(sid, payload):
     token = auth_service.decode_session_token(payload['token'])
     assert token['context'] == 'world:create'
-    entity = Entity().set(NameComponent(payload["name"])).set(CreatedAtComponent(int(time.time())))
+    entity = Entity() \
+        .set(CharacterComponent(True))\
+        .set(CreatedAtComponent(int(time.time()))) \
+        .set(NameComponent(payload["name"]))
+
     entity = world_repository.save_entity(entity)
     character_id = psql_character_repository.store_new_character(
-        token['data']['user_id'], NameComponent.get(entity.entity_id).value
+        token['data']['user_id'], payload["name"]
     ).character_id
     redis_characters_index_repository.set_entity_id(character_id, entity.entity_id)
     await sio.emit('create', {'success': True, 'character_id': character_id}, to=sid)
@@ -72,7 +77,9 @@ async def authenticate_character(sid, payload):
     if not entity_id:
         raise exceptions.CharacterNotAllocated('create first')
     channel = ws_channels_repository.create(entity_id)
-    entity = Entity(entity_id).set(ConnectionComponent(channel.connection_id))
+    entity = Entity(entity_id)\
+        .set(ConnectionComponent(channel.connection_id))
+
     world_repository.update_entities(entity)
     await sio.emit('auth', {'data': {
         'channel_id': channel.connection_id,

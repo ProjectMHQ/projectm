@@ -15,7 +15,7 @@ pip install -r requirements.txt
 PROJECTM_ENV=development python -m alembic_script upgrade head
 ```
 
-**RUN TESTS**:
+**RUN TESTS WITH COVERAGE**:
 ```
 $ cd projectm
 $ bash coverage.sh
@@ -62,3 +62,4 @@ edit ~/.bashrc and add
 export PROJECTM_ENV=development
 ```
 at the end of the file, to avoid explicitly declare the variable at every execution.
+
