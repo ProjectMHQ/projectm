@@ -1,9 +1,5 @@
 import typing
-
-import os
-
 import binascii
-
 import bitarray
 from redis import StrictRedis
 from core.src.logging_factory import LOGGER
@@ -42,16 +38,38 @@ class RedisDataRepository:
 
     def update_entities(self, *entities: Entity) -> Entity:
         pipeline = self.redis.pipeline()
+        entities_updates = {}
+        components_updates = {}
+        deletions_by_component = {}
+        deletions_by_entity = {}
         for entity in entities:
             assert entity.entity_id
-            entities_updates = {}
-            components_updates = {}
-            deletions_by_component = {}
-            deletions_by_entity = {}
             for c in entity.pending_changes.values():
-                if c.is_active():
-                    entities_updates[entity.entity_id] = {c.key: c.value}
-                    map_bit = Bit.ON.value
+                pipeline.setbit(
+                    '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
+                    entity.entity_id, c.is_active() and Bit.ON.value or Bit.OFF.value
+                )
+                if c.has_data() and not c.has_operation():
+                    LOGGER.core.debug('Absolute value, component data set')
+                    try:
+                        components_updates[c.key].update({entity.entity_id: c.value})
+                    except KeyError:
+                        components_updates[c.key] = {entity.entity_id: c.value}
+                    try:
+                        entities_updates[entity.entity_id].update({c.key: c.value})
+                    except KeyError:
+                        entities_updates[entity.entity_id] = {c.key: c.value}
+                elif c.has_data():
+                    LOGGER.core.debug('Relative value, component data incr')
+                    assert c.component_type == int
+                    pipeline.hincrby(
+                        '{}:{}:{}'.format(self._component_prefix, c.key, self._data_suffix),
+                        entity.entity_id, int(c.operation)
+                    )
+                    pipeline.hincrby(
+                        '{}:{}'.format(self._entity_prefix, entity.entity_id),
+                        c.key, int(c.operation)
+                    )
                 else:
                     try:
                         deletions_by_component[c.key].append(entity.entity_id)
@@ -61,40 +79,11 @@ class RedisDataRepository:
                         deletions_by_entity[entity.entity_id].append(c.key)
                     except KeyError:
                         deletions_by_entity[entity.entity_id] = c.key
-
-                    map_bit = Bit.OFF.value
-                pipeline.setbit(
-                    '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
-                    entity.entity_id, map_bit
+                    LOGGER.core.debug('No data to set')
+                LOGGER.core.debug(
+                    'EntityRepository.update_entity_components. ids: %s, updates: %s, deletions: %s)',
+                    entity.entity_id, entities_updates[entity.entity_id], deletions_by_entity[entity.entity_id]
                 )
-
-                if c.has_data() and c.has_operation():
-                    """
-                    TODO - This is skipped ATM due no components returns has_operation()==True
-                    
-                    The underlying idea is that integers components may encounter race conditions
-                    if the set value is absolute.
-                    
-                    The implementation uses instead an `incr` operation on the component value, with signed integers.
-                    `incr` ops are pipelined along with the other operations, and this should guarantee that the final
-                     value if not affected by the order of the setters. \o/ 
-                    """
-                    LOGGER.core.debug('Relative value, component data incr')
-                    raise NotImplementedError
-                    assert c.component_type == int
-                    pipeline.hincrby(
-                        '{}:{}:{}'.format(self._component_prefix, c.key, self._data_suffix),
-                        c.key, int(c.operation)
-                    )
-                elif c.has_data():
-                    LOGGER.core.debug('Absolute value, component data set')
-                    try:
-                        components_updates[c.key].update({entity.entity_id: c.value})
-                    except KeyError:
-                        components_updates[c.key] = {entity.entity_id: c.value}
-                else:
-                    LOGGER.core.debug('Boolean value, no component data set')
-
         for up_en_id, _up_values_by_en in entities_updates.items():
             pipeline.hmset('{}:{}'.format(self._entity_prefix, up_en_id), _up_values_by_en)
 
@@ -111,11 +100,10 @@ class RedisDataRepository:
             pipeline.hdel('{}:{}'.format(self._entity_prefix, _del_en_id), *_del_components)
 
         response = pipeline.execute()
-        entity.pending_changes.clear()
-        LOGGER.core.debug(
-            'EntityRepository.update_entity_components(%s, %s), response: %s',
-            entity.entity_id, entities_updates, response
-        )
+        for entity in entities:
+            entity.pending_changes.clear()
+
+        LOGGER.core.debug('EntityRepository.update_entity_components, response: %s', response)
         return response
 
     def get_components_values_per_entity(
@@ -124,7 +112,7 @@ class RedisDataRepository:
         response = self.redis.hmget('{}:{}'.format(self._entity_prefix, entity_id), (c.key for c in components))
         LOGGER.core.debug(
             'EntityRepository.get_components_values_per_entity(%s, %s), response: %s',
-            entity_id, components, response
+            entity_id, components
         )
         return response
 
