@@ -52,11 +52,6 @@ class RedisDataRepository:
                     '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
                     entity.entity_id, Bit.ON.value if c.is_active() else Bit.OFF.value
                 )
-                print(c.is_active())
-                print(c.is_active())
-                print(c.is_active())
-                print(c.is_active())
-                print(c.is_active())
                 if c.has_data() and not c.has_operation():
                     LOGGER.core.debug('Absolute value, component data set')
                     _comp_v = {entity.entity_id: c.value}

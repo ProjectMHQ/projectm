@@ -52,4 +52,5 @@ Note: _Confirmation links are sent to the email address via Twilio' SendGrid_
 - Response: ```{"expires_at": Integer, "token": String}```
 - Params:
   - ```context: ```
-     - ```world```
+     - ```world:create``` To create a new character
+     - ```world:auth``` To authorize an existing character
