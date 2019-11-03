@@ -1,7 +1,21 @@
-*.code-workspace
 *.pyc
 __pycache__
 .idea/
 temp/
 venv/
 local-settings.conf
+<<<<<<< HEAD
+=======
+prova*
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+>>>>>>> feature/base-ecs
