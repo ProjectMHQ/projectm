@@ -27,3 +27,6 @@ class ComponentType(metaclass=abc.ABCMeta):
 
     def has_data(self):
         return self.component_type != bool
+
+    def has_operation(self):
+        return False
