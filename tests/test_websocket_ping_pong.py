@@ -1,3 +1,4 @@
+import asyncio
 import random
 import time
 from core.scripts.monitor_websocket_channels import builder
@@ -18,12 +19,13 @@ class TestWebsocketPingPong(TestWebsocketCharacterAuthentication):
         self.socketioport = random.randint(10000, 50000)
         self.randstuff = binascii.hexlify(os.urandom(8)).decode()
         self.typeschecked = False
-        self.sio = socketio.AsyncClient()
+        self.sio_client = socketio.AsyncClient()
         self._on_create = []
         self._on_auth = []
         self.end = False
         self._private_channel_id = None
         self.max_execution_time = 55
+        self._pings = []
 
     async def do_ping_pong(self):
         private = socketio.AsyncClient()
@@ -35,7 +37,9 @@ class TestWebsocketPingPong(TestWebsocketCharacterAuthentication):
 
         @private.on('presence', namespace='/{}'.format(self._private_channel_id))
         async def presence(data):
-            print('RECEIVED PRESENCE MSG: ', data)
+            assert data == 'PING'
+            await private.emit('presence', 'PONG', namespace='/{}'.format(self._private_channel_id))
+            self._pings.append([int(time.time()), data])
 
         await private.connect(
             'http://127.0.0.1:{}'.format(self.socketioport), namespaces=['/{}'.format(self._private_channel_id)]
@@ -43,9 +47,16 @@ class TestWebsocketPingPong(TestWebsocketCharacterAuthentication):
 
     def _prepare_ping_pong(self):
         self.ping_pong_starts_at = int(time.time())
-        ws_channels_monitor = builder(self.sio, redis=self.redis, ping_interval=2)
+        ws_channels_monitor = builder(self.sio_server, redis_data=self.redis, ping_interval=1, ping_timeout=3)
         self.loop.create_task(ws_channels_monitor.start())
         self.loop.create_task(self.do_ping_pong())
+        self.loop.create_task(self.monitor_execution())
+
+    async def monitor_execution(self):
+        while 1:
+            await asyncio.sleep(1)
+            if len(self._pings) == 5:
+                self.done()
 
     def _hscan_iter_side_effect(self, p):
         """

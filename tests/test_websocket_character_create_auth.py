@@ -20,7 +20,7 @@ class TestWebsocketCharacterAuthentication(BakeUserTestCase):
         self.socketioport = random.randint(10000, 50000)
         self.randstuff = binascii.hexlify(os.urandom(8)).decode()
         self.typeschecked = False
-        self.sio = socketio.AsyncClient()
+        self.sio_client = socketio.AsyncClient()
         self._on_create = []
         self._on_auth = []
         self.end = False
@@ -31,7 +31,7 @@ class TestWebsocketCharacterAuthentication(BakeUserTestCase):
         self.end = True
 
     async def async_test(self):
-        sio = self.sio
+        sio = self.sio_client
 
         @sio.on('connect')
         async def connect(*a, **kw):
@@ -57,7 +57,7 @@ class TestWebsocketCharacterAuthentication(BakeUserTestCase):
             await asyncio.sleep(1)
 
     async def _do_auth(self, token):
-        sio = self.sio
+        sio = self.sio_client
 
         @sio.on('auth')
         async def auth(*a, **kw):
