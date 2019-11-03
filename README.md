@@ -5,8 +5,6 @@ E' necessario settare una variabile d'ambiente PROJECTM_ENV.
 In sviluppo dev'essere "development".
 
 
-##### Only the brave:
-
 SETUP: 
 ```bash
 $ git pull projectm_url
@@ -17,12 +15,20 @@ $ pip install -r requirements.txt
 $ PROJECTM_ENV=development python -m alembic_script upgrade head
 ```
 
+RUN TESTS:
+```
+$ cd projectm
+$ bash coverage.sh
+
+then open with browser projectm/htmlcov/index.html
+```
 RUN:
 
 ```bash
 $ cd projectm
 $ . venv/bin/activate
-$ PROJECTM_ENV=development python -m core.app
+$ PROJECTM_ENV=development python -m core.app &
+$ PROJECTM_ENV=development python -m scripts.serve_websocket &
 ```
 
 
