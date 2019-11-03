@@ -37,61 +37,84 @@ class RedisDataRepository:
         assert not entity.entity_id, 'entity_id: %s, use update, not save.' % entity.entity_id
         entity_id = self._allocate_entity_id()
         entity.entity_id = entity_id
-        self.update_entity(entity)
+        self.update_entities(entity)
         return entity
 
-    def update_entity(self, entity: Entity) -> Entity:
-        assert entity.entity_id
+    def update_entities(self, *entities: Entity) -> Entity:
         pipeline = self.redis.pipeline()
-        updates = {}
-        deletions = []
-        components_updates = {}
-        for c in entity.pending_changes.values():
-            if c.is_active():
-                updates[c.key] = c.value
-                map_bit = Bit.ON.value
-            else:
-                deletions.append(c.key)
-                map_bit = Bit.OFF.value
-            pipeline.setbit(
-                '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
-                entity.entity_id, map_bit
-            )
-            if c.has_data() and c.has_operation():
-                """
-                TODO - This is skipped ATM due no components returns has_operation()==True
-                
-                The underlying idea is that integers components may encounter race conditions
-                if the set value is absolute.
-                
-                The implementation uses instead an `incr` operation on the component value, with signed integers.
-                `incr` ops are pipelined along with the other operations, and this should guarantee that the final
-                 value if not affected by the order of the setters. \o/ 
-                """
-                LOGGER.core.debug('Relative value, component data incr')
-                raise NotImplementedError
-                assert c.component_type == int
-                pipeline.hincrby(
-                    '{}:{}:{}'.format(self._component_prefix, c.key, self._data_suffix),
-                    c.key, int(c.operation)
-                )
-            elif c.has_data():
-                LOGGER.core.debug('Absolute value, component data set')
-                components_updates[c.key] = {entity.entity_id: c.value}
-            else:
-                LOGGER.core.debug('Boolean value, no component data set')
+        for entity in entities:
+            assert entity.entity_id
+            entities_updates = {}
+            components_updates = {}
+            deletions_by_component = {}
+            deletions_by_entity = {}
+            for c in entity.pending_changes.values():
+                if c.is_active():
+                    entities_updates[entity.entity_id] = {c.key: c.value}
+                    map_bit = Bit.ON.value
+                else:
+                    try:
+                        deletions_by_component[c.key].append(entity.entity_id)
+                    except KeyError:
+                        deletions_by_component[c.key] = [entity.entity_id]
+                    try:
+                        deletions_by_entity[entity.entity_id].append(c.key)
+                    except KeyError:
+                        deletions_by_entity[entity.entity_id] = c.key
 
-        updates and pipeline.hmset('{}:{}'.format(self._entity_prefix, entity.entity_id), updates)
-        deletions and pipeline.hdel('{}:{}'.format(self._entity_prefix, entity.entity_id), *deletions)
-        components_updates and pipeline.hmset(
-            '{}:{}:{}'.format(self._component_prefix, c.key, self._data_suffix),
-            components_updates[c.key]
-        )
+                    map_bit = Bit.OFF.value
+                pipeline.setbit(
+                    '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
+                    entity.entity_id, map_bit
+                )
+
+                if c.has_data() and c.has_operation():
+                    """
+                    TODO - This is skipped ATM due no components returns has_operation()==True
+                    
+                    The underlying idea is that integers components may encounter race conditions
+                    if the set value is absolute.
+                    
+                    The implementation uses instead an `incr` operation on the component value, with signed integers.
+                    `incr` ops are pipelined along with the other operations, and this should guarantee that the final
+                     value if not affected by the order of the setters. \o/ 
+                    """
+                    LOGGER.core.debug('Relative value, component data incr')
+                    raise NotImplementedError
+                    assert c.component_type == int
+                    pipeline.hincrby(
+                        '{}:{}:{}'.format(self._component_prefix, c.key, self._data_suffix),
+                        c.key, int(c.operation)
+                    )
+                elif c.has_data():
+                    LOGGER.core.debug('Absolute value, component data set')
+                    try:
+                        components_updates[c.key].update({entity.entity_id: c.value})
+                    except KeyError:
+                        components_updates[c.key] = {entity.entity_id: c.value}
+                else:
+                    LOGGER.core.debug('Boolean value, no component data set')
+
+        for up_en_id, _up_values_by_en in entities_updates.items():
+            pipeline.hmset('{}:{}'.format(self._entity_prefix, up_en_id), _up_values_by_en)
+
+        for up_c_key, _up_values_by_comp in components_updates.items():
+            pipeline.hmset(
+                '{}:{}:{}'.format(self._component_prefix, up_c_key, self._data_suffix),
+                _up_values_by_comp
+            )
+
+        for del_c_key, _del_entities in deletions_by_component.items():
+            pipeline.hdel('{}:{}:{}'.format(self._component_prefix, del_c_key, self._data_suffix), *_del_entities)
+
+        for _del_en_id, _del_components in deletions_by_entity.items():
+            pipeline.hdel('{}:{}'.format(self._entity_prefix, _del_en_id), *_del_components)
+
         response = pipeline.execute()
         entity.pending_changes.clear()
         LOGGER.core.debug(
             'EntityRepository.update_entity_components(%s, %s), response: %s',
-            entity.entity_id, updates, response
+            entity.entity_id, entities_updates, response
         )
         return response
 

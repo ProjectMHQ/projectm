@@ -73,7 +73,7 @@ async def authenticate_character(sid, payload):
         raise exceptions.CharacterNotAllocated('create first')
     channel = ws_channels_repository.create(entity_id)
     entity = Entity(entity_id).set(ConnectionComponent(channel.connection_id))
-    world_repository.update_entity(entity)
+    world_repository.update_entities(entity)
     await sio.emit('auth', {'data': {
         'channel_id': channel.connection_id,
         'character_id': token['data']['character_id']
