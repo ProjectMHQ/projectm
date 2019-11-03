@@ -1,6 +1,7 @@
 import typing
 import binascii
 import bitarray
+import os
 from redis import StrictRedis
 from core.src.logging_factory import LOGGER
 from core.src.world.components import ComponentType
