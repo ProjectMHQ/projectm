@@ -1,15 +1,10 @@
-import eventlet
-from eventlet.green.http.client import HTTPException as EventletHTTPException
-from werkzeug.exceptions import HTTPException as WerkzeugHTTPException
-eventlet.monkey_patch()
-
 import flask
 from flask.logging import default_handler
-from flask_socketio import SocketIO
+from werkzeug.exceptions import HTTPException
+
 from core.src.database import init_db, db
 from core.src.exceptions import CoreException
 from core.src.logging_factory import LOGGER
-from core.src.router.websocket import build_base_websocket_route
 from core.src.utils import FlaskUUID
 
 from core.src.router.auth import bp as auth_bp
@@ -23,13 +18,7 @@ app.logger.removeHandler(default_handler)
 FlaskUUID(app)
 
 
-socketion_settings = {
-    'async_mode': 'eventlet'
-}
-
 if settings.ENABLE_CORS:
-    socketion_settings['cors_allowed_origins'] = "*"
-
     @app.after_request
     def after_request(response):
         header = response.headers
@@ -48,13 +37,6 @@ app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(system_bp, url_prefix='/system')
 app.register_blueprint(user_bp, url_prefix='/user')
 app.add_url_rule('/favicon.ico', 'favico', lambda *a, **kw: '')
-
-socketio = SocketIO(app, message_queue='redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
-
-
-socketio.init_app(app, **socketion_settings)
-
-build_base_websocket_route(socketio)
 
 
 @app.before_request
@@ -93,8 +75,7 @@ def core_handler(exception):
 @app.errorhandler(Exception)
 def all_exceptions_handler(exception):
     LOGGER.core.exception('Exception caught')
-    if isinstance(exception, EventletHTTPException) \
-            or isinstance(exception, WerkzeugHTTPException):
+    if isinstance(exception, HTTPException):
         return flask.Response(
             response=exception.description,
             status=exception.code
@@ -108,8 +89,7 @@ def all_exceptions_handler(exception):
 
 if __name__ == '__main__':
     LOGGER.core.error('Starting')
-    socketio.run(
-        app,
+    app.run(
         port=int(settings.WEB_PORT),
         host=settings.WEB_HOSTNAME,
         debug=settings.DEBUG

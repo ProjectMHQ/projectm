@@ -52,12 +52,14 @@ def handle_logout():
 def handle_new_token():
     LOGGER.core.info('handle_new_token: %s', request.data)
     payload = json.loads(request.data)
-    if payload['context'] == 'world':
+    if payload['context'] == 'world:create':
+        auth_response = auth_service.get_token_for_new_character(request.user['user_id'])
+    elif payload['context'] == 'world:auth':
         character = psql_character_repository.get_character_by_field(
             'character_id', payload['id'], user_id=request.user['user_id']
         )
         character.ensure_can_authenticate()
-        auth_response = auth_service.authenticate_character(character.as_dict(context='token'))
+        auth_response = auth_service.get_token_for_existing_character(character.character_id)
     else:
         return flask.Response(response='WRONG_ENTITY_TYPE', status=401)
 

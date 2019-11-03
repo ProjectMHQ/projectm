@@ -7,7 +7,7 @@ class Entity:
         self._pending_changes = {}
 
     def set(self, component: ComponentType):
-        self._pending_changes[component.key] = component.value
+        self._pending_changes[component.key] = component
         return self
 
     @property

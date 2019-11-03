@@ -57,7 +57,8 @@ class LoggingFactory(object):
             'core': 'DEBUG',
             'websocket_monitor': 'DEBUG',
             'engineio.server': 'WARNING',
-            'flask*': 'DEBUG'
+            'flask*': 'DEBUG',
+            'testing': 'DEBUG'
         }
         _init_logging(self.loggers)
 
@@ -75,6 +76,10 @@ class LoggingFactory(object):
     @property
     def websocket_monitor(self):
         return LoggingFactory._get_logger('websocket_monitor')
+
+    @property
+    def testing(self):
+        return LoggingFactory._get_logger('testing')
 
 
 LOGGER = LoggingFactory()

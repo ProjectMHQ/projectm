@@ -1,21 +1,17 @@
 import typing
 from functools import wraps
-
-import flask
 from flask import request
 from werkzeug.routing import UUIDConverter
-
 from core.src import exceptions
-from core.src.exceptions import CoreException
 
 
 def deserialize_message(deserializer):
     def _fn(fun):
         @wraps(fun)
-        def wrapper(a, **kw):
+        async def wrapper(*a, **kw):
             from core.src.logging_factory import LOGGER
             LOGGER.core.debug('deserialize_message: %s, %s', deserializer, a)
-            fun(deserializer(a), **kw)
+            return await fun(a[0], deserializer(a[1]), **kw)
         return wrapper
     return _fn
 
