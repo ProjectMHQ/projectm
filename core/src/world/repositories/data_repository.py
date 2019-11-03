@@ -52,6 +52,11 @@ class RedisDataRepository:
                     '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
                     entity.entity_id, Bit.ON.value if c.is_active() else Bit.OFF.value
                 )
+                print(c.is_active())
+                print(c.is_active())
+                print(c.is_active())
+                print(c.is_active())
+                print(c.is_active())
                 if c.has_data() and not c.has_operation():
                     LOGGER.core.debug('Absolute value, component data set')
                     _comp_v = {entity.entity_id: c.value}
@@ -129,10 +134,15 @@ class RedisDataRepository:
     def get_components_values_by_components(
             self,
             entities: typing.List[Entity],
-            components: typing.List[ComponentType]
+            components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[ComponentTypeEnum, typing.Dict[EntityID, bytes]]:
-        _filtered = self._get_components_statuses_by_components(entities, components)
-        return self._get_components_values_from_components_storage(_filtered)
+        _bits_statuses = self._get_components_statuses_by_components(entities, components)
+        _filtered = self._get_components_values_from_components_storage(_bits_statuses)
+        return {
+            ComponentTypeEnum(c.key): {
+                EntityID(e.entity_id): c.cast_type(_filtered.get(c.key, {}).get(e.entity_id)) for e in entities
+            } for c in components
+        }
 
     def _get_components_statuses_by_entities(
             self,
@@ -141,29 +151,31 @@ class RedisDataRepository:
     ) -> OrderedDict:
         pipeline = self.redis.pipeline()
         bits_by_entity = OrderedDict()
-        for _c in components:
-            for _e in entities:
-                pipeline.getbit('{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix), _e.entity_id)
+        for _e in entities:
+            for _c in components:
+                key = '{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix)
+                pipeline.getbit(key, _e.entity_id)
         data = pipeline.execute()
         i = 0
-        for comp in components:
-            for ent in entities:
+        for ent in entities:
+            for comp in components:
                 _ent_v = {comp.key: [data[i], comp.component_type != bool]}
                 try:
                     bits_by_entity[ent.entity_id].update(_ent_v)
                 except KeyError:
                     bits_by_entity[ent.entity_id] = _ent_v
+                i += 1
         return bits_by_entity
 
     def _get_components_statuses_by_components(
             self,
             entities: typing.List[Entity],
-            components: typing.List[ComponentType]
+            components: typing.List[typing.Type[ComponentType]]
     ) -> OrderedDict:
         pipeline = self.redis.pipeline()
         bits_by_component = OrderedDict()
         for _c in components:
-            for _e in entities:  # same
+            for _e in entities:
                 pipeline.getbit('{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix), _e.entity_id)
         data = pipeline.execute()
         i = 0
@@ -189,12 +201,27 @@ class RedisDataRepository:
     def _get_components_values_from_components_storage(self, filtered_query: OrderedDict):
         pipeline = self.redis.pipeline()
         for c_key in filtered_query:
-            pipeline.hmget(
-                '{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix),
-                *(ent_id for ent_id, status_and_querable in filtered_query[c_key].items() if all(status_and_querable))
-            )
+            keys = [ent_id for ent_id, status_and_querable in filtered_query[c_key].items() if all(status_and_querable)]
+            if keys:
+                pipeline.hmget('{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix), *keys)
         response = pipeline.execute()
-        return response
+        data = {}
+        i = 0
+        for c_key, value in filtered_query.items():
+            c_i = 0
+            for entity_id, status in value.items():
+                if not status[1]:
+                    try:
+                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): status[0] or None})
+                    except KeyError:
+                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): status[0] or None}
+                elif all(status):
+                    try:
+                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): response[i][c_i]})
+                    except KeyError:
+                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): response[i][c_i]}
+                    c_i += 1
+        return data
 
     def _get_components_values_from_entities_storage(self, filtered_query: OrderedDict):
         pipeline = self.redis.pipeline()
@@ -210,9 +237,9 @@ class RedisDataRepository:
             for c_key, status in value.items():
                 if not status[1]:
                     try:
-                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): status[0]})
+                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): status[0] or None})
                     except KeyError:
-                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): status[0]}
+                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): status[0] or None}
                 elif all(status):
                     try:
                         data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): response[i][c_i]})

@@ -35,5 +35,9 @@ class ComponentType(metaclass=abc.ABCMeta):
     @classmethod
     def cast_type(cls, data: bytes):
         if cls.component_type == str:
-            return data.decode()
-        return cls.component_type(data)
+            return data and data.decode() or None
+        elif cls.component_type == bool:
+            return bool(data)
+        elif cls.component_type == list:
+            return data and list(data) or None
+        return data is not None and cls.component_type(data)
