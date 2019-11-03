@@ -30,6 +30,14 @@ class WebsocketChannelsMonitor:
         self.channels_repository = channels_repository
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
+        self._on_delete_channel = []
+        self._on_ping = []
+
+    def add_on_channel_delete_event(self, observer):
+        self._on_delete_channel.append(observer)
+
+    def add_on_ping_event(self, observer):
+        self._on_ping.append(observer)
 
     async def _on_presence_event(self, connection_id: str, message: str):
         LOGGER.websocket_monitor.debug(
@@ -57,7 +65,7 @@ class WebsocketChannelsMonitor:
     async def start(self):
         while 1:
             await self.monitor_connection_statuses()
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(1)
 
     async def monitor_connection_statuses(self):
         channels = self.channels_repository.get_active_channels()
@@ -74,6 +82,8 @@ class WebsocketChannelsMonitor:
 
         if not self.connections_statuses[channel.connection_id].get('last_ping') or now -\
                 self.connections_statuses[channel.connection_id]['last_ping'] > self.ping_interval:
+            for observer in self._on_ping:
+                observer(channel.connection_id)
             await self.ping_channel(channel.connection_id)
 
         if (self.connections_statuses[channel.connection_id].get('last_pong') and
@@ -81,6 +91,8 @@ class WebsocketChannelsMonitor:
                 (not self.connections_statuses[channel.connection_id].get('last_pong') and
                  now - self.connections_statuses[channel.connection_id]['seen_at'] > self.ping_timeout):
             LOGGER.websocket_monitor.info('Ping timeout for channel %s', channel)
+            for observer in self._on_delete_channel:
+                observer(channel.connection_id)
             self.channels_repository.delete(channel.connection_id)
 
 
