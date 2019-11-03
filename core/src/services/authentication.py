@@ -91,9 +91,9 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         return self.user_repository.update_user(user)
 
     @atomic
-    def get_token_for_new_character(self) -> typing.Dict:
+    def get_token_for_new_character(self, user_id: str) -> typing.Dict:
         return {
-            "token": self._get_websocket_token('world:create'),
+            "token": self._get_websocket_token('world:create', user_id=user_id),
             "expires_at": settings.TOKEN_TTL + int(time.time())
         }
 

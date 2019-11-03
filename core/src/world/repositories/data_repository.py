@@ -42,13 +42,13 @@ class EntitiesRepository:
     def update_entity(self, entity: Entity) -> Entity:
         assert entity.entity_id
         pipeline = self.redis.pipeline()
-        entity_updates = {c.key: c.value for c in entity.pending_changes}
+        entity_updates = {c.key: c.value for c in entity.pending_changes.values()}
         pipeline.hmset(
             '{}:{}'.format(self._entity_prefix, entity.entity_id),
             entity_updates
         )
         components_updates = {}
-        for c in entity.pending_changes:
+        for c in entity.pending_changes.values():
             pipeline.setbit(
                 '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
                 entity.entity_id,
@@ -68,7 +68,7 @@ class EntitiesRepository:
         return response
 
     def get_components_values_per_entity(
-            self, entity_id: int, components: typing.Optional[typing.Tuple[ComponentType]]
+            self, entity_id: int, *components: ComponentType
     ) -> typing.List[typing.Optional[bytes]]:
         response = self.redis.hmget('{}:{}'.format(self._entity_prefix, entity_id), (c.key for c in components))
         LOGGER.core.debug(

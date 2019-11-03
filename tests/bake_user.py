@@ -7,16 +7,17 @@ import binascii
 import os
 import uuid
 from flask_testing import TestCase
+from core.src.builder import strict_redis
 
 
 class BakeUserTestCase(TestCase):
-    socketio = None
-    socketioport = 13254
-    loop = asyncio.get_event_loop()
-    ping_timeout = 60
-    ping_interval = 30
-
     def create_app(self):
+        self.socketio = None
+        self.socketioport = 13254
+        self.loop = asyncio.get_event_loop()
+        self.ping_timeout = 60
+        self.ping_interval = 30
+        self.redis = strict_redis
         from core.app import app
         self.app = app
         return app

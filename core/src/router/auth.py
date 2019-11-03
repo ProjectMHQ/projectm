@@ -53,7 +53,7 @@ def handle_new_token():
     LOGGER.core.info('handle_new_token: %s', request.data)
     payload = json.loads(request.data)
     if payload['context'] == 'world:create':
-        auth_response = auth_service.get_token_for_new_character()
+        auth_response = auth_service.get_token_for_new_character(request.user['user_id'])
     elif payload['context'] == 'world:auth':
         character = psql_character_repository.get_character_by_field(
             'character_id', payload['id'], user_id=request.user['user_id']

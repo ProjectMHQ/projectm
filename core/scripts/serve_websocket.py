@@ -57,7 +57,9 @@ async def create_character(sid, payload):
     assert token['context'] == 'world:create'
     entity = Entity().set(NameComponent(payload["name"])).set(CreatedAtComponent(int(time.time())))
     entity = world_repository.save_entity(entity)
-    character_id = psql_character_repository.store_new_character(NameComponent.get(entity.entity_id))
+    character_id = psql_character_repository.store_new_character(
+        token['data']['user_id'], NameComponent.get(entity.entity_id).value
+    ).character_id
     redis_characters_index_repository.set_entity_id(character_id, entity.entity_id)
     await sio.emit('create', {'success': True, 'character_id': character_id}, to=sid)
 
