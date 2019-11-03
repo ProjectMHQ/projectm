@@ -74,7 +74,10 @@ async def authenticate_character(sid, payload):
     channel = ws_channels_repository.create(entity_id)
     entity = Entity(entity_id).set(ConnectionComponent(channel.connection_id))
     world_repository.update_entity(entity)
-    await sio.emit('auth', {'data': {'channel_id': channel.connection_id}}, to=sid)
+    await sio.emit('auth', {'data': {
+        'channel_id': channel.connection_id,
+        'character_id': token['data']['character_id']
+    }}, to=sid)
 
 
 if __name__ == '__main__':

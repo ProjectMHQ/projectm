@@ -1,8 +1,9 @@
+import random
+
 from aiohttp.web import _run_app
 import asyncio
 import hashlib
 import json
-import unittest
 import binascii
 import os
 import uuid
@@ -11,13 +12,18 @@ from core.src.builder import strict_redis
 
 
 class BakeUserTestCase(TestCase):
+    first_exec = True
+
     def create_app(self):
+        self.redis = strict_redis
+        self.first_exec or self.redis.reset_mock()
+        BakeUserTestCase.first_exec = False
+
         self.socketio = None
-        self.socketioport = 13254
+        self.socketioport = random.randint(10000, 50000)
         self.loop = asyncio.get_event_loop()
         self.ping_timeout = 60
         self.ping_interval = 30
-        self.redis = strict_redis
         from core.app import app
         self.app = app
         return app
@@ -52,7 +58,7 @@ class BakeUserTestCase(TestCase):
     def _get_websocket_token(self, context, character_id=None):
         payload = {'context': context}
         if character_id:
-            payload['character_id'] = character_id
+            payload['id'] = character_id
         response = self.client.post('/auth/token', data=json.dumps(payload), headers={
             'Authorization': 'Bearer {}'.format(self.auth_token)
         })
@@ -62,6 +68,3 @@ class BakeUserTestCase(TestCase):
     async def async_test(self):
         raise NotImplementedError
 
-
-if __name__ == '__main__':
-    unittest.main()

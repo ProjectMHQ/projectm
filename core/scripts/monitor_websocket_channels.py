@@ -20,14 +20,16 @@ class WebsocketChannelsMonitor:
             self,
             socketio,
             channels_repository: WebsocketChannelsRepository,
-            loop=asyncio.get_event_loop()
+            loop,
+            ping_interval=30,
+            ping_timeout=90
     ):
         self.loop = loop
         self.connections_statuses = {}
         self.socketio = socketio
         self.channels_repository = channels_repository
-        self.ping_interval = 30
-        self.ping_timeout = 90
+        self.ping_interval = ping_interval
+        self.ping_timeout = ping_timeout
 
     def _on_presence_event(self, connection_id: str, message: str):
         LOGGER.websocket_monitor.debug(
@@ -37,18 +39,18 @@ class WebsocketChannelsMonitor:
             self.connections_statuses[connection_id]['last_pong'] = int(time.time())
         if message == 'PING':
             if connection_id in self.connections_statuses:
-                self.socketio.emit('presence', 'PONG', namespace=connection_id)
+                self.socketio.emit('presence', 'PONG', namespace='/{}'.format(connection_id))
 
     def subscribe_pong_from_channels(self, connection_id: str):
         LOGGER.websocket_monitor.info('Subscribe presence for channel %s', connection_id)
-        self.socketio.on_event(
-            'presence', lambda m: self._on_presence_event(connection_id, m), namespace=connection_id
+        self.socketio.on(
+            'presence', lambda m: self._on_presence_event(connection_id, m), namespace='/{}'.format(connection_id)
         )
 
     def ping_channel(self, connection_id: str):
         LOGGER.websocket_monitor.debug('Sending PING message to connection_id [ %s ]', connection_id)
         self.connections_statuses[connection_id]['last_ping'] = int(time.time())
-        self.socketio.emit('presence', 'PING', namespace=connection_id)
+        self.socketio.emit('presence', 'PING', namespace='/{}'.format(connection_id))
 
     async def start(self):
         while 1:
@@ -80,9 +82,11 @@ class WebsocketChannelsMonitor:
             self.channels_repository.delete(channel.connection_id)
 
 
-def builder(sio=None, loop=None):
-    redis_data = StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB)
+def builder(sio=None, loop=asyncio.get_event_loop(), redis=None, ping_interval=30, ping_timeout=60):
+    redis_data = redis or StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB)
     socketio = sio or AsyncRedisManager('redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
     channels_factory = WebsocketChannelsRepository(redis_data)
-    monitor = WebsocketChannelsMonitor(socketio, channels_factory, loop=loop)
+    monitor = WebsocketChannelsMonitor(
+        socketio, channels_factory, loop, ping_interval=ping_interval, ping_timeout=ping_timeout
+    )
     return monitor

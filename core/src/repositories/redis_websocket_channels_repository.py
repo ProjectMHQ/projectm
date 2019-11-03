@@ -17,6 +17,17 @@ WebsocketChannel = typing.NamedTuple(
 )
 
 
+def _ws_channel_factory(a: typing.Tuple[bytes, bytes]) -> WebsocketChannel:
+    k, v = a
+    data = v.decode().split(',')
+    assert len(data) == 2
+    return WebsocketChannel(
+        connection_id=k.decode().replace('c:', ''),
+        entity_id=data[0] and int(data[0]),
+        created_at=int(data[1])
+    )
+
+
 class WebsocketChannelsRepository:
     def __init__(self, redis: StrictRedis):
         self.redis = redis
@@ -49,13 +60,4 @@ class WebsocketChannelsRepository:
         return response
 
     def get_active_channels(self) -> typing.Iterable[WebsocketChannel]:
-        def _ws(a: typing.Tuple[bytes, bytes]) -> WebsocketChannel:
-            k, v = a
-            data = v.decode().split(',')
-            assert len(data) == 2
-            return WebsocketChannel(
-                connection_id=k.decode().replace('c:', ''),
-                entity_id=data[0] and int(data[0]),
-                created_at=int(data[1])
-            )
-        return map(_ws, self.redis.hscan(self._prefix)[1].items())
+        return map(_ws_channel_factory, self.redis.hscan_iter(self._prefix))
