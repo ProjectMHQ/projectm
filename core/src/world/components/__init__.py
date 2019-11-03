@@ -21,7 +21,7 @@ class ComponentType(metaclass=abc.ABCMeta):
         if not repo:
             from core.src.world.builder import world_repository as repo
         data = repo.get_components_values_per_entity(entity_id, cls)
-        return data and cls(cls.component_type(data))
+        return data and cls(cls.cast_type(data))
 
     def is_active(self):
         return bool(self.value)
@@ -31,3 +31,9 @@ class ComponentType(metaclass=abc.ABCMeta):
 
     def has_operation(self):
         return False
+
+    @classmethod
+    def cast_type(cls, data: bytes):
+        if cls.component_type == str:
+            return data.decode()
+        return cls.component_type(data)

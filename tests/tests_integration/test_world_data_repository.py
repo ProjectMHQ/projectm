@@ -37,7 +37,7 @@ class TestWorldDataRepository(TestCase):
         response = self.sut.get_components_values_by_entities([entity], [NameComponent, CharacterComponent])
         self.assertEqual(
             {
-                ComponentTypeEnum.NAME: b'Billy Zinna',
+                ComponentTypeEnum.NAME: 'Billy Zinna',
                 ComponentTypeEnum.CHARACTER: None
             },
             response[EntityID(1)]
@@ -61,7 +61,7 @@ class TestWorldDataRepository(TestCase):
         )
         self.assertEqual(
             {
-                ComponentTypeEnum.NAME: b'Billy Zinna',
+                ComponentTypeEnum.NAME: 'Billy Zinna',
                 ComponentTypeEnum.CHARACTER: True,
                 ComponentTypeEnum.POS: None
             },
