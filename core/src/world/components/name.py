@@ -5,6 +5,7 @@ from core.src.world.components.types import ComponentTypeEnum
 
 
 class NameComponent(ComponentType):
+    component_enum = ComponentTypeEnum.NAME
     key = ComponentTypeEnum.NAME.value
     component_type = str
 

@@ -11,3 +11,4 @@ class ComponentTypeEnum(enum.IntEnum):
     NAME = 2
     CONNECTION = 3
     POS = 4
+    CHARACTER = 5

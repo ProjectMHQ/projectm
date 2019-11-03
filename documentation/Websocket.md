@@ -12,9 +12,10 @@ Endpoints:
 
 #### Character Creation & Authentication on '/' namespace
 
-Before proceeding request a token on the REST for the 'world' topic.
-
 ##### Create Character
+
+Before proceeding request a token on the REST for the `world:create` topic.
+
 - Requires Bearer Token: NO
 - Namespace: `/`
 - Topic: `create`
@@ -22,6 +23,9 @@ Before proceeding request a token on the REST for the 'world' topic.
 - OnSuccess: ` {character_id: String[UUID], success: true} `
 
 ##### Authenticate Character
+
+Before proceeding request a token on the REST for the `world:auth` topic.
+
 - Requires Bearer Token: NO
 - Namespace: `/`
 - Topic: `auth`

@@ -9,7 +9,7 @@ from core.src.repositories.users_repository import UsersRepositoryImpl
 from core.src.services.authentication import AuthenticationServiceImpl
 from core.src.services.encryption import AESCipherServiceImpl
 
-if settings.RUNNING_TESTS:
+if settings.RUNNING_TESTS and not settings.INTEGRATION_TESTS:
     from unittest.mock import Mock
     strict_redis = Mock()
 else:

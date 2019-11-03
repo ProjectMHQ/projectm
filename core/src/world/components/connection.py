@@ -5,6 +5,7 @@ from core.src.world.components.types import ComponentTypeEnum
 
 
 class ConnectionComponent(ComponentType):
+    component_enum = ComponentTypeEnum.CONNECTION
     key = ComponentTypeEnum.CONNECTION.value
     component_type = str
 

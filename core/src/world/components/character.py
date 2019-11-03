@@ -5,6 +5,7 @@ from core.src.world.components.types import ComponentTypeEnum
 
 
 class CharacterComponent(ComponentType):
+    component_enum = ComponentTypeEnum.CHARACTER
     key = ComponentTypeEnum.CHARACTER.value
     component_type = bool
 

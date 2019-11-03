@@ -1,8 +1,15 @@
+import typing
+
 from core.src.world.components import ComponentType
 
 
+EntityID = typing.NewType(
+    'EntityID', int
+)
+
+
 class Entity:
-    def __init__(self, entity_id: int = None):
+    def __init__(self, entity_id: typing.Optional[EntityID] = None):
         self._entity_id = entity_id
         self._pending_changes = {}
 
@@ -11,12 +18,11 @@ class Entity:
         return self
 
     @property
-    def entity_id(self):
-        return self._entity_id
+    def entity_id(self) -> EntityID:
+        return EntityID(self._entity_id)
 
     @entity_id.setter
-    def entity_id(self, value: int):
-        assert isinstance(value, int)
+    def entity_id(self, value: EntityID):
         assert not self._entity_id
         self._entity_id = value
 

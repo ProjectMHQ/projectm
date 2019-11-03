@@ -27,8 +27,8 @@ then open with browser projectm/htmlcov/index.html
 ```bash
 cd projectm
 . venv/bin/activate
-PROJECTM_ENV=development python -m core.app &
-PROJECTM_ENV=development python -m scripts.serve_websocket &
+PROJECTM_ENV=development python -m core.app 
+PROJECTM_ENV=development python -m core.scripts.serve_websocket
 ```
 
 
