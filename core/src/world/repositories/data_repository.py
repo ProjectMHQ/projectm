@@ -49,12 +49,14 @@ class RedisDataRepository:
         for c in entity.pending_changes.values():
             if c.is_active():
                 updates[c.key] = c.value
-                pipeline.setbit(
-                    '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
-                    entity.entity_id, Bit.ON.value
-                )
+                map_bit = Bit.ON.value
             else:
                 deletions.append(c.key)
+                map_bit = Bit.OFF.value
+            pipeline.setbit(
+                '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
+                entity.entity_id, map_bit
+            )
             if c.has_data() and c.has_operation():
                 """
                 TODO - This is skipped ATM due no components returns has_operation()==True
