@@ -101,40 +101,40 @@ class TestWebsocketCharacterAuthentication(BakeUserTestCase):
         self._bake_user()
         self._on_create.append(self._check_on_create)
         self._run_test()
-        expected_calls = [
-            call.setbit('e:m', 0, entity_id),
-            call.eval(
-                "\n            local val = redis.call('bitpos', 'e:m', 0)\n"
-                "            redis.call('setbit', 'e:m', val, 1)\n"
-                "            return val\n            ",
-                0),
-            call.pipeline(),
-            call.pipeline().hmset('e:{}'.format(entity_id), {2: "Hero {}".format(self.randstuff), 1: ANY}),
-            call.pipeline().setbit('c:{}:m'.format(ComponentTypeEnum.NAME.value), entity_id, True),
-            call.pipeline().hmset(
-                'c:{}:d'.format(ComponentTypeEnum.NAME.value), {entity_id: "Hero {}".format(self.randstuff)}
-            ),
-            call.pipeline().setbit('c:{}:m'.format(ComponentTypeEnum.CREATED_AT.value), entity_id, True),
-            call.pipeline().hmset('c:{}:d'.format(ComponentTypeEnum.CREATED_AT.value), {entity_id: ANY}),
-            call.pipeline().execute(),
-            call.hmget('e:{}'.format(entity_id), ANY),
-            call.hget('char:e', self._returned_character_id),
-            call.hset('char:e', self._returned_character_id, entity_id),
-            # Auth starts here
-            call.hget('char:e', self._returned_character_id),
-            call.hset('wschans', 'c:{}'.format(self._private_channel_id), ANY),
-            call.pipeline(),
-            call.pipeline().hmset('e:{}'.format(entity_id), {3: '{}'.format(self._private_channel_id)}),
-            call.pipeline().setbit('c:{}:m'.format(ComponentTypeEnum.CONNECTION.value), entity_id, True),
-            call.pipeline().hmset(
-                'c:{}:d'.format(ComponentTypeEnum.CONNECTION.value), {entity_id: '{}'.format(self._private_channel_id)}
-            ),
-            call.pipeline().execute()
+        self._expected_calls = [
+            [call.pipeline(),
+             call.setbit('e:m', 0, 1),
+             call.eval(
+                 "\n            local val = redis.call('bitpos', 'e:m', 0)"
+                 "\n            redis.call('setbit', 'e:m', val, 1)"
+                 "\n            return val"
+                 "\n            ",
+                 0),
+             call.pipeline(),
+             call.pipeline().setbit('c:5:m', entity_id, 1),
+             call.pipeline().setbit('c:1:m', entity_id, 1),
+             call.pipeline().setbit('c:2:m', entity_id, 1),
+             call.pipeline().hmset('e:{}'.format(entity_id), {
+                 ComponentTypeEnum.CREATED_AT.value: ANY,
+                 ComponentTypeEnum.NAME.value: 'Hero {}'.format(self.randstuff)
+             }),
+             call.pipeline().hmset('c:1:d', {entity_id: ANY}),
+             call.pipeline().hmset('c:2:d', {entity_id: 'Hero {}'.format(self.randstuff)}),
+             call.pipeline().execute(),
+             call.hget('char:e', self._returned_character_id),
+             call.hset('char:e', self._returned_character_id, 1),
+             call.hget('char:e', self._returned_character_id),
+             call.hset('wschans', 'c:{}'.format(self._private_channel_id), ANY),
+             call.pipeline(),
+             call.pipeline().setbit('c:3:m', entity_id, 1),
+             call.pipeline().hmset('e:{}'.format(entity_id), {3: self._private_channel_id}),
+             call.pipeline().hmset('c:3:d', {1: self._private_channel_id}),
+             call.pipeline().execute()]
         ]
         if self.first_exec:
-            self.redis.assert_has_calls(expected_calls)
+            self.redis.assert_has_calls(self._expected_calls)
         else:
-            self.redis.assert_has_calls(expected_calls[1:])
+            self.redis.assert_has_calls(self._expected_calls[1:])
         self.assertTrue(self.typeschecked)
 
     def test(self):

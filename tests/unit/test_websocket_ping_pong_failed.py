@@ -1,7 +1,7 @@
 import asyncio
 import random
 import time
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 from core.scripts.monitor_websocket_channels import builder
 from etc import settings
@@ -96,3 +96,11 @@ class TestWebsocketPingPong(TestWebsocketCharacterAuthentication):
         self._on_auth.append(lambda *a, **kw: self._prepare_ping_pong())
         self._base_flow(entity_id=random.randint(1, 9999))
         self.assertEqual(len(self._pings), self._expected_pings)
+        self.redis.assert_has_calls(
+            self._expected_calls[1:] + [
+                call.pipeline().execute(),
+                call.hscan_iter('wschans'),
+                call.hscan_iter('wschans'),
+                call.hscan_iter('wschans'),
+            ]
+        )
