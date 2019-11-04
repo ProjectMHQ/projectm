@@ -203,7 +203,7 @@ class RedisDataRepository:
         data = {}
         i = 0
         for c_key, value in filtered_query.items():
-            c_i = 0
+            e_i = 0
             for entity_id, status in value.items():
                 if not status[1]:
                     try:
@@ -212,11 +212,13 @@ class RedisDataRepository:
                         data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): status[0] or None}
                 elif all(status):
                     try:
-                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): response[i][c_i]})
+                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): response[i][e_i]})
                     except KeyError:
-                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): response[i][c_i]}
-                    c_i += 1
-                    i += 1
+                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): response[i][e_i]}
+                    except IndexError:
+                        raise
+                    e_i += 1
+            i += 1
         return data
 
     def _get_components_values_from_entities_storage(self, filtered_query: OrderedDict):
@@ -242,5 +244,5 @@ class RedisDataRepository:
                     except KeyError:
                         data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): response[i][c_i]}
                     c_i += 1
-                    i += 1
+            i += 1
         return data
