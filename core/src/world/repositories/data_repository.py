@@ -133,11 +133,11 @@ class RedisDataRepository:
     ) -> typing.Dict[ComponentTypeEnum, typing.Dict[EntityID, bytes]]:
         _bits_statuses = self._get_components_statuses_by_components(entities, components)
         _filtered = self._get_components_values_from_components_storage(_bits_statuses)
-        return {
+        s = {
             ComponentTypeEnum(c.key): {
                 EntityID(e.entity_id): c.cast_type(_filtered.get(c.key, {}).get(e.entity_id)) for e in entities
-            } for c in components
-        }
+            } for c in components}
+        return s
 
     def _get_components_statuses_by_entities(
             self,
@@ -216,6 +216,7 @@ class RedisDataRepository:
                     except KeyError:
                         data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): response[i][c_i]}
                     c_i += 1
+                    i += 1
         return data
 
     def _get_components_values_from_entities_storage(self, filtered_query: OrderedDict):
@@ -241,4 +242,5 @@ class RedisDataRepository:
                     except KeyError:
                         data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): response[i][c_i]}
                     c_i += 1
+                    i += 1
         return data

@@ -9,7 +9,7 @@ class PosComponent(ComponentType):
     key = ComponentTypeEnum.POS.value
     component_type = list
 
-    def __init__(self, value: str):
+    def __init__(self, value: list):
         super().__init__(value)
 
     @property

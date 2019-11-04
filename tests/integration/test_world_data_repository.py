@@ -1,5 +1,4 @@
 from unittest import TestCase
-
 from core.src.world.components import ComponentTypeEnum
 from core.src.world.components.character import CharacterComponent
 from core.src.world.components.connection import ConnectionComponent
@@ -62,9 +61,15 @@ class TestWorldDataRepository(TestCase):
         )
         self.assertEqual(
             {
-                ComponentTypeEnum.NAME: {EntityID(1): 'Billy Zinna'},
-                ComponentTypeEnum.CHARACTER: {EntityID(1): False},
-                ComponentTypeEnum.CONNECTION: {EntityID(1): None}
+                ComponentTypeEnum.NAME: {
+                    EntityID(1): 'Billy Zinna'
+                },
+                ComponentTypeEnum.CHARACTER: {
+                    EntityID(1): False
+                },
+                ComponentTypeEnum.CONNECTION: {
+                    EntityID(1): None
+                }
             },
             response_by_components
         )
@@ -76,9 +81,11 @@ class TestWorldDataRepository(TestCase):
 
         self.assertEqual(
             {
-                ComponentTypeEnum.CHARACTER: True,
+                EntityID(1): {
+                    ComponentTypeEnum.CHARACTER: True,
+                }
             },
-            response[EntityID(1)]
+            response
         )
         response = self.sut.get_components_values_by_entities(
             [entity],
@@ -89,33 +96,93 @@ class TestWorldDataRepository(TestCase):
         )
         self.assertEqual(
             {
-                ComponentTypeEnum.NAME: {EntityID(1): 'Billy Zinna'},
-                ComponentTypeEnum.CHARACTER: {EntityID(1): True},
-                ComponentTypeEnum.CONNECTION: {EntityID(1): None}
+                ComponentTypeEnum.NAME: {
+                    EntityID(1): 'Billy Zinna'
+                },
+                ComponentTypeEnum.CHARACTER: {
+                    EntityID(1): True
+                },
+                ComponentTypeEnum.CONNECTION: {
+                    EntityID(1): None
+                }
             },
             response_by_components
         )
         self.assertEqual(
             {
-                ComponentTypeEnum.NAME: 'Billy Zinna',
-                ComponentTypeEnum.CHARACTER: True,
-                ComponentTypeEnum.POS: None
+                EntityID(1): {
+                    ComponentTypeEnum.NAME: 'Billy Zinna',
+                    ComponentTypeEnum.CHARACTER: True,
+                    ComponentTypeEnum.POS: None
+                }
             },
-            response[EntityID(1)]
+            response
         )
         self.sut.update_entities(entity.set(CharacterComponent(False)))
         response = self.sut.get_components_values_by_entities([entity], [CharacterComponent])
 
         self.assertEqual(
             {
-                ComponentTypeEnum.CHARACTER: False,
+                EntityID(1): {
+                    ComponentTypeEnum.CHARACTER: False,
+                }
             },
-            response[EntityID(1)]
+            response
         )
         response_by_components = self.sut.get_components_values_by_components([entity], [CharacterComponent])
         self.assertEqual(
             {
-                ComponentTypeEnum.CHARACTER: {EntityID(1): False},
+                ComponentTypeEnum.CHARACTER: {
+                    EntityID(1): False
+                },
             },
             response_by_components
+        )
+        """
+        second entity starts here
+        """
+        _entity_2_name = 'Donna Arcama'
+        entity_2 = Entity()
+        entity_2.set(NameComponent(_entity_2_name))
+        self.sut.save_entity(entity_2)
+        self.sut.update_entities(entity.set(CharacterComponent(True)), entity_2)
+        response = self.sut.get_components_values_by_entities(
+            [entity, entity_2],
+            [CharacterComponent, NameComponent, PosComponent]
+        )
+        response_by_components = self.sut.get_components_values_by_components(
+            [entity, entity_2],
+            [NameComponent, CharacterComponent, ConnectionComponent]
+        )
+        self.assertEqual(
+            {
+                ComponentTypeEnum.NAME: {
+                    EntityID(1): 'Billy Zinna',
+                    EntityID(2): 'Donna Arcama'
+                },
+                ComponentTypeEnum.CHARACTER: {
+                    EntityID(1): True,
+                    EntityID(2): False
+                },
+                ComponentTypeEnum.CONNECTION: {
+                    EntityID(1): None,
+                    EntityID(2): None
+                }
+            },
+            response_by_components
+        )
+        self.assertEqual(
+            {
+                EntityID(1): {
+                    ComponentTypeEnum.NAME: 'Billy Zinna',
+                    ComponentTypeEnum.CHARACTER: True,
+                    ComponentTypeEnum.POS: None
+                },
+                EntityID(2): {
+                    ComponentTypeEnum.NAME: 'Donna Arcama',
+                    ComponentTypeEnum.CHARACTER: False,
+                    ComponentTypeEnum.POS: None
+                }
+            },
+            response
         )
