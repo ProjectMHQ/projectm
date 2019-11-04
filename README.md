@@ -68,14 +68,14 @@ at the end of the file, to avoid explicitly declare the variable at every execut
 **CUSTOMIZING APP SETTINGS VIA `local-settings.conf`:**
 
 ```bash
+
 $ cd projectm
 $ cd etc/<your_env_name, i.e. development>
 $ cp settings.conf local-settings.conf
-
+```
 Then use your favorite editor to customize local-settings.conf file and fit your needs.
 
 Notes: 
 - The filename is into `.gitignore`.
 - Keys with typos are ignored and the default settings is used.
 
-```
