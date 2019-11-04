@@ -31,7 +31,6 @@ PROJECTM_ENV=development python -m core.app
 PROJECTM_ENV=development python -m core.scripts.serve_websocket
 ```
 
-
 **CLIENT (API test)**:
 
 ```bash
@@ -63,3 +62,18 @@ export PROJECTM_ENV=development
 ```
 at the end of the file, to avoid explicitly declare the variable at every execution.
 
+
+**CUSTOMIZING APP SETTINGS VIA `local-settings.conf`:**
+
+```bash
+$ cd projectm
+$ cd etc/<your_env_name, i.e. development>
+$ cp settings.conf local-settings.conf
+
+Then use your favorite editor to customize local-settings.conf file and fit your needs.
+
+Notes: 
+- The filename is into `.gitignore`.
+- Keys with typos are ignored and the default settings is used.
+
+```
