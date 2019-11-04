@@ -6,3 +6,4 @@ PROJECTM_ENV=development RUNNING_TESTS=1 INTEGRATION_TESTS=1 venv/bin/coverage r
 mv .coverage .coverage.integration
 venv/bin/coverage combine
 venv/bin/coverage html
+venv/bin/coverage report
