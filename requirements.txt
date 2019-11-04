@@ -12,3 +12,4 @@ psycopg2==2.8.4
 eventlet==0.25.1
 msgpack==0.6.2
 fluent-logger==0.9.4
+breaking-tests
