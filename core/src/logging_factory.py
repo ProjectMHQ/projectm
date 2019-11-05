@@ -1,6 +1,6 @@
 import logging
-
-from core.src.authentication.scope import get_current_user_id
+import sys
+from core.src.utils import get_current_user_id
 from etc import settings
 
 
@@ -10,6 +10,12 @@ def _init_logging(loggers):
         logger.setLevel(logging.DEBUG)
         logger.addHandler(logging.StreamHandler(sys.stdout))
         return
+    if settings.ENV == 'development':
+        for _n, _l in loggers.items():
+            logging.basicConfig(level=getattr(logging, _l))
+            _logger = logging.getLogger(_n)
+            _logger.addHandler(logging.StreamHandler(sys.stdout))
+            _logger.addHandler(logging.StreamHandler(sys.stderr))
 
     if settings.FLUENTD_HANDLER_HOST:
         from fluent import handler
@@ -49,7 +55,10 @@ class LoggingFactory(object):
     def __init__(self):
         self.loggers = {
             'core': 'DEBUG',
-            'websocket_monitor': 'DEBUG'
+            'websocket_monitor': 'DEBUG',
+            'engineio.server': 'WARNING',
+            'flask*': 'DEBUG',
+            'testing': 'DEBUG'
         }
         _init_logging(self.loggers)
 
@@ -68,5 +77,9 @@ class LoggingFactory(object):
     def websocket_monitor(self):
         return LoggingFactory._get_logger('websocket_monitor')
 
+    @property
+    def testing(self):
+        return LoggingFactory._get_logger('testing')
 
-LOGGING_FACTORY = LoggingFactory()
+
+LOGGER = LoggingFactory()

@@ -29,7 +29,10 @@ class Client:
         return self._user_id
 
     def _clean_localstorage(self):
-        os.remove(self.token_file)
+        try:
+            os.remove(self.token_file)
+        except FileNotFoundError:
+            pass
 
     @property
     def has_token(self):
@@ -82,10 +85,12 @@ class Client:
         return self._user_id, res.cookies
 
     def logout(self):
-        res = requests.post(self.url + '/auth/logout', cookies=self._get_cookie_from_token())
-        res.raise_for_status()
+        try:
+            res = requests.post(self.url + '/auth/logout', cookies=self._get_cookie_from_token())
+        except:
+            pass
         self._clean_localstorage()
-        return res.content
+        return True
 
     def get_details(self):
         res = requests.get(
@@ -141,8 +146,10 @@ def get_client() -> Client:
         try:
             with open('/tmp/__pm_client_url', 'r') as f:
                 d = f.read()
+                click.echo('using url %s' % d)
         except FileNotFoundError:
-            d = input('Enter projectm base URL (i.e. http://localhost:60160) : ')
+            d = input('Enter projectm base URL (default http://localhost:60160) : ')
+            d = d or 'http://localhost:60160'
             check_res = requests.get(d + '/auth/login')
             try:
                 check_res.raise_for_status()
@@ -156,8 +163,8 @@ def get_client() -> Client:
             with open('/tmp/__pm_client_url', 'w') as f:
                 f.write(d)
         return d
-
-    return Client(get_client_url())
+    url = get_client_url()
+    return Client(url)
 
 
 @click.group(name='client')
@@ -225,17 +232,6 @@ def ls():
         return
     response = client.get_characters()
     click.echo('Response:\n%s' % json.dumps(response, indent=2))
-
-
-@character.command()
-def create():
-    client = get_client()
-    if not client.is_logged_in:
-        click.echo('Not logged in')
-        return
-    character_name = input('Enter your chacter name: ')
-    response = client.create_character({"name": character_name})
-    click.echo('Create Character response:\n%s' % json.dumps(response, indent=2))
 
 
 @character.command()

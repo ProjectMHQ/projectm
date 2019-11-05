@@ -1,13 +1,15 @@
+import hashlib
 import json
 import time
 import typing
 
-from core.src.business.user.abstract import UserDOAbstract
+import os
+
 from etc import settings
 from core.src import exceptions, models
 from core.src.business.user.types import UserStatus
 from core.src.database import atomic
-from core.src.logging_factory import LOGGING_FACTORY
+from core.src.logging_factory import LOGGER
 from core.src.services.abstracts import AuthenticationServiceAbstract
 
 
@@ -25,13 +27,14 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         payload = json.dumps(token)
         return self.encryption_service.encrypt(payload)
 
-    def _get_websocket_token(self, data: typing.Dict) -> typing.AnyStr:
+    def _get_websocket_token(self, context, **data) -> typing.AnyStr:
         token = {
-            'context': 'world',
-            'data': data,
+            'context': context,
             'created_at': int(time.time()),
             'ttl': settings.TOKEN_TTL,
         }
+        if data:
+            token['data'] = data
         payload = json.dumps(token)
         return self.encryption_service.encrypt(payload)
 
@@ -53,8 +56,8 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         user = self.user_repository.get_user_by_field('email', email)
         if user.status != UserStatus.ACTIVE:
             raise exceptions.UnauthorizedError(
-                message='USER_NOT_ACTIVE',
-                status_code=401
+                description='USER_NOT_ACTIVE',
+                code=401
             )
         user.validate_password(password)
         return {
@@ -64,11 +67,13 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         }
 
     def logout(self, *a, **kw):
-        LOGGING_FACTORY.core.info('Logout: %s', ', '.join(a))
+        LOGGER.core.info('Logout: %s', ', '.join(a))
 
     def decode_session_token(self, session_token: typing.AnyStr) -> typing.Dict:
+        LOGGER.core.debug('Decoding session token: %s', session_token)
         now = int(time.time())
         token = json.loads(self.encryption_service.decrypt(session_token))
+        LOGGER.core.debug('Decoding session token: %s', session_token)
         expires_at = token['ttl'] + token['created_at']
         if expires_at < now:
             raise exceptions.SessionExpiredException
@@ -86,9 +91,15 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         return self.user_repository.update_user(user)
 
     @atomic
-    def authenticate_character(self, character_data: typing.Dict) -> typing.Dict:
+    def get_token_for_new_character(self, user_id: str) -> typing.Dict:
         return {
-            "character_id": character_data['character_id'],
-            "token": self._get_websocket_token(character_data),
+            "token": self._get_websocket_token('world:create', user_id=user_id),
+            "expires_at": settings.TOKEN_TTL + int(time.time())
+        }
+
+    @atomic
+    def get_token_for_existing_character(self, character_id: str) -> typing.Dict:
+        return {
+            "token": self._get_websocket_token('world:auth', character_id=character_id),
             "expires_at": settings.TOKEN_TTL + int(time.time())
         }
