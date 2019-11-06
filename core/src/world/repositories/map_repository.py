@@ -4,7 +4,8 @@ import typing
 from aioredis import Redis
 from aioredis.commands import Pipeline
 
-from core.src.world.room import Room
+from core.src.world.room import Room, RoomPosition
+from core.src.world.types import TerrainEnum
 
 
 class MapRepository:
@@ -38,9 +39,6 @@ class MapRepository:
         self._pipeline = None
         return res
 
-    def get_entity_position(self, entity_id: int):
-        raise NotImplementedError
-
     def _coords_to_int(self, x: int, y: int) -> int:
         return x * self.mul + y
 
@@ -50,8 +48,8 @@ class MapRepository:
         return x, y
 
     @staticmethod
-    def _coords_to_hkey(x: int, y: int, z: int) -> str:
-        return (struct.pack('H', x) + struct.pack('H', y) + struct.pack('H', z)).decode()
+    def _pack_coords(x: int, y: int, z: int) -> bytes:
+        return struct.pack('HHH', x, y, z)
 
     def _set_room_data_on_bitmaps(self, room: Room):
         """
@@ -59,20 +57,15 @@ class MapRepository:
         """
         assert not room.position.z
         p = self._get_pipeline()
+        num = self._coords_to_int(**room.position)
         p.setrange(
-            self.terrains_bitmap_key,
-            self._coords_to_int(**room.position) * 8,
-            struct.pack('B', room.terrain.value)
+            self.terrains_bitmap_key, num * 8, struct.pack('B', room.terrain.value)
         )
         p.setrange(
-            self.titles_ids_bitmap_bitmap_key,
-            self._coords_to_int(**room.position) * 16,
-            struct.pack('H', room.title_id)
+            self.titles_ids_bitmap_bitmap_key, num * 16, struct.pack('H', room.title_id)
         )
         p.setrange(
-            self.descriptions_ids_bitmap_key,
-            self._coords_to_int(**room.position) * 16,
-            struct.pack('H', room.description_id)
+            self.descriptions_ids_bitmap_key, num * 16, struct.pack('H', room.description_id)
         )
 
     def _set_room_data_on_hashmap(self, room: Room):
@@ -81,18 +74,17 @@ class MapRepository:
         """
         assert room.position.z
         p = self._get_pipeline()
-        hkey = self._coords_to_hkey(room.position.x, room.position.y, room.position.z)
+        hkey = self._pack_coords(room.position.x, room.position.y, room.position.z)
         p.hset(
             self.z_valued_rooms_data_key, hkey,
-            '{} {} {}'.format(room.title_id, room.description_id, room.terrain.value)
+            '{} {} {}'.format(room.terrain.value, room.title_id, room.description_id)
         )
 
     def _set_room_content(self, room: Room):
         p = self._get_pipeline()
-        p.sadd(self.room_content_key, *room.entity_ids)
-
-    async def set_room(self, room: Room):
-        return await self._set_room(room, execute=True)
+        p.sadd(self.room_content_key.format(
+            self._pack_coords(room.position.x, room.position.y, room.position.z)
+        ), *room.entity_ids)
 
     async def _set_room(self, room: Room, execute=True):
         if room.position.z:
@@ -102,6 +94,30 @@ class MapRepository:
         self._set_room_content(room)
         execute and self._get_pipeline().execute()
         return room
+    
+    def _get_rooms_data_from_hashmap(self, x: int, y: int, z: int):
+        assert z
+        p = self._get_pipeline()
+        p.hget(self.z_valued_rooms_data_key, self._pack_coords(x, y, z))
+    
+    def _get_rooms_data_from_bitmaps(self, x: int, y: int):
+        p = self._get_pipeline()
+        p.getrange(
+            self.terrains_bitmap_key, self._coords_to_int(x, y) * 8
+        )
+        p.getrange(
+            self.titles_ids_bitmap_bitmap_key, self._coords_to_int(x, y) * 16
+        )
+        p.getrange(
+            self.descriptions_ids_bitmap_key, self._coords_to_int(x, y) * 16
+        )
+    
+    def _get_rooms_content(self, x: int, y: int, z: int):
+        p = self._get_pipeline()
+        p.smembers(self.room_content_key.format(self._pack_coords(x, y, z)))
+
+    async def set_room(self, room: Room):
+        return await self._set_room(room, execute=True)
 
     async def set_rooms(self, *rooms: Room):
         await asyncio.gather(
@@ -109,3 +125,22 @@ class MapRepository:
         )
         self._get_pipeline().execute()
         return rooms
+
+    async def get_room(self, x: int, y: int, z: int) -> Room:
+        pipeline = self._get_pipeline()
+        self._get_rooms_data_from_hashmap(x, y, z) if z else self._get_rooms_data_from_bitmaps(x, y)
+        self._get_rooms_content(x, y, z)
+        result = await pipeline.execute()
+        if not z:
+            room_data = struct.unpack('HHH', result[0]+result[1]+result[2])
+            content = [int(x) for x in result[3]]
+        else:
+            room_data = (int(x) for x in result[0].split(' '))
+            content = [int(x) for x in result[1]]
+        return Room(
+            position=RoomPosition(x=x, y=y, z=z),
+            terrain=TerrainEnum(room_data[0]),
+            title_id=room_data[1],
+            description_id=room_data[2],
+            entity_ids=content
+        )
