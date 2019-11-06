@@ -1,3 +1,4 @@
+import asyncio
 import struct
 import typing
 from aioredis import Redis
@@ -90,7 +91,10 @@ class MapRepository:
         p = self._get_pipeline()
         p.sadd(self.room_content_key, *room.entity_ids)
 
-    async def set_room(self, room: Room, execute=True):
+    async def set_room(self, room: Room):
+        return await self._set_room(room, execute=True)
+
+    async def _set_room(self, room: Room, execute=True):
         if room.position.z:
             self._set_room_data_on_hashmap(room)
         else:
@@ -100,7 +104,8 @@ class MapRepository:
         return room
 
     async def set_rooms(self, *rooms: Room):
-        for room in rooms:
-            self.set_room(room, execute=False)
+        await asyncio.gather(
+            *(self._set_room(room, execute=False) for room in rooms)
+        )
         self._get_pipeline().execute()
         return rooms
