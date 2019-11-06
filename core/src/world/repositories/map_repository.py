@@ -32,12 +32,15 @@ class MapRepository:
         self._pipeline = None
         return res
 
-    def _coords_to_int(self, x: int, y: int) -> int:
-        return x * 2 * self.mul + y * 2
+    def _coords_to_int(self, x: int, y: int, bytesize=2) -> int:
+        return x * bytesize * self.mul + y * bytesize
 
     @staticmethod
     def _pack_coords(x: int, y: int, z: int) -> bytes:
         return struct.pack('>HHH', x, y, z)
+
+    def _get_rooms_content(self, pipeline: Pipeline, x: int, y: int, z: int):
+        pipeline.smembers(self.room_content_key.format(self._pack_coords(x, y, z)))
 
     def _set_room_content(self, pipeline: Pipeline, room: Room):
         pipeline.sadd(self.room_content_key.format(
@@ -55,7 +58,7 @@ class MapRepository:
         else:
             num = self._coords_to_int(room.position.x, room.position.y)
             pipeline.setrange(
-                self.terrains_bitmap_key, num, struct.pack('>B', room.terrain.value)
+                self.terrains_bitmap_key, num, struct.pack('>H', room.terrain.value)
             )
             pipeline.setrange(
                 self.titles_ids_bitmap_bitmap_key, num, struct.pack('>H', room.title_id)
@@ -70,26 +73,22 @@ class MapRepository:
         await pipeline.execute()
         return room
 
-    def _get_rooms_content(self, pipeline: Pipeline, x: int, y: int, z: int):
-        pipeline.smembers(self.room_content_key.format(self._pack_coords(x, y, z)))
-
     async def get_room(self, x: int, y: int, z: int) -> Room:
         pipeline = self.redis.pipeline()
         if z:
             pipeline.hget(self.z_valued_rooms_data_key, self._pack_coords(x, y, z))
         else:
             k = self._coords_to_int(x, y)
-            pipeline.getrange(self.terrains_bitmap_key, k, k)
+            pipeline.getrange(self.terrains_bitmap_key, k, k + 1)
             pipeline.getrange(self.titles_ids_bitmap_bitmap_key, k, k + 1)
             pipeline.getrange(self.descriptions_ids_bitmap_key, k, k + 1)
         self._get_rooms_content(pipeline, x, y, z)
         result = await pipeline.execute()
         if z:
-            terrain, title_id, description_id = result[0] and [int(x) for x in result[0].split(b' ')] or [0, 0, 0]
+            terrain, title_id, description_id = [int(x) for x in result[0].split(b' ')]
             content = [int(x) for x in result[1]]
         else:
-            terrain, = struct.unpack('>B', result[0])
-            title_id, description_id = struct.unpack('>HH', result[1]+result[2])
+            terrain, title_id, description_id = struct.unpack('>HHH', result[0]+result[1]+result[2])
             content = [int(x) for x in result[3]]
 
         return Room(
