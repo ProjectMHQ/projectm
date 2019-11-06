@@ -52,9 +52,9 @@ class MapRepository:
     def _coords_to_hkey(x: int, y: int, z: int) -> str:
         return (struct.pack('H', x) + struct.pack('H', y) + struct.pack('H', z)).decode()
 
-    def _set_room_bitmaps(self, room: Room):
+    def _set_room_data_on_bitmaps(self, room: Room):
         """
-        Only z = 0 rooms.
+        Only z == 0 rooms.
         """
         assert not room.position.z
         p = self._get_pipeline()
@@ -74,9 +74,9 @@ class MapRepository:
             struct.pack('H', room.description_id)
         )
 
-    def _set_room_data(self, room: Room):
+    def _set_room_data_on_hashmap(self, room: Room):
         """
-        Only Z != 0 rooms
+        Only z != 0 rooms
         """
         assert room.position.z
         p = self._get_pipeline()
@@ -90,11 +90,17 @@ class MapRepository:
         p = self._get_pipeline()
         p.sadd(self.room_content_key, *room.entity_ids)
 
-    async def set_room(self, room: Room):
+    async def set_room(self, room: Room, execute=True):
         if room.position.z:
-            self._set_room_data(room)
+            self._set_room_data_on_hashmap(room)
         else:
-            self._set_room_bitmaps(room)
+            self._set_room_data_on_bitmaps(room)
         self._set_room_content(room)
-        self._get_pipeline().execute()
+        execute and self._get_pipeline().execute()
         return room
+
+    async def set_rooms(self, *rooms: Room):
+        for room in rooms:
+            self.set_room(room, execute=False)
+        self._get_pipeline().execute()
+        return rooms
