@@ -29,10 +29,3 @@ class Entity:
     @property
     def pending_changes(self):
         return self._pending_changes
-
-    def get_values(self, *components: ComponentType, repository=None) \
-            -> (None, str, int, list):
-        if not repository:
-            from core.src.world.builder import world_components_repository as repository
-        data = repository.get_components_values(self.entity_id, *components)
-        return (components[i](components[i].ctype(v)) for i, v in enumerate(data))

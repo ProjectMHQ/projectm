@@ -13,3 +13,10 @@ class Direction(enum.IntEnum):
 class Bit(enum.IntEnum):
     OFF = 0
     ON = 1
+
+
+@enum.unique
+class TerrainEnum(enum.IntEnum):
+    NULL = 0
+    BRICKS = 1
+    PATH = 2
