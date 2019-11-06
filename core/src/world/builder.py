@@ -14,5 +14,5 @@ async def redis_pool():
             settings.REDIS_PORT
         ),
         db=settings.REDIS_DB,
-        maxsize=64
+        maxsize=128
     )
