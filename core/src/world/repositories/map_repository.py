@@ -1,6 +1,4 @@
-import asyncio
 import struct
-import typing
 from aioredis import Redis
 from aioredis.commands import Pipeline
 
@@ -12,9 +10,9 @@ class MapRepository:
     def __init__(self, redis: Redis):
         self.redis = redis
         self.prefix = 'm'
-        self.terrains_suffix = 'te'
-        self.descriptions_ids_suffix = 'd'
-        self.titles_ids_suffix = 'ti'
+        self.terrains_suffix = 'ter'
+        self.descriptions_ids_suffix = 'des'
+        self.titles_ids_suffix = 'tit'
         self.z_valued_rooms_data_suffix = 'd'
         self.room_content_suffix = 'c'
 
@@ -22,14 +20,9 @@ class MapRepository:
         self.descriptions_ids_bitmap_key = '{}:{}'.format(self.prefix, self.descriptions_ids_suffix)
         self.titles_ids_bitmap_bitmap_key = '{}:{}'.format(self.prefix, self.titles_ids_suffix)
         self.room_content_key = '{}:{}:{}'.format(self.prefix, '{}', self.room_content_suffix)
-        self.z_valued_rooms_data_key = '{}:{}'.format(self.prefix, self.z_valued_rooms_data_key)
+        self.z_valued_rooms_data_key = '{}:{}'.format(self.prefix, self.z_valued_rooms_data_suffix)
         self.mul = 10**4
-        self._pipeline = None
-
-    def _get_pipeline(self) -> Pipeline:
-        if not self._pipeline:
-            self._pipeline = self.redis.pipeline()
-        return self._pipeline
+        self._pipelines = None
 
     async def _execute_pipeline(self):
         """
@@ -40,107 +33,69 @@ class MapRepository:
         return res
 
     def _coords_to_int(self, x: int, y: int) -> int:
-        return x * self.mul + y
-
-    def _int_to_coords(self, number: int) -> typing.Tuple[int, int]:
-        x = int(number / self.mul)
-        y = number % self.mul
-        return x, y
+        return x * 2 * self.mul + y * 2
 
     @staticmethod
     def _pack_coords(x: int, y: int, z: int) -> bytes:
-        return struct.pack('HHH', x, y, z)
+        return struct.pack('>HHH', x, y, z)
 
-    def _set_room_data_on_bitmaps(self, room: Room):
-        """
-        Only z == 0 rooms.
-        """
-        assert not room.position.z
-        p = self._get_pipeline()
-        num = self._coords_to_int(**room.position)
-        p.setrange(
-            self.terrains_bitmap_key, num * 8, struct.pack('B', room.terrain.value)
-        )
-        p.setrange(
-            self.titles_ids_bitmap_bitmap_key, num * 16, struct.pack('H', room.title_id)
-        )
-        p.setrange(
-            self.descriptions_ids_bitmap_key, num * 16, struct.pack('H', room.description_id)
-        )
-
-    def _set_room_data_on_hashmap(self, room: Room):
-        """
-        Only z != 0 rooms
-        """
-        assert room.position.z
-        p = self._get_pipeline()
-        hkey = self._pack_coords(room.position.x, room.position.y, room.position.z)
-        p.hset(
-            self.z_valued_rooms_data_key, hkey,
-            '{} {} {}'.format(room.terrain.value, room.title_id, room.description_id)
-        )
-
-    def _set_room_content(self, room: Room):
-        p = self._get_pipeline()
-        p.sadd(self.room_content_key.format(
+    def _set_room_content(self, pipeline: Pipeline, room: Room):
+        pipeline.sadd(self.room_content_key.format(
             self._pack_coords(room.position.x, room.position.y, room.position.z)
         ), *room.entity_ids)
 
-    async def _set_room(self, room: Room, execute=True):
-        if room.position.z:
-            self._set_room_data_on_hashmap(room)
-        else:
-            self._set_room_data_on_bitmaps(room)
-        self._set_room_content(room)
-        execute and self._get_pipeline().execute()
-        return room
-    
-    def _get_rooms_data_from_hashmap(self, x: int, y: int, z: int):
-        assert z
-        p = self._get_pipeline()
-        p.hget(self.z_valued_rooms_data_key, self._pack_coords(x, y, z))
-    
-    def _get_rooms_data_from_bitmaps(self, x: int, y: int):
-        p = self._get_pipeline()
-        p.getrange(
-            self.terrains_bitmap_key, self._coords_to_int(x, y) * 8
-        )
-        p.getrange(
-            self.titles_ids_bitmap_bitmap_key, self._coords_to_int(x, y) * 16
-        )
-        p.getrange(
-            self.descriptions_ids_bitmap_key, self._coords_to_int(x, y) * 16
-        )
-    
-    def _get_rooms_content(self, x: int, y: int, z: int):
-        p = self._get_pipeline()
-        p.smembers(self.room_content_key.format(self._pack_coords(x, y, z)))
-
     async def set_room(self, room: Room):
-        return await self._set_room(room, execute=True)
+        pipeline = self.redis.pipeline()
+        if room.position.z:
+            hkey = self._pack_coords(room.position.x, room.position.y, room.position.z)
+            pipeline.hset(
+                self.z_valued_rooms_data_key, hkey,
+                '{} {} {}'.format(room.terrain.value, room.title_id, room.description_id)
+            )
+        else:
+            num = self._coords_to_int(room.position.x, room.position.y)
+            pipeline.setrange(
+                self.terrains_bitmap_key, num, struct.pack('>B', room.terrain.value)
+            )
+            pipeline.setrange(
+                self.titles_ids_bitmap_bitmap_key, num, struct.pack('>H', room.title_id)
+            )
+            try:
+                pipeline.setrange(
+                    self.descriptions_ids_bitmap_key, num, struct.pack('>H', room.description_id)
+                )
+            except:
+                raise
+        any(room.entity_ids) and self._set_room_content(pipeline, room)
+        await pipeline.execute()
+        return room
 
-    async def set_rooms(self, *rooms: Room):
-        await asyncio.gather(
-            *(self._set_room(room, execute=False) for room in rooms)
-        )
-        self._get_pipeline().execute()
-        return rooms
+    def _get_rooms_content(self, pipeline: Pipeline, x: int, y: int, z: int):
+        pipeline.smembers(self.room_content_key.format(self._pack_coords(x, y, z)))
 
     async def get_room(self, x: int, y: int, z: int) -> Room:
-        pipeline = self._get_pipeline()
-        self._get_rooms_data_from_hashmap(x, y, z) if z else self._get_rooms_data_from_bitmaps(x, y)
-        self._get_rooms_content(x, y, z)
-        result = await pipeline.execute()
-        if not z:
-            room_data = struct.unpack('HHH', result[0]+result[1]+result[2])
-            content = [int(x) for x in result[3]]
+        pipeline = self.redis.pipeline()
+        if z:
+            pipeline.hget(self.z_valued_rooms_data_key, self._pack_coords(x, y, z))
         else:
-            room_data = (int(x) for x in result[0].split(' '))
+            k = self._coords_to_int(x, y)
+            pipeline.getrange(self.terrains_bitmap_key, k, k)
+            pipeline.getrange(self.titles_ids_bitmap_bitmap_key, k, k + 1)
+            pipeline.getrange(self.descriptions_ids_bitmap_key, k, k + 1)
+        self._get_rooms_content(pipeline, x, y, z)
+        result = await pipeline.execute()
+        if z:
+            terrain, title_id, description_id = result[0] and [int(x) for x in result[0].split(b' ')] or [0, 0, 0]
             content = [int(x) for x in result[1]]
+        else:
+            terrain, = struct.unpack('>B', result[0])
+            title_id, description_id = struct.unpack('>HH', result[1]+result[2])
+            content = [int(x) for x in result[3]]
+
         return Room(
             position=RoomPosition(x=x, y=y, z=z),
-            terrain=TerrainEnum(room_data[0]),
-            title_id=room_data[1],
-            description_id=room_data[2],
+            terrain=TerrainEnum(terrain),
+            title_id=title_id,
+            description_id=description_id,
             entity_ids=content
         )

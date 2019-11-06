@@ -46,3 +46,20 @@ class Room:
     @property
     def entity_ids(self) -> typing.List[int]:
         return self._entity_ids
+
+    def __str__(self):
+        return '''
+        position: %s,
+        terrain: %s,
+        title: %s,
+        description: %s,
+        entity_ids: %s
+        ''' % (
+            self.position and 'x: %s, y: %s, z: %s' % (
+                self.position.x, self.position.y, self.position.z
+            ) or '',
+            self.terrain and self.terrain.name,
+            self.title_id,
+            self.description_id,
+            self.entity_ids or []
+        )

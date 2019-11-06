@@ -18,5 +18,5 @@ class Bit(enum.IntEnum):
 @enum.unique
 class TerrainEnum(enum.IntEnum):
     NULL = 0
-    BRICKS = 1
+    WALL_OF_BRICKS = 1
     PATH = 2
