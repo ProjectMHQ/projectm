@@ -47,6 +47,9 @@ class Room:
     def entity_ids(self) -> typing.List[int]:
         return self._entity_ids
 
+    def add_entity_ids(self, *data: int):
+        self.entity_ids.extend([x for x in data])
+
     def __str__(self):
         return '''
         position: %s,

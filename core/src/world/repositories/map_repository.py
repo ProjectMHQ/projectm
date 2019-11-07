@@ -26,14 +26,6 @@ class MapRepository:
         self.mul = 10**4
         self._pipelines = None
 
-    async def _execute_pipeline(self):
-        """
-        DO NOT use pipeline.execute(), use this method instead.
-        """
-        res = await self._pipeline.execute()
-        self._pipeline = None
-        return res
-
     def _coords_to_int(self, x: int, y: int, bytesize=2) -> int:
         return x * bytesize * self.mul + y * bytesize
 
@@ -43,6 +35,12 @@ class MapRepository:
 
     def _get_room_content(self, pipeline: Pipeline, x: int, y: int, z: int):
         pipeline.smembers(self.room_content_key.format(self._pack_coords(x, y, z)))
+
+    def _get_rooms_content(self, pipeline: Pipeline, x: int, from_y: int, to_y: int, z: int):
+        pipeline.sunion(
+            *(self.room_content_key.format(c) for c in
+            (self._pack_coords(x, y, z) for y in range(from_y, to_y)))
+        )
 
     def _set_room_content(self, pipeline: Pipeline, room: Room):
         pipeline.sadd(self.room_content_key.format(
@@ -125,9 +123,7 @@ class MapRepository:
             self._get_room_content(
                 pipeline, position.x, position.y, position.z
             )
-        #s = time.time()
         result = await pipeline.execute()
-        #print('pipeline executed in {:.15f}'.format(time.time() - s))
         i = 0
         response = []
         for position in positions:
@@ -148,4 +144,52 @@ class MapRepository:
                     entity_ids=content
                 )
             )
+        return response
+
+    async def get_rooms_on_y(self, x: int, from_y: int, to_y: int, z: int):
+        assert to_y > from_y
+        pipeline = self.redis.pipeline()
+        if z:
+            packed_coordinates = (self._pack_coords(x, y, z) for y in range(from_y, to_y))
+            pipeline.hmget(self.z_valued_rooms_data_key, *packed_coordinates)
+        else:
+            k = self._coords_to_int(x, from_y)
+            pipeline.getrange(self.terrains_bitmap_key, k, k + ((to_y - from_y) * 2 - 1))
+            pipeline.getrange(self.titles_ids_bitmap_bitmap_key, k, k + ((to_y - from_y) * 2 - 1))
+            pipeline.getrange(self.descriptions_ids_bitmap_key, k, k + ((to_y - from_y) * 2 - 1))
+
+        _ = [self._get_room_content(pipeline, x, y, z) for y in range(from_y, to_y)]
+        response = []
+        i = 0
+        result = await pipeline.execute()
+        if z:
+            res = result[0]
+            d = 0
+            for key, value in res[0].items():
+                terrain, title_id, description_id = [int(x) for x in value.split(b' ')]
+                response.append(
+                    Room(
+                        position=RoomPosition(x, from_y + d, z),
+                        terrain=TerrainEnum(terrain),
+                        title_id=title_id,
+                        description_id=description_id
+                    )
+                )
+                d += 1
+            for res in result[i+1]:
+                response[i].add_entity_ids(list(res))
+        else:
+            terrains = struct.unpack('>' + 'H'*(to_y - from_y), result[0])
+            title_ids = struct.unpack('>' + 'H' * (to_y - from_y), result[1])
+            description_ids = struct.unpack('>' + 'H' * (to_y - from_y), result[2])
+            for d in range(0, to_y-from_y):
+                response.append(
+                    Room(
+                        position=RoomPosition(x, from_y + d, z),
+                        terrain=TerrainEnum(terrains[d]),
+                        title_id=title_ids[d],
+                        description_id=description_ids[d],
+                        entity_ids=[int(x) for x in result[3+d]]
+                    )
+                )
         return response
