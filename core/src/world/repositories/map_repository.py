@@ -4,13 +4,13 @@ import struct
 from aioredis import Redis
 from aioredis.commands import Pipeline
 
-from core.src.world.room import Room, RoomPosition
+from core.src.world.domain.room import Room, RoomPosition
 from core.src.world.types import TerrainEnum
 
 
-class MapRepository:
-    def __init__(self, redis: Redis):
-        self.redis = redis
+class RedisMapRepository:
+    def __init__(self, redis_factory: callable):
+        self.redis_factory = redis_factory
         self.prefix = 'm'
         self.terrains_suffix = 'ter'
         self.descriptions_ids_suffix = 'des'
@@ -25,6 +25,12 @@ class MapRepository:
         self.z_valued_rooms_data_key = '{}:{}'.format(self.prefix, self.z_valued_rooms_data_suffix)
         self.mul = 10**4
         self._pipelines = None
+        self._redis = None
+
+    async def redis(self) -> Redis:
+        if not self._redis:
+            self._redis = await self.redis_factory()
+        return self._redis
 
     def _coords_to_int(self, x: int, y: int, bytesize=2) -> int:
         return x * bytesize * self.mul + y * bytesize
@@ -51,7 +57,8 @@ class MapRepository:
         return await self._set_room(room)
 
     async def _set_room(self, room: Room, external_pipeline=None):
-        pipeline = external_pipeline or self.redis.pipeline()
+        redis = await self.redis()
+        pipeline = external_pipeline or redis.pipeline()
         if room.position.z:
             pipeline.hset(
                 self.z_valued_rooms_data_key,
@@ -75,7 +82,8 @@ class MapRepository:
         return room
 
     async def get_room(self, position: RoomPosition) -> Room:
-        pipeline = self.redis.pipeline()
+        redis = await self.redis()
+        pipeline = redis.pipeline()
         if position.z:
             pipeline.hget(self.z_valued_rooms_data_key, self._pack_coords(
                 position.x, position.y, position.z
@@ -103,12 +111,14 @@ class MapRepository:
         )
 
     async def set_rooms(self, *rooms: Room):
-        pipeline = self.redis.pipeline()
+        redis = await self.redis()
+        pipeline = redis.pipeline()
         await asyncio.gather(*(self._set_room(room, external_pipeline=pipeline) for room in rooms))
         await pipeline.execute()
 
     async def get_rooms(self, *positions: RoomPosition):
-        pipeline = self.redis.pipeline()
+        redis = await self.redis()
+        pipeline = redis.pipeline()
         for position in positions:
             if position.z:
                 pipeline.hget(self.z_valued_rooms_data_key, self._pack_coords(
@@ -148,7 +158,8 @@ class MapRepository:
 
     async def get_rooms_on_y(self, x: int, from_y: int, to_y: int, z: int):
         assert to_y > from_y
-        pipeline = self.redis.pipeline()
+        redis = await self.redis()
+        pipeline = redis.pipeline()
         if z:
             packed_coordinates = (self._pack_coords(x, y, z) for y in range(from_y, to_y))
             pipeline.hmget(self.z_valued_rooms_data_key, *packed_coordinates)

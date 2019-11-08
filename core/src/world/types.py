@@ -20,3 +20,5 @@ class TerrainEnum(enum.IntEnum):
     NULL = 0
     WALL_OF_BRICKS = 1
     PATH = 2
+    GRASS = 3
+

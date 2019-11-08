@@ -3,10 +3,11 @@ import random
 from collections import OrderedDict
 from unittest import TestCase
 import time
+
+from core.src.world.utils import async_redis_pool_factory
 from etc import settings
-from core.src.world.builder import redis_pool
-from core.src.world.repositories.map_repository import MapRepository
-from core.src.world.room import Room, RoomPosition
+from core.src.world.repositories.map_repository import RedisMapRepository
+from core.src.world.domain.room import Room, RoomPosition
 from core.src.world.types import TerrainEnum
 
 
@@ -16,9 +17,8 @@ class TestSetGetRooms(TestCase):
         loop.run_until_complete(self.async_test())
 
     async def async_test(self):
-        redis = await redis_pool()
-        await redis.flushdb(settings.REDIS_TEST_DB)
-        sut = MapRepository(redis)
+        sut = RedisMapRepository(async_redis_pool_factory)
+        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
         futures = []
         d = {}
         i = 0
@@ -60,7 +60,7 @@ class TestSetGetRooms(TestCase):
                         ]
                     )
         print('\n', i, ' rooms tested NO pipeline in {:.10f}'.format(time.time() - start))
-        await redis.flushall(settings.REDIS_TEST_DB)
+        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
         _start = time.time()
         roomz = OrderedDict()
         positions = []
@@ -132,9 +132,8 @@ class TestBigMap(TestCase):
         loop.run_until_complete(self.asyncio_test())
 
     async def asyncio_test(self):
-        redis = await redis_pool()
-        await redis.flushdb(settings.REDIS_TEST_DB)
-        sut = MapRepository(redis)
+        sut = RedisMapRepository(async_redis_pool_factory)
+        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
         max_x, max_y, max_z = 500, 500, 1
         start = time.time()
         print('\nBaking {}x{} map'.format(max_x, max_y))
@@ -167,9 +166,8 @@ class TestMapLines(TestCase):
         loop.run_until_complete(self.asyncio_test())
 
     async def asyncio_test(self):
-        redis = await redis_pool()
-        sut = MapRepository(redis)
-        await redis.flushdb(settings.REDIS_TEST_DB)
+        sut = RedisMapRepository(async_redis_pool_factory)
+        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
         max_x, max_y, max_z = 50, 50, 1
         start = time.time()
         print('\nBaking {}x{} map'.format(max_x, max_y))
@@ -181,7 +179,7 @@ class TestMapLines(TestCase):
                     roomz['{}.{}.{}'.format(x, y, z)] = Room(
                         position=position,
                         terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
-                        title_id=x+3,
+                        title_id=y+2,
                         description_id=y+3,
                         entity_ids=sorted([1, 2, 3, 4, y+5])
                     )
