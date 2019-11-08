@@ -2,17 +2,22 @@ import asyncio
 import socketio
 from aiohttp import web
 import time
-from core.scripts.monitor_websocket_channels import builder
+from redis import StrictRedis
+
+from core.src.world.services.redis_queue import RedisMultipleQueuesPublisher
+from core.src.world.utils import async_redis_pool_factory
 from core.src.business.character import exceptions
 from core.src.builder import auth_service, redis_characters_index_repository, ws_channels_repository, \
     psql_character_repository
 from core.src.logging_factory import LOGGER
+from core.src.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 from core.src.world.builder import world_repository
 from core.src.world.components.character import CharacterComponent
-from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.components.name import NameComponent
 from core.src.world.entity import Entity
+from core.src.world.services.websocket_channels_service import WebsocketChannelsService
+from core.src.world.systems.commands.system import CommandsSystem
 
 from etc import settings
 
@@ -24,8 +29,30 @@ if settings.ENABLE_CORS:
 loop = asyncio.get_event_loop()
 sio = socketio.AsyncServer(**sio_settings)
 app = web.Application()
+
 sio.attach(app)
 
+"""
+LRT START
+
+Here, at the moment, I assume there is only 1 process for the websocket task, with no concurrency.
+This means the monitor and all the others LRT should be ported into another process, in case 
+we need to scale the WS endpoints.
+
+"""
+redis_data = StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB)
+channels_repository = WebsocketChannelsRepository(redis_data)
+redis_queues_service = RedisMultipleQueuesPublisher(
+    async_redis_pool_factory, num_queues=settings.WORKERS
+)
+websocket_channels_service = WebsocketChannelsService(sio, channels_repository, loop)
+commands_system = CommandsSystem(redis_queues_service, websocket_channels_service)
+websocket_channels_service.add_on_cmd_observer(commands_system)
+loop.create_task(websocket_channels_service.start())
+
+"""
+LRT END
+"""
 
 WS_MOTD = """{}\n\n
 
@@ -77,10 +104,7 @@ async def authenticate_character(sid, payload):
     if not entity_id:
         raise exceptions.CharacterNotAllocated('create first')
     channel = ws_channels_repository.create(entity_id)
-    entity = Entity(entity_id)\
-        .set(ConnectionComponent(channel.connection_id))
-
-    world_repository.update_entities(entity)
+    await websocket_channels_service.enable_channel(channel)
     await sio.emit('auth', {'data': {
         'channel_id': channel.connection_id,
         'character_id': token['data']['character_id']
@@ -88,6 +112,4 @@ async def authenticate_character(sid, payload):
 
 
 if __name__ == '__main__':
-    ws_channels_monitor = builder(sio)
-    loop.create_task(ws_channels_monitor.start())
     web.run_app(app, host=settings.SOCKETIO_HOSTNAME, port=settings.SOCKETIO_PORT)

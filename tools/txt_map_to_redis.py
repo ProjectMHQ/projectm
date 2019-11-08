@@ -2,7 +2,7 @@ import asyncio
 
 from core.src.world.builder import map_repository
 from core.src.world.domain.room import Room, RoomPosition
-from core.src.world.types import TerrainEnum
+from core.src.world.world_types import TerrainEnum
 
 terrains = {
     "#": TerrainEnum.WALL_OF_BRICKS,
@@ -37,7 +37,10 @@ def parse(filename):
     return rooms
 
 
-rooms = parse('./mappa_prova_1')
-asyncio.get_event_loop().run_until_complete(
-    map_repository.set_rooms(*rooms)
-)
+async def set_rooms(data):
+    res = await map_repository.set_rooms(*data)
+    print('\n'.join([str(x) for x in res]))
+
+
+content = parse('./mappa_prova_1')
+asyncio.get_event_loop().run_until_complete(set_rooms(content))

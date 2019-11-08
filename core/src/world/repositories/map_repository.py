@@ -5,7 +5,7 @@ from aioredis import Redis
 from aioredis.commands import Pipeline
 
 from core.src.world.domain.room import Room, RoomPosition
-from core.src.world.types import TerrainEnum
+from core.src.world.world_types import TerrainEnum
 
 
 class RedisMapRepository:
@@ -113,8 +113,9 @@ class RedisMapRepository:
     async def set_rooms(self, *rooms: Room):
         redis = await self.redis()
         pipeline = redis.pipeline()
-        await asyncio.gather(*(self._set_room(room, external_pipeline=pipeline) for room in rooms))
+        response = await asyncio.gather(*(self._set_room(room, external_pipeline=pipeline) for room in rooms))
         await pipeline.execute()
+        return response
 
     async def get_rooms(self, *positions: RoomPosition):
         redis = await self.redis()

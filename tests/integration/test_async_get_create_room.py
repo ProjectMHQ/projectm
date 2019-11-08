@@ -8,7 +8,7 @@ from core.src.world.utils import async_redis_pool_factory
 from etc import settings
 from core.src.world.repositories.map_repository import RedisMapRepository
 from core.src.world.domain.room import Room, RoomPosition
-from core.src.world.types import TerrainEnum
+from core.src.world.world_types import TerrainEnum
 
 
 class TestSetGetRooms(TestCase):

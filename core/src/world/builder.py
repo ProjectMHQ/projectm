@@ -6,5 +6,3 @@ from core.src.world.repositories.data_repository import RedisDataRepository
 
 world_repository = RedisDataRepository(strict_redis)
 map_repository = RedisMapRepository(async_redis_pool_factory)
-
-

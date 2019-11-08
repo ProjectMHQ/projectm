@@ -1,6 +1,6 @@
 import typing
 
-from core.src.world.types import TerrainEnum
+from core.src.world.world_types import TerrainEnum
 
 
 RoomPosition = typing.NamedTuple(
