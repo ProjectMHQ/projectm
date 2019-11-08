@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 import typing
 from aioredis import Redis
@@ -19,7 +20,7 @@ class RedisMultipleQueuesPublisher:
     async def put(self, connection_id: str, message: typing.Dict):
         queue = int.from_bytes(hashlib.sha256(connection_id.encode()).digest(), 'little') % self.num_queues
         redis = await self.redis()
-        await redis.rpush(self.queue_prefix + str(queue), message)
+        await redis.rpush(self.queue_prefix + str(queue), json.dumps(message))
 
 
 class RedisQueueConsumer:

@@ -2,7 +2,7 @@ import base64
 import hashlib
 import os
 from Crypto.Cipher import AES
-from core.src.services.abstracts import AESCipherServiceAbstract
+from core.src.auth.services.abstracts import AESCipherServiceAbstract
 
 
 class AESCipherServiceImpl(AESCipherServiceAbstract):

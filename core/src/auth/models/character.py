@@ -1,7 +1,7 @@
 import sqlalchemy
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
-from core.src.database import Base, json_column_type
+from core.src.auth.database import Base, json_column_type
 
 
 class Character(Base):

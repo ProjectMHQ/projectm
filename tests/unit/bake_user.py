@@ -9,7 +9,7 @@ import binascii
 import os
 import uuid
 from flask_testing import TestCase
-from core.src.builder import strict_redis
+from core.src.auth.builder import strict_redis
 
 
 class BakeUserTestCase(TestCase):
@@ -26,7 +26,7 @@ class BakeUserTestCase(TestCase):
         self.loop = asyncio.get_event_loop()
         self.ping_timeout = 60
         self.ping_interval = 30
-        from core.app import app
+        from core.src.auth.app import app
         self.app = app
         return app
 

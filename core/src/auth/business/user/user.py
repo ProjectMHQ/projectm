@@ -3,10 +3,10 @@ import hashlib
 import time
 import typing
 
-from core.src import exceptions
-from core.src.business.character.abstract import CharacterDOAbstract
-from core.src.business.user.abstract import UserDOAbstract
-from core.src.business.user.types import UserStatus
+from core.src.auth import exceptions
+from core.src.auth.business.character import CharacterDOAbstract
+from core.src.auth.business import UserDOAbstract
+from core.src.auth.business import UserStatus
 
 
 class UserDOImpl(UserDOAbstract):
@@ -42,14 +42,14 @@ class UserDOImpl(UserDOAbstract):
     def _get_repository(repository):
         if repository:
             return repository
-        from core.src.builder import user_repository
+        from core.src.auth.builder import user_repository
         return user_repository
 
     @staticmethod
     def _get_characters_repository(repository):
         if repository:
             return repository
-        from core.src.builder import psql_character_repository
+        from core.src.auth.builder import psql_character_repository
         return psql_character_repository
 
     @classmethod

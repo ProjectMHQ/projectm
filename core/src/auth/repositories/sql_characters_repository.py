@@ -4,10 +4,10 @@ import uuid
 
 from sqlalchemy.orm import scoped_session, Session
 
-from core.src import models
-from core.src.business.character.abstract import CharacterDOAbstract
-from core.src.business.user.abstract import UserDOAbstract
-from core.src.database import atomic
+from core.src.auth import models
+from core.src.auth.business.character.abstract import CharacterDOAbstract
+
+from core.src.auth.database import atomic
 
 
 class SQLCharactersRepositoryImpl:
@@ -25,11 +25,11 @@ class SQLCharactersRepositoryImpl:
     def get_character_by_field(
             self, field_name: str, field_value: typing.Any, user_id: typing.Optional[str]=None
     ) -> CharacterDOAbstract:
-        from core.src.business.character.character import CharacterDOImpl
         query = self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value)
         if user_id:
             query = query.join(models.User).filter(models.User.user_id == user_id)
         res = query.one()
+        from core.src.auth.business.character.character import CharacterDOImpl
         return CharacterDOImpl.from_model(res)
 
     def get_multiple_characters_by_field(self, field_name: str, field_value: typing.Any) \
@@ -37,7 +37,7 @@ class SQLCharactersRepositoryImpl:
         if field_name == 'user_do':
             field_name = 'user'
             field_value = self.session.query(models.User).filter(models.User.user_id == field_value.user_id).one()
-        from core.src.business.character.character import CharacterDOImpl
+        from core.src.auth.business.character.character import CharacterDOImpl
         return [
             CharacterDOImpl.from_model(c) for c in
             self.session.query(models.Character).filter(getattr(models.Character, field_name) == field_value)
@@ -57,7 +57,7 @@ class SQLCharactersRepositoryImpl:
         )
         self.session.add(character)
         self.session.flush()
-        from core.src.business.character.character import CharacterDOImpl
+        from core.src.auth.business.character.character import CharacterDOImpl
         return CharacterDOImpl.from_model(character)
 
     @atomic

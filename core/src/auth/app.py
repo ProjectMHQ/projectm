@@ -2,14 +2,14 @@ import flask
 from flask.logging import default_handler
 from werkzeug.exceptions import HTTPException
 
-from core.src.database import init_db, db
-from core.src.exceptions import CoreException
-from core.src.logging_factory import LOGGER
-from core.src.utils import FlaskUUID
+from core.src.auth.database import init_db, db
+from core.src.auth.exceptions import CoreException
+from core.src.auth.logging_factory import LOGGER
+from core.src.auth.utils import FlaskUUID
 
-from core.src.router.auth import bp as auth_bp
-from core.src.router.system import bp as system_bp
-from core.src.router.user import bp as user_bp
+from core.src.auth.router.auth import bp as auth_bp
+from core.src.auth.router.system import bp as system_bp
+from core.src.auth.router.user import bp as user_bp
 from etc import settings
 
 

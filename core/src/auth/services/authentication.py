@@ -1,16 +1,13 @@
-import hashlib
 import json
 import time
 import typing
 
-import os
-
+from core.src.auth.business.user.types import UserStatus
 from etc import settings
-from core.src import exceptions, models
-from core.src.business.user.types import UserStatus
-from core.src.database import atomic
-from core.src.logging_factory import LOGGER
-from core.src.services.abstracts import AuthenticationServiceAbstract
+from core.src.auth import models, exceptions
+from core.src.auth.database import atomic
+from core.src.auth.logging_factory import LOGGER
+from core.src.auth.services.abstracts import AuthenticationServiceAbstract
 
 
 class AuthenticationServiceImpl(AuthenticationServiceAbstract):

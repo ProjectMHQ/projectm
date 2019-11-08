@@ -5,7 +5,7 @@ from collections import OrderedDict
 import bitarray
 import os
 from redis import StrictRedis
-from core.src.logging_factory import LOGGER
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.entity import Entity, EntityID
 from core.src.world.world_types import Bit

@@ -6,11 +6,11 @@ from redis import StrictRedis
 
 from core.src.world.services.redis_queue import RedisMultipleQueuesPublisher
 from core.src.world.utils import async_redis_pool_factory
-from core.src.business.character import exceptions
-from core.src.builder import auth_service, redis_characters_index_repository, ws_channels_repository, \
+from core.src.auth.business.character import exceptions
+from core.src.auth.builder import auth_service, redis_characters_index_repository, ws_channels_repository, \
     psql_character_repository
-from core.src.logging_factory import LOGGER
-from core.src.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
+from core.src.auth.logging_factory import LOGGER
+from core.src.auth.repositories import WebsocketChannelsRepository
 from core.src.world.builder import world_repository
 from core.src.world.components.character import CharacterComponent
 from core.src.world.components.created_at import CreatedAtComponent

@@ -4,9 +4,9 @@ import uuid
 
 from sqlalchemy.orm import scoped_session, Session
 
-from core.src.business.user.abstract import UserDOAbstract
-from core.src import models, exceptions
-from core.src.database import atomic
+from core.src.auth import models, exceptions
+from core.src.auth.business.user.abstract import UserDOAbstract
+from core.src.auth.database import atomic
 
 
 class UsersRepositoryImpl:
@@ -22,12 +22,12 @@ class UsersRepositoryImpl:
         return self._session_factory()
 
     def get_user_by_field(self, field_name: str, field_value: typing.Any) -> UserDOAbstract:
-        from core.src.business.user.user import UserDOImpl
         model = self.session.query(models.User).filter(getattr(models.User, field_name) == field_value).one()
+        from core.src.auth.business.user.user import UserDOImpl
         return UserDOImpl.from_model(model)
 
     def get_multiple_users_by_field(self, field_name: str, field_value: typing.Any) -> typing.List[UserDOAbstract]:
-        from core.src.business.user.user import UserDOImpl
+        from core.src.auth.business.user.user import UserDOImpl
         return [
             UserDOImpl.from_model(x)
             for x in self.session.query(models.User).filter(getattr(models.User, field_name) == field_value)
@@ -35,7 +35,7 @@ class UsersRepositoryImpl:
 
     @atomic
     def create_user(self, email: str, password: str) -> UserDOAbstract:
-        from core.src.business.user.user import UserDOImpl
+        from core.src.auth.business.user.user import UserDOImpl
         user = UserDOImpl(email=email).set_password(password)
         model = models.User(
             email=user.email,

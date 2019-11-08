@@ -4,11 +4,11 @@ import time
 from sendgrid import SendGridAPIClient
 
 from etc import settings
-from core.src.builder import user_repository, encryption_service
-from core.src.business.user.types import UserStatus
-from core.src.database import atomic, init_db, db
-from core.src.logging_factory import LOGGER
-from core.src.services.email_service import EmailServiceImpl
+from core.src.auth.builder import user_repository, encryption_service
+from core.src.auth.business import UserStatus
+from core.src.auth.database import atomic, init_db, db
+from core.src.auth.logging_factory import LOGGER
+from core.src.auth.services import EmailServiceImpl
 
 sendgrid_client = SendGridAPIClient(settings.SENDGRID_API_KEY)
 email_service = EmailServiceImpl(sendgrid_client)

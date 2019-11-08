@@ -5,8 +5,8 @@ import time
 from socketio import AsyncRedisManager
 
 from etc import settings
-from core.src.logging_factory import LOGGER
-from core.src.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
+from core.src.auth.logging_factory import LOGGER
+from core.src.auth.repositories import WebsocketChannelsRepository
 
 """
 this agent is intended to monitor the websockets channels statuses with PING\PONG messages.

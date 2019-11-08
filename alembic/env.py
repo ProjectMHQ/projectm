@@ -1,7 +1,7 @@
 from __future__ import with_statement
 import sys
 
-from core.src.database import Base
+from core.src.auth.database import Base
 
 sys.path.insert(0, './')
 
@@ -9,8 +9,6 @@ from etc.settings import DATASOURCE
 from logging.config import fileConfig
 from sqlalchemy import create_engine
 from alembic import context
-
-from core.src import models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

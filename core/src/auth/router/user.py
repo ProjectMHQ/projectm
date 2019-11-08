@@ -1,11 +1,9 @@
-import json
-
 import flask
 from flask import request
 from flask.views import MethodView
 
-from core.src.utils import ensure_logged_in
-from core.src.builder import user_repository, psql_character_repository
+from core.src.auth.utils import ensure_logged_in
+from core.src.auth.builder import user_repository
 
 bp = flask.Blueprint('profile', __name__)
 

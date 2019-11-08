@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import typing
 from redis import StrictRedis
-from core.src.logging_factory import LOGGER
+from core.src.auth.logging_factory import LOGGER
 
 
 WebsocketChannel = typing.NamedTuple(

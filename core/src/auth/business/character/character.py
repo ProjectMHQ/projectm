@@ -1,7 +1,6 @@
-import enum
 import typing
 
-from core.src.business.character.abstract import CharacterDOAbstract
+from core.src.auth.business.character import CharacterDOAbstract
 
 
 class CharacterDOImpl(CharacterDOAbstract):
@@ -23,7 +22,7 @@ class CharacterDOImpl(CharacterDOAbstract):
     def _get_characters_repository(repository):
         if repository:
             return repository
-        from core.src.builder import psql_character_repository
+        from core.src.auth.builder import psql_character_repository
         return psql_character_repository
 
     @property

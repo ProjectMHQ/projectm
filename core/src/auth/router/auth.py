@@ -3,9 +3,9 @@ import json
 import flask
 from flask import request
 
-from core.src.utils import ensure_not_logged_in, ensure_logged_in
-from core.src.builder import auth_service, psql_character_repository
-from core.src.logging_factory import LOGGER
+from core.src.auth.utils import ensure_not_logged_in, ensure_logged_in
+from core.src.auth.builder import auth_service, psql_character_repository
+from core.src.auth.logging_factory import LOGGER
 
 bp = flask.Blueprint('auth', __name__)
 

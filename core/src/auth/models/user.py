@@ -1,10 +1,5 @@
-import hashlib
-import time
-import typing
 import sqlalchemy
-from core.src import exceptions
-from core.src.business.user.types import UserStatus
-from core.src.database import Base, json_column_type
+from core.src.auth.database import Base, json_column_type
 
 
 class User(Base):

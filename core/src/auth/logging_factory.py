@@ -1,6 +1,6 @@
 import logging
 import sys
-from core.src.utils import get_current_user_id
+from core.src.auth.utils import get_current_user_id
 from etc import settings
 
 
