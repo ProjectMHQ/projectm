@@ -113,6 +113,13 @@ class RedisDataRepository:
         LOGGER.core.debug('EntityRepository.update_entity_components, response: %s', response)
         return response
 
+    def get_component_value_by_entity(self, entity_id: int, component: typing.Type[ComponentType]):
+        res = self.redis.hget(
+            '{}:{}'.format(self._entity_prefix, entity_id),
+            component.key
+        )
+        return component(res)
+
     def get_components_values_by_entities(
             self,
             entities: typing.List[Entity],

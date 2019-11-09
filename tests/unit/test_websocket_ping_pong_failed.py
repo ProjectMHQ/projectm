@@ -45,7 +45,6 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
             ping_timeout=5
         )
 
-
     async def do_ping_pong(self):
         private = socketio.AsyncClient()
         self.private = private

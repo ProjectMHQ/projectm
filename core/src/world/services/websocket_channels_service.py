@@ -21,6 +21,7 @@ class WebsocketChannelsService:
             channels_repository: WebsocketChannelsRepository=None,
             loop=None,
             data_repository=None,
+            redis_queue=None,
             ping_interval=30,
             ping_timeout=90
     ):
@@ -37,6 +38,7 @@ class WebsocketChannelsService:
         self._on_new_channel_observers = []
         self.channels_cache = {}
         self._pending_channels = asyncio.Queue()
+        self.redis_queues_manager = redis_queue
 
     def set_socketio_instance(self, sio):
         self.socketio = sio
@@ -79,16 +81,29 @@ class WebsocketChannelsService:
 
         self.socketio.on('presence', cb, namespace='/{}'.format(connection_id))
 
-    async def subscribe_commands_from_channels(self, connection_id: str):
-        LOGGER.websocket_monitor.info('Subscribe presence for channel %s', connection_id)
+    async def subscribe_commands_from_channels(self, channel):
+        LOGGER.websocket_monitor.info('Subscribe commands for channel %s', channel.connection_id)
 
         async def cb(_, data):
+            await self.redis_queues_manager.put(
+                str(channel.entity_id),
+                {
+                    'n': channel.connection_id,
+                    'e_id': channel.entity_id,
+                    'd': data,
+                    't': int(time.time()),
+                    'c': 'cmd'
+                }
+            )
             for observer in self._on_cmd_observers:
                 self.loop.create_task(
-                    observer.on_message(connection_id, self.channels_cache[connection_id], data)
+                    observer.on_message(
+                        channel.connection_id,
+                        self.channels_cache[channel.connection_id],
+                        data
+                    )
                 )
-
-        self.socketio.on('cmd', cb, namespace='/{}'.format(connection_id))
+        self.socketio.on('cmd', cb, namespace='/{}'.format(channel.connection_id))
 
     async def bind_channel(self, channel):
         async def _on_connect(*a, **kw):
@@ -97,6 +112,7 @@ class WebsocketChannelsService:
             self.data_repository.update_entities(
                 Entity(channel.entity_id).set(ConnectionComponent(channel.connection_id))
             )
+            self.loop.create_task(self.subscribe_commands_from_channels(channel))
         self.socketio.on(
             'connect', _on_connect, namespace='/{}'.format(channel.connection_id)
         )

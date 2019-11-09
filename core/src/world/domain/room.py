@@ -50,6 +50,24 @@ class Room:
     def add_entity_ids(self, *data: int):
         self.entity_ids.extend([x for x in data])
 
+    """
+    I still have to handle title, description, etc... 
+    this is a placeholder for testing
+    """
+    @property
+    def description(self) -> str:
+        return "Room Description"  # FIXME TODO
+
+    @property
+    def title(self) -> str:
+        return "Room Title"  # FIXME TODO
+
+    @property
+    def content(self) -> typing.List[str]:
+        return [
+            "A three-headed monkey"  # FIXME TODO
+        ]
+
     def __str__(self):
         return '''
         position: %s,

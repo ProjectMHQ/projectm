@@ -4,3 +4,7 @@ class WorldException(Exception):
 
 class EntityAlreadySavedException(WorldException):
     pass
+
+
+class NotImplementedException(WorldException):
+    pass

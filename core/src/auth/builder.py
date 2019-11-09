@@ -23,7 +23,12 @@ encryption_service = AESCipherServiceImpl(
     key=settings.ENCRYPTION_KEY,
     iv=settings.ENCRYPTION_IV
 )
-psql_character_repository = SQLCharactersRepositoryImpl(database.db)
+if settings.RUNNING_TESTS and settings.INTEGRATION_TESTS:
+    from unittest.mock import Mock
+    psql_character_repository = Mock()
+else:
+    psql_character_repository = SQLCharactersRepositoryImpl(database.db)
+
 user_repository = UsersRepositoryImpl(database.db)
 auth_service = AuthenticationServiceImpl(encryption_service, user_repository)
 

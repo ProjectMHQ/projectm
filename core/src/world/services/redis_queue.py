@@ -17,8 +17,8 @@ class RedisMultipleQueuesPublisher:
             self._redis = await self.redis_factory()
         return self._redis
 
-    async def put(self, connection_id: str, message: typing.Dict):
-        queue = int.from_bytes(hashlib.sha256(connection_id.encode()).digest(), 'little') % self.num_queues
+    async def put(self, entity_id: str, message: typing.Dict):
+        queue = int.from_bytes(hashlib.sha256(entity_id.encode()).digest(), 'little') % self.num_queues
         redis = await self.redis()
         await redis.rpush(self.queue_prefix + str(queue), json.dumps(message))
 
