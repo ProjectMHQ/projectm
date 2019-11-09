@@ -29,8 +29,9 @@ cd projectm
 . venv/bin/activate
 PROJECTM_ENV=development python -m core.src.auth.app
 PROJECTM_ENV=development python -m core.src.world.run_websocket
+PROJECTM_ENV=development python -m core.src.world.run_worker
 
-(in two separated terminals, obv)
+(in separate terminals, obv)
 ```
 
 **CLIENT (API test)**:
