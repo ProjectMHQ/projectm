@@ -95,11 +95,7 @@ class WebsocketChannelsService:
             LOGGER.websocket_monitor.info('Channel %s connected', str(channel))
             self.connections_statuses[channel.connection_id]['open'] = True
             self.data_repository.update_entities(
-                Entity(channel.entity_id).set(
-                    ConnectionComponent(
-                        channel.connection_id
-                    )
-                )
+                Entity(channel.entity_id).set(ConnectionComponent(channel.connection_id))
             )
         self.socketio.on(
             'connect', _on_connect, namespace='/{}'.format(channel.connection_id)
@@ -127,11 +123,6 @@ class WebsocketChannelsService:
         channels = self.channels_repository.get_active_channels()
         for channel in channels:
             self.loop.create_task(self._check_connection_status(channel))
-
-    async def on_message(self, topic, message, namespace):
-        self.loop.create_task(
-            self.socketio.emit(topic, message, namespace='/{}'.format(namespace))
-        )
 
     async def enable_channel(self, channel):
         self._pending_channels.put_nowait(channel)

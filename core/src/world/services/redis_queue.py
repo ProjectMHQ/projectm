@@ -34,7 +34,7 @@ class RedisQueueConsumer:
             self._redis = await self.redis_factory()
         return self._redis
 
-    async def get(self, block=True, timeout=None):
+    async def get(self, block=True, timeout=0):
         redis = await self.redis()
         if block:
             item = await redis.blpop(self.queue_key, timeout=timeout)
@@ -43,7 +43,7 @@ class RedisQueueConsumer:
 
         if item:
             item = item[1]
-        return item
+        return json.loads(item)
 
     async def qsize(self):
         redis = await self.redis()
