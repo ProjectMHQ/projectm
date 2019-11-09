@@ -1,6 +1,5 @@
 import typing
-
-from core.src.auth.business.character import CharacterDOAbstract
+from core.src.auth.business.character.abstract import CharacterDOAbstract
 
 
 class CharacterDOImpl(CharacterDOAbstract):

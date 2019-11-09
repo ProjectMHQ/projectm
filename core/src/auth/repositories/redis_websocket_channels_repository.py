@@ -60,4 +60,7 @@ class WebsocketChannelsRepository:
         return response
 
     def get_active_channels(self) -> typing.Iterable[WebsocketChannel]:
-        return map(_ws_channel_factory, self.redis.hscan_iter(self._prefix))
+        try:
+            return map(_ws_channel_factory, self.redis.hscan_iter(self._prefix))
+        except:
+            raise

@@ -6,7 +6,7 @@ from aioredis import Redis
 
 
 class RedisMultipleQueuesPublisher:
-    def __init__(self, redis_factory, num_queues):
+    def __init__(self, redis_factory: callable, num_queues: int):
         self.redis_factory = redis_factory
         self._redis = None
         self.num_queues = num_queues
@@ -24,7 +24,7 @@ class RedisMultipleQueuesPublisher:
 
 
 class RedisQueueConsumer:
-    def __init__(self,  redis_factory, queue_id=0):
+    def __init__(self,  redis_factory: callable, queue_id):
         self.redis_factory = redis_factory
         self._redis = None
         self.queue_key = 'rmq' + str(queue_id)

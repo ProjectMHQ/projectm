@@ -4,9 +4,9 @@ import time
 import typing
 
 from core.src.auth import exceptions
-from core.src.auth.business.character import CharacterDOAbstract
-from core.src.auth.business import UserDOAbstract
-from core.src.auth.business import UserStatus
+from core.src.auth.business.character.abstract import CharacterDOAbstract
+from core.src.auth.business.user.abstract import UserDOAbstract
+from core.src.auth.business.user.types import UserStatus
 
 
 class UserDOImpl(UserDOAbstract):

@@ -1,28 +1,26 @@
 import asyncio
-from redis import StrictRedis
 import time
-
-from socketio import AsyncRedisManager
-
-from etc import settings
+from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
+from core.src.world.components.connection import ConnectionComponent
+from core.src.world.entity import Entity
 from core.src.auth.logging_factory import LOGGER
-from core.src.auth.repositories import WebsocketChannelsRepository
 
 """
-this agent is intended to monitor the websockets channels statuses with PING\PONG messages.
+this agent is intended to monitor the websockets channels statuses with PING / PONG messages.
 
 check PING_INTERVAL & PING_TIMEOUT options
 
-It also emits events to \ from established channels
+It also emits events to / from established channels
 """
 
 
 class WebsocketChannelsService:
     def __init__(
             self,
-            socketio,
-            channels_repository: WebsocketChannelsRepository,
-            loop,
+            socketio=None,
+            channels_repository: WebsocketChannelsRepository=None,
+            loop=None,
+            data_repository=None,
             ping_interval=30,
             ping_timeout=90
     ):
@@ -32,11 +30,21 @@ class WebsocketChannelsService:
         self.channels_repository = channels_repository
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
+        self.data_repository = data_repository
         self._on_delete_channel = []
         self._on_ping = []
         self._on_cmd_observers = []
         self._on_new_channel_observers = []
         self.channels_cache = {}
+        self._pending_channels = asyncio.Queue()
+
+    def set_socketio_instance(self, sio):
+        self.socketio = sio
+        return self
+
+    def set_event_loop(self, loop):
+        self.loop = loop
+        return self
 
     def add_on_channel_delete_event(self, observer):
         self._on_delete_channel.append(observer)
@@ -60,6 +68,9 @@ class WebsocketChannelsService:
             if connection_id in self.connections_statuses:
                 await self.socketio.emit('presence', 'PONG', namespace='/{}'.format(connection_id))
 
+    def remove_handlers(self, channel):
+        self.socketio.handlers.pop(channel.connection_id, None)
+
     async def subscribe_pong_from_channels(self, connection_id: str):
         LOGGER.websocket_monitor.info('Subscribe presence for channel %s', connection_id)
 
@@ -79,12 +90,35 @@ class WebsocketChannelsService:
 
         self.socketio.on('cmd', cb, namespace='/{}'.format(connection_id))
 
+    async def bind_channel(self, channel):
+        async def _on_connect(*a, **kw):
+            LOGGER.websocket_monitor.info('Channel %s connected', str(channel))
+            self.connections_statuses[channel.connection_id]['open'] = True
+            self.data_repository.update_entities(
+                Entity(channel.entity_id).set(
+                    ConnectionComponent(
+                        channel.connection_id
+                    )
+                )
+            )
+        self.socketio.on(
+            'connect', _on_connect, namespace='/{}'.format(channel.connection_id)
+        )
+
     async def ping_channel(self, connection_id: str):
         LOGGER.websocket_monitor.debug('Sending PING message to connection_id [ %s ]', connection_id)
         self.connections_statuses[connection_id]['last_ping'] = int(time.time())
+        for event_handler in self._on_ping:
+            event_handler(connection_id)
         await self.socketio.emit('presence', 'PING', namespace='/{}'.format(connection_id))
 
     async def start(self):
+        self.loop.create_task(self.start_monitoring())
+        while 1:
+            channel = await self._pending_channels.get()
+            self.loop.create_task(self._check_connection_status(channel))
+
+    async def start_monitoring(self):
         while 1:
             await self.monitor_connection_statuses()
             await asyncio.sleep(1)
@@ -100,28 +134,29 @@ class WebsocketChannelsService:
         )
 
     async def enable_channel(self, channel):
-        await self._check_connection_status(channel)
+        self._pending_channels.put_nowait(channel)
 
     async def _check_connection_status(self, channel):
         now = int(time.time())
         self.channels_cache[channel.connection_id] = channel.entity_id
         if not self.connections_statuses.get(channel.connection_id):
             LOGGER.websocket_monitor.debug('Channel %s status never saved. Saving', channel)
-            self.connections_statuses[channel.connection_id] = {"seen_at": channel.created_at}
+            self.connections_statuses[channel.connection_id] = {"seen_at": int(time.time())}
             await asyncio.gather(
                 self.subscribe_pong_from_channels(channel.connection_id),
-                self.subscribe_commands_from_channels(channel.channel_id)
+                self.bind_channel(channel)
             )
-            self.loop.create_task(
+            self._on_new_channel_observers and self.loop.create_task(
                 asyncio.gather(
                     *(observer.on_event(channel) for observer in self._on_new_channel_observers)
                 )
             )
-        if not self.connections_statuses[channel.connection_id].get('last_ping') or now -\
-                self.connections_statuses[channel.connection_id]['last_ping'] > self.ping_interval:
-            for observer in self._on_ping:
-                observer(channel.connection_id)
-            await self.ping_channel(channel.connection_id)
+        if self.connections_statuses[channel.connection_id].get('open'):
+            if not self.connections_statuses[channel.connection_id].get('last_ping') or now - \
+                    self.connections_statuses[channel.connection_id]['last_ping'] > self.ping_interval:
+                for observer in self._on_ping:
+                    observer(channel.connection_id)
+                await self.ping_channel(channel.connection_id)
 
         if (self.connections_statuses[channel.connection_id].get('last_pong') and
             now - self.connections_statuses[channel.connection_id]['last_pong'] > self.ping_timeout) or \
@@ -130,21 +165,10 @@ class WebsocketChannelsService:
             LOGGER.websocket_monitor.info('Ping timeout for channel %s', channel)
             for observer in self._on_delete_channel:
                 observer(channel.connection_id)
-            self.channels_repository.delete(channel.connection_id)
-            self.channels_cache.pop(channel.connection_id, None)
+                self.remove_channel(channel)
 
-
-def builder(
-        sio=None,
-        loop=asyncio.get_event_loop(),
-        redis_data=None,
-        ping_interval=30,
-        ping_timeout=60
-):
-    redis_data = redis_data or StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB)
-    socketio = sio or AsyncRedisManager('redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
-    channels_factory = WebsocketChannelsRepository(redis_data)
-    monitor = WebsocketChannelsService(
-        socketio, channels_factory, loop, ping_interval=ping_interval, ping_timeout=ping_timeout
-    )
-    return monitor
+    def remove_channel(self, channel):
+        self.channels_repository.delete(channel.connection_id)
+        self.channels_cache.pop(channel.connection_id, None)
+        self.connections_statuses.pop(channel.connection_id, None)
+        self.remove_handlers(channel)
