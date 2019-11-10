@@ -2,14 +2,13 @@ import random
 from unittest.mock import Mock
 from etc import settings
 from aiohttp.web import _run_app
-import asyncio
 import hashlib
 import json
 import binascii
 import os
 import uuid
 from flask_testing import TestCase
-from core.src.builder import strict_redis
+from core.src.auth.builder import strict_redis
 
 
 class BakeUserTestCase(TestCase):
@@ -23,10 +22,10 @@ class BakeUserTestCase(TestCase):
         BakeUserTestCase.first_exec = False
         self.socketio = None
         self.socketioport = random.randint(10000, 50000)
-        self.loop = asyncio.get_event_loop()
+        self.loop = None
         self.ping_timeout = 60
         self.ping_interval = 30
-        from core.app import app
+        from core.src.auth.app import app
         self.app = app
         return app
 
@@ -54,7 +53,7 @@ class BakeUserTestCase(TestCase):
         self.loop.run_until_complete(self.async_test())
 
     async def _run_websocket_server(self):
-        from core.scripts.serve_websocket import app, sio
+        from core.src.world.services.websocket_router import app, sio
         self.sio_server = sio
         self.loop.create_task(_run_app(app, host='127.0.0.1', port=self.socketioport))
 

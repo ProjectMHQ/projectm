@@ -1,7 +1,11 @@
 import random
-from unittest.mock import call, ANY
+from unittest.mock import call, ANY, Mock
 import time
+
+from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 from core.src.world.components import ComponentTypeEnum
+from core.src.world.repositories.data_repository import RedisDataRepository
+from core.src.world.services.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 import asyncio
 import binascii
@@ -10,22 +14,7 @@ from tests.unit.bake_user import BakeUserTestCase
 import socketio
 
 
-class TestWebsocketCharacterAuthentication(BakeUserTestCase):
-    """
-    small integration test for websocket flow. redis mocked.
-    """
-    def setUp(self):
-        assert settings.RUNNING_TESTS
-        self.connected = False
-        self.socketioport = random.randint(10000, 50000)
-        self.randstuff = binascii.hexlify(os.urandom(8)).decode()
-        self.typeschecked = False
-        self.sio_client = socketio.AsyncClient()
-        self._on_create = []
-        self._on_auth = []
-        self.end = False
-        self._private_channel_id = None
-        self.max_execution_time = 54
+class BaseWSFlowTestCase(BakeUserTestCase):
 
     def done(self):
         self.end = True
@@ -53,6 +42,7 @@ class TestWebsocketCharacterAuthentication(BakeUserTestCase):
             if int(time.time()) - s > self.max_execution_time:
                 raise TimeoutError('Max Execution time hit. Test started %s, now %s', s, int(time.time()))
             if self.end:
+                print('End = True')
                 break
             await asyncio.sleep(1)
 
@@ -97,46 +87,76 @@ class TestWebsocketCharacterAuthentication(BakeUserTestCase):
         self.redis.eval.side_effect = [redis_eid]
         self.redis.hget.side_effect = [None, redis_eid]
         self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
+        self.redis.hscan_iter.side_effect = lambda *a, **kw: []
         self.redis.pipeline().hmset.side_effect = self._checktype
         self._bake_user()
         self._on_create.append(self._check_on_create)
         self._run_test()
-        self._expected_calls = [
-            [call.pipeline(),
-             call.setbit('e:m', 0, 1),
-             call.eval(
-                 "\n            local val = redis.call('bitpos', 'e:m', 0)"
-                 "\n            redis.call('setbit', 'e:m', val, 1)"
-                 "\n            return val"
-                 "\n            ",
-                 0),
-             call.pipeline(),
-             call.pipeline().setbit('c:5:m', entity_id, 1),
-             call.pipeline().setbit('c:1:m', entity_id, 1),
-             call.pipeline().setbit('c:2:m', entity_id, 1),
-             call.pipeline().hmset('e:{}'.format(entity_id), {
-                 ComponentTypeEnum.CREATED_AT.value: ANY,
-                 ComponentTypeEnum.NAME.value: 'Hero {}'.format(self.randstuff)
-             }),
-             call.pipeline().hmset('c:1:d', {entity_id: ANY}),
-             call.pipeline().hmset('c:2:d', {entity_id: 'Hero {}'.format(self.randstuff)}),
-             call.pipeline().execute(),
-             call.hget('char:e', self._returned_character_id),
-             call.hset('char:e', self._returned_character_id, 1),
-             call.hget('char:e', self._returned_character_id),
-             call.hset('wschans', 'c:{}'.format(self._private_channel_id), ANY),
-             call.pipeline(),
-             call.pipeline().setbit('c:3:m', entity_id, 1),
-             call.pipeline().hmset('e:{}'.format(entity_id), {3: self._private_channel_id}),
-             call.pipeline().hmset('c:3:d', {1: self._private_channel_id}),
-             call.pipeline().execute()]
-        ]
-        if self.first_exec:
-            self.redis.assert_has_calls(self._expected_calls)
-        else:
-            self.redis.assert_has_calls(self._expected_calls[1:])
         self.assertTrue(self.typeschecked)
 
+
+class TestWebsocketCharacterAuthentication(BaseWSFlowTestCase):
+    """
+    small integration test for websocket flow. redis mocked.
+    """
+    def setUp(self):
+        assert settings.RUNNING_TESTS
+        self.connected = False
+        self.socketioport = random.randint(10000, 50000)
+        self.randstuff = binascii.hexlify(os.urandom(8)).decode()
+        self.typeschecked = False
+        self.sio_client = socketio.AsyncClient()
+        self._on_create = []
+        self._on_auth = []
+        self.end = False
+        self._private_channel_id = None
+        self.max_execution_time = 54
+        self.loop = asyncio.get_event_loop()
+
     def test(self):
+        self.redis.reset_mock()
+
         self._on_auth.append(lambda *a, **kw: self.done())
         self._base_flow()
+        Mock.assert_called_with(self.redis.eval,
+                                "\n            local val = redis.call('bitpos', 'e:m', 0)"
+                                "\n            redis.call('setbit', 'e:m', val, 1)"
+                                "\n            return val\n            ",
+                                0)
+        Mock.assert_called(self.redis.pipeline)
+
+        Mock.assert_has_calls(
+            self.redis.pipeline().setbit,
+            any_order=True,
+            calls=[
+                call('c:2:m', self.current_entity_id, 1),
+                call('c:1:m', self.current_entity_id, 1),
+                call('c:5:m', self.current_entity_id, 1),
+            ]
+        )
+        Mock.assert_has_calls(
+            self.redis.pipeline().hmset,
+            any_order=True,
+            calls=[
+                call('c:1:d', {self.current_entity_id: ANY}),
+                call('c:2:d', {self.current_entity_id: 'Hero {}'.format(self.randstuff)}),
+                call('e:{}'.format(self.current_entity_id), {
+                    ComponentTypeEnum.CREATED_AT.value: ANY,
+                    ComponentTypeEnum.NAME.value: 'Hero {}'.format(self.randstuff)
+                })
+            ]
+        )
+        Mock.assert_has_calls(
+            self.redis.hget,
+            calls=[
+                call('char:e', self._returned_character_id),
+                call('char:e', self._returned_character_id)
+            ]
+        )
+        Mock.assert_has_calls(
+            self.redis.hset,
+            calls=[
+                call('char:e', self._returned_character_id, self.current_entity_id),
+                call('wschans', 'c:{}'.format(self._private_channel_id), ANY)
+            ]
+        )

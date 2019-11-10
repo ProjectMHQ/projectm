@@ -65,3 +65,5 @@ FLUENTD_HANDLER_HOST = config['logging']['fluentd_host']
 FLUENTD_HANDLER_PORT = config['logging']['fluentd_port']
 
 REDIS_TEST_DB = INTEGRATION_TESTS and config['database']['redis_test_db'] or NotImplementedError
+
+WORKERS = 1

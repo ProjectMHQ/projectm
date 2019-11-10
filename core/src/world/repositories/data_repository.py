@@ -5,10 +5,10 @@ from collections import OrderedDict
 import bitarray
 import os
 from redis import StrictRedis
-from core.src.logging_factory import LOGGER
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.entity import Entity, EntityID
-from core.src.world.types import Bit
+from core.src.world.world_types import Bit
 
 
 class RedisDataRepository:
@@ -112,6 +112,13 @@ class RedisDataRepository:
 
         LOGGER.core.debug('EntityRepository.update_entity_components, response: %s', response)
         return response
+
+    def get_component_value_by_entity(self, entity_id: int, component: typing.Type[ComponentType]):
+        res = self.redis.hget(
+            '{}:{}'.format(self._entity_prefix, entity_id),
+            component.key
+        )
+        return component(res)
 
     def get_components_values_by_entities(
             self,
