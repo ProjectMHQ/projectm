@@ -1,4 +1,5 @@
 import flask
+from flask_cors import CORS
 from flask.logging import default_handler
 from werkzeug.exceptions import HTTPException
 
@@ -19,13 +20,7 @@ FlaskUUID(app)
 
 
 if settings.ENABLE_CORS:
-    @app.after_request
-    def after_request(response):
-        header = response.headers
-        header['Access-Control-Allow-Origin'] = '*'
-        header['Access-Control-Allow-Headers'] = '*'
-        return response
-
+    CORS(app=app, supports_credentials=True)
 
 app.config.update(
     DEBUG=True,
@@ -56,10 +51,6 @@ def _tear_db(response):
 
 @app.after_request
 def _tear_cors(response):
-    if settings.ENABLE_CORS:
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Headers'] = '*'
-        response.headers['Access-Control-Expose-Headers'] = '*'
     return response
 
 
