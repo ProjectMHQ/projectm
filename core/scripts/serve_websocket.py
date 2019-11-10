@@ -62,9 +62,23 @@ async def create_character(sid, payload):
         .set(NameComponent(payload["name"]))
 
     entity = world_repository.save_entity(entity)
+    """
+    patchwork starts here
+    """
+    from core.src.database import init_db, db
+    init_db(db)
+
     character_id = psql_character_repository.store_new_character(
         token['data']['user_id'], payload["name"]
     ).character_id
+    try:
+        db.close()
+    except:
+        # FIXME - This shouldn't be here, but we miss the "store_new_character" HTTP endpoint yet.
+        pass
+    """
+    patchwork ends here
+    """
     redis_characters_index_repository.set_entity_id(character_id, entity.entity_id)
     await sio.emit('create', {'success': True, 'character_id': character_id}, to=sid)
 
