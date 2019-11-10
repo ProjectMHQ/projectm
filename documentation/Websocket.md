@@ -9,6 +9,13 @@ Endpoints:
  - development: `localhost:60160` (or check `local-settings.conf`)
  - staging: `staging.pm.chatsubo.it`
 
+Api Flow:
+- Use main namespace `/` to create or authenticate a character. 
+- Once a character is authenticated, quit the main namespace. 
+- Join the private namespace `/<channel_id>` returned by the authentication process before `timeout`.
+- From this point, world messages must be sent on the private namespace. The namespace is ephemeral and changes at every authentication.
+- Clients disconnected by legacy network disconnections may rejoin a previous channel before timeout without re-authenticating. 
+- To keep the namespace alive client must answers `PING` messages with `PONG` responses on the `presence` topic.
 
 #### Character Creation & Authentication on '/' namespace
 
@@ -36,9 +43,3 @@ Before proceeding request a token on the REST for the `world:auth` topic.
 
 #### Character Impersonation on the private namespace
 
-Flow:
-- Once authenticated, quit the main namespace
-- Join the private namespace `/<channel_id>` returned by the authentication process before `timeout`.
-- From this point, world messages must be sent on the private namespace. The namespace is ephemeral and changes at every authentication.
-- Clients disconnected by legacy network disconnections may rejoin a previous channel before timeout without re-authenticating. 
-- To keep the namespace alive client must answers `PING` messages with `PONG` responses on the `presence` topic.
