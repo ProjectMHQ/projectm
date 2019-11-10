@@ -49,7 +49,6 @@ WS_MOTD = """{}\n\n
 async def connect(sid, environ):
     LOGGER.core.debug('Sending MOTD')
     await sio.emit('msg', {'data': WS_MOTD}, to=sid)
-    sio.event()
 
 
 @sio.on('create')
