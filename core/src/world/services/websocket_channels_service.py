@@ -172,7 +172,7 @@ class WebsocketChannelsService:
             LOGGER.websocket_monitor.info('Ping timeout for channel %s', channel)
             for observer in self._on_delete_channel:
                 observer(channel.connection_id)
-                self.remove_channel(channel)
+            self.remove_channel(channel)
 
     def remove_channel(self, channel):
         self.channels_repository.delete(channel.connection_id)
