@@ -71,7 +71,8 @@ class WebsocketChannelsService:
                 await self.socketio.emit('presence', 'PONG', namespace='/{}'.format(connection_id))
 
     def remove_handlers(self, channel):
-        self.socketio.handlers.pop(channel.connection_id, None)
+        self.socketio.emit('disconnect', '', '/{}'.format(channel.connection_id))
+        self.socketio.handlers.pop('/{}'.format(channel.connection_id), None)
 
     async def subscribe_pong_from_channels(self, connection_id: str):
         LOGGER.websocket_monitor.info('Subscribe presence for channel %s', connection_id)
