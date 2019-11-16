@@ -19,5 +19,5 @@ class PosComponent(ComponentType):
     @classmethod
     def get(cls, entity_id: int, repo=None) -> typing.Optional['PosComponent']:
         if not repo:
-            from core.src.world.builder import world_map_repository as repo
+            from core.src.world.builder import world_repository as repo
         return repo.get_entity_position(entity_id)

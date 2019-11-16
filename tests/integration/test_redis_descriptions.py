@@ -12,11 +12,7 @@ class TestRedisDescriptionsRepository(TestCase):
         self.sut = descriptions_repository
 
     async def async_test_descriptions(self):
-        await self.sut.save_entity_description(
-            1,
-            'pippo',
-            'pluto'
-        )
+        await self.sut.save_entity_description(1, 'pippo', 'pluto')
         des = await self.sut.get_entity_description(1)
         self.assertEqual(des, {'entity_id': 1, 'title': 'pippo', 'description': 'pluto'})
         await self.sut.save_entity_description(1, 'pippo', 'pluto2')

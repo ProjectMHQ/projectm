@@ -4,7 +4,7 @@ from unittest import TestCase
 from core.src.auth.builder import strict_redis
 from core.src.world.services.redis_queue import RedisMultipleQueuesPublisher, RedisQueueConsumer
 from core.src.world.services.worker_queue_service import WorkerQueueService
-from core.src.world.utils import async_redis_pool_factory
+from core.src.world.services.system_utils import async_redis_pool_factory
 
 
 class TestRedisMultiQueue(TestCase):
@@ -28,8 +28,8 @@ class TestRedisMultiQueue(TestCase):
             prova3asdfaa=4
         )
         for cid, cidv in ids.items():
-            await self.publisher.put({'message': cid})
-            self.assertEqual(await self.consumers[cidv].get(), {'message': cid, 'e_id': cid})
+            await self.publisher.put({'message': cid, 'e_id': cidv})
+            self.assertEqual(await self.consumers[cidv].get(), {'message': cid, 'e_id': cidv})
 
     def test(self):
         self.loop.run_until_complete(self.async_test())
@@ -60,7 +60,7 @@ class TestRedisWorkerQueueService(TestCase):
         for i, worker in enumerate(self.workers):
             self.loop.create_task(worker.run())
             self.observers.append(Obs())
-            worker.add_messages_observer('cmd', self.observers[i])
+            worker.add_queue_observer('cmd', self.observers[i])
 
     async def on_message(self, message):
         self.messages.append(message)

@@ -1,17 +1,19 @@
 import typing
 
 from core.src.world.components import ComponentType
+from core.src.world.world_types import Transport
 
-
-EntityID = typing.NewType(
-    'EntityID', int
-)
+EntityID = typing.NewType('EntityID', int)
 
 
 class Entity:
-    def __init__(self, entity_id: typing.Optional[EntityID] = None):
+    def __init__(self, entity_id: typing.Optional[EntityID] = None, transport: Transport = None):
         self._entity_id = entity_id
         self._pending_changes = {}
+        self.transport = transport
+
+    def emit_msg(self, payload: typing.Dict):
+        self.transport.transport.emit(self.transport.namespace, 'msg', payload)
 
     def set(self, component: ComponentType):
         self._pending_changes[component.key] = component

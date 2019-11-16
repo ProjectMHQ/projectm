@@ -7,7 +7,8 @@ from core.src.world.services.redis_queue import RedisQueueConsumer
 from core.src.world.services.socketio_interface import SocketioTransportInterface
 from core.src.world.services.worker_queue_service import WorkerQueueService
 from core.src.world.systems.commands import commands_observer_factory
-from core.src.world.utils import async_redis_pool_factory
+from core.src.world.services.system_utils import async_redis_pool_factory
+from core.src.world.systems.connect.observer import ConnectionsObserver
 
 from etc import settings
 
@@ -20,7 +21,10 @@ transport = SocketioTransportInterface(
     )
 )
 cmds_observer = commands_observer_factory(transport)
-worker_queue_manager.add_messages_observer('cmd', cmds_observer)
+connections_observer = ConnectionsObserver(transport)
+
+worker_queue_manager.add_queue_observer('connected', connections_observer)
+worker_queue_manager.add_queue_observer('cmd', cmds_observer)
 
 
 if __name__ == '__main__':

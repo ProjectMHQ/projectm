@@ -1,5 +1,7 @@
 import enum
 
+import typing
+
 
 @enum.unique
 class Direction(enum.IntEnum):
@@ -21,3 +23,12 @@ class TerrainEnum(enum.IntEnum):
     WALL_OF_BRICKS = 1
     PATH = 2
     GRASS = 3
+
+
+Transport = typing.NamedTuple(
+    'Transport',
+    (
+        ('namespace', str),
+        ('transport', callable)
+    )
+)

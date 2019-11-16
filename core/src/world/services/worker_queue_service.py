@@ -12,7 +12,7 @@ class WorkerQueueService:
         self.loop = loop
         self.messages_observers = {}
 
-    def add_messages_observer(self, context, observer):
+    def add_queue_observer(self, context, observer):
         if not self.messages_observers.get(context):
             self.messages_observers[context] = []
         self.messages_observers[context].append(observer)

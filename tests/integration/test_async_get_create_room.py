@@ -4,7 +4,7 @@ from collections import OrderedDict
 from unittest import TestCase
 import time
 
-from core.src.world.utils import async_redis_pool_factory
+from core.src.world.services.system_utils import async_redis_pool_factory
 from etc import settings
 from core.src.world.repositories.map_repository import RedisMapRepository
 from core.src.world.domain.room import Room, RoomPosition

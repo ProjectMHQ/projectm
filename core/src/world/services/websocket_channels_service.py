@@ -112,6 +112,14 @@ class WebsocketChannelsService:
                 Entity(channel.entity_id).set(ConnectionComponent(channel.connection_id))
             )
             self.loop.create_task(self.subscribe_commands_from_channels(channel))
+            await self.redis_queues_manager.put(
+                {
+                    'n': channel.connection_id,
+                    'e_id': channel.entity_id,
+                    't': int(time.time()),
+                    'c': 'connected'
+                }
+            )
         self.socketio.on(
             'connect', _on_connect, namespace='/{}'.format(channel.connection_id)
         )
