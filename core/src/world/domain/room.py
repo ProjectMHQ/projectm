@@ -52,9 +52,10 @@ class Room:
 
     @property
     def content(self) -> typing.List[str]:
-        return [
-            "A three-headed monkey"  # FIXME TODO
-        ]
+        if self.position.x == 1 and self.position.y == 1 and not self.position.z:
+            # FIXME REMOVE TODO
+            return ['A three-headed monkey']
+        return []
 
     def __str__(self):
         return '''

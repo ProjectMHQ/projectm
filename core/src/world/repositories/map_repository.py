@@ -23,6 +23,11 @@ class RedisMapRepository:
         self._pipelines = None
         self._redis = None
 
+        self.max_y = 2000
+        self.max_x = 2000
+        self.min_x = 0
+        self.min_y = 0
+
     async def redis(self) -> Redis:
         if not self._redis:
             self._redis = await self.redis_factory()
