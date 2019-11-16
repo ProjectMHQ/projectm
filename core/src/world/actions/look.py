@@ -16,6 +16,7 @@ async def look(
         if not pos:
             await callback(
                 {
+                    "event": "look",
                     "title": "Nowhere",
                     "description": "A non place",
                     "content": []
@@ -26,9 +27,10 @@ async def look(
             await callback(
                 {
                     {
-                            "title": room.title,
-                            "description": room.description,
-                            "content": room.content
+                        "event": "look",
+                        "title": room.title,
+                        "description": room.description,
+                        "content": room.content
                     }
                 }
             )
