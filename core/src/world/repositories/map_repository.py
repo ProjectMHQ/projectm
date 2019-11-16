@@ -12,9 +12,7 @@ class RedisMapRepository:
     def __init__(self, redis_factory: callable):
         self.redis_factory = redis_factory
         self.prefix = 'm'
-        self.terrains_suffix = 'ter'
-        self.descriptions_ids_suffix = 'des'
-        self.titles_ids_suffix = 'tit'
+        self.terrains_suffix = 't'
         self.z_valued_rooms_data_suffix = 'd'
         self.room_content_suffix = 'c'
 

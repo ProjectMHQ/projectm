@@ -1,3 +1,4 @@
+from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
 from core.src.world.services.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 
@@ -10,6 +11,7 @@ from core.src.world.repositories.data_repository import RedisDataRepository
 
 
 map_repository = RedisMapRepository(async_redis_pool_factory)
+descriptions_repository = RedisDescriptionsRepository(async_redis_pool_factory)
 world_repository = RedisDataRepository(strict_redis)
 channels_repository = WebsocketChannelsRepository(strict_redis)
 redis_queues_service = RedisMultipleQueuesPublisher(

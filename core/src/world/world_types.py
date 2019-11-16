@@ -21,4 +21,3 @@ class TerrainEnum(enum.IntEnum):
     WALL_OF_BRICKS = 1
     PATH = 2
     GRASS = 3
-
