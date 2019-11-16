@@ -65,4 +65,3 @@ if __name__ == '__main__':
     for i in range(size, len(q), size):
         p += "".join([c[x] for x in q[i-size:i]]) + '\n'
     print(p)
-

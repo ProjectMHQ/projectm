@@ -1,7 +1,7 @@
 import typing
 
 from core.src.world.entity import Entity, EntityID
-from core.src.world.world_types import Transport
+from core.src.world.utils.world_types import Transport
 
 
 class CommandsObserver:

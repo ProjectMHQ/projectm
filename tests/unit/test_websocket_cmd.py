@@ -63,7 +63,7 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
             await private.emit('presence', 'PONG', namespace='/{}'.format(self._private_channel_id))
             self._pings.append([int(time.time()), data])
 
-        @private.on('cmd', namespace='/{}'.format(self._private_channel_id))
+        @private.on('msg', namespace='/{}'.format(self._private_channel_id))
         async def presence(data):
             assert self._private_channel_id
             self._on_cmd_answer and self._on_cmd_answer(data)

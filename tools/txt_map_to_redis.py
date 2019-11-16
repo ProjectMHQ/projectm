@@ -2,7 +2,7 @@ import asyncio
 
 from core.src.world.builder import map_repository
 from core.src.world.domain.room import Room, RoomPosition
-from core.src.world.world_types import TerrainEnum
+from core.src.world.utils.world_types import TerrainEnum
 
 terrains = {
     "#": TerrainEnum.WALL_OF_BRICKS,

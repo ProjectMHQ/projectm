@@ -13,10 +13,15 @@ if settings.RUNNING_TESTS and not settings.INTEGRATION_TESTS:
     from unittest.mock import Mock
     strict_redis = Mock()
 else:
+    if settings.INTEGRATION_TESTS:
+        redis_db = settings.REDIS_TEST_DB
+    else:
+        redis_db = settings.REDIS_DB
+
     strict_redis = StrictRedis(
         host=settings.REDIS_HOST,
         port=settings.REDIS_PORT,
-        db=settings.REDIS_DB
+        db=redis_db
     )
 
 encryption_service = AESCipherServiceImpl(

@@ -5,7 +5,7 @@ from aioredis import Redis
 from aioredis.commands import Pipeline
 
 from core.src.world.domain.room import Room, RoomPosition
-from core.src.world.world_types import TerrainEnum
+from core.src.world.utils.world_types import TerrainEnum
 
 
 class RedisMapRepository:

@@ -9,7 +9,7 @@ from core.src.world.services.system_utils import get_redis_factory, RedisType
 
 class TestRedisMultiQueue(TestCase):
     def setUp(self):
-        strict_redis.flushdb(settings.REDIS_TEST_DB)
+        strict_redis.flushdb()
         self.loop = asyncio.get_event_loop()
         self.publisher = RedisMultipleQueuesPublisher(
             get_redis_factory(RedisType.QUEUES),
@@ -38,7 +38,7 @@ class TestRedisMultiQueue(TestCase):
 class TestRedisWorkerQueueService(TestCase):
     def setUp(self):
         self.messages = []
-        strict_redis.flushdb(settings.REDIS_TEST_DB)
+        strict_redis.flushdb()
         self.loop = asyncio.get_event_loop()
         self.publisher = RedisMultipleQueuesPublisher(
             get_redis_factory(RedisType.QUEUES),

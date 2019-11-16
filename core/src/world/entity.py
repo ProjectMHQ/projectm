@@ -1,7 +1,7 @@
 import typing
 
 from core.src.world.components import ComponentType
-from core.src.world.world_types import Transport
+from core.src.world.utils.world_types import Transport
 
 EntityID = typing.NewType('EntityID', int)
 

@@ -8,7 +8,7 @@ from core.src.auth.builder import strict_redis
 
 class TestRedisDescriptionsRepository(TestCase):
     def setUp(self):
-        strict_redis.flushdb(settings.REDIS_TEST_DB)
+        strict_redis.flushdb()
         self.sut = descriptions_repository
 
     async def async_test_descriptions(self):

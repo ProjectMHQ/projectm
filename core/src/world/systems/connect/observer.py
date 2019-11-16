@@ -7,7 +7,7 @@ from core.src.world.builder import world_repository
 from core.src.world.components.pos import PosComponent
 from core.src.world.entity import Entity, EntityID
 from core.src.world.utils.entity_utils import get_base_room_for_entity
-from core.src.world.world_types import Transport
+from core.src.world.utils.world_types import Transport
 
 
 class ConnectionsObserver:
@@ -22,12 +22,6 @@ class ConnectionsObserver:
         assert message['c'] == 'connected'
         entity = Entity(EntityID(message['e_id']), transport=Transport(message['n'], self.transport))
         await self.on_connect(entity)
-
-    def _bake_callback(self, message, response):
-        return self.transport.send(message['n'], message['c'], response)
-
-    def _on_error(self, message, error):
-        return self.transport.send(message['n'], message['c'], error)
 
     async def on_connect(self, entity: Entity):
         pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)

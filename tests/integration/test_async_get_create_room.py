@@ -8,7 +8,7 @@ from core.src.world.services.system_utils import get_redis_factory, RedisType
 from etc import settings
 from core.src.world.repositories.map_repository import RedisMapRepository
 from core.src.world.domain.room import Room, RoomPosition
-from core.src.world.world_types import TerrainEnum
+from core.src.world.utils.world_types import TerrainEnum
 
 
 class TestSetGetRooms(TestCase):
@@ -18,7 +18,7 @@ class TestSetGetRooms(TestCase):
 
     async def async_test(self):
         sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
-        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
+        await (await sut.redis()).flushdb()
         futures = []
         d = {}
         i = 0
@@ -49,7 +49,7 @@ class TestSetGetRooms(TestCase):
                         [x, y, z]
                     )
         print('\n', i, ' rooms tested NO pipeline in {:.10f}'.format(time.time() - start))
-        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
+        await (await sut.redis()).flushdb()
         _start = time.time()
         roomz = OrderedDict()
         positions = []
@@ -116,7 +116,7 @@ class TestBigMap(TestCase):
 
     async def asyncio_test(self):
         sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
-        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
+        await (await sut.redis()).flushdb()
         max_x, max_y, max_z = 500, 500, 1
         start = time.time()
         print('\nBaking {}x{} map'.format(max_x, max_y))
@@ -148,7 +148,7 @@ class TestMapLines(TestCase):
 
     async def asyncio_test(self):
         sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
-        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
+        await (await sut.redis()).flushdb()
         max_x, max_y, max_z = 50, 50, 1
         start = time.time()
         print('\nBaking {}x{} map'.format(max_x, max_y))
