@@ -33,9 +33,7 @@ class TestSetGetRooms(TestCase):
                         sut.set_room(
                             Room(
                                 position=RoomPosition(x=x, y=y, z=z),
-                                terrain=TerrainEnum.WALL_OF_BRICKS,
-                                title_id=d['{}.{}.{}'.format(x, y, z)][0],
-                                description_id=d['{}.{}.{}'.format(x, y, z)][1],
+                                terrain=TerrainEnum.WALL_OF_BRICKS
                             )
                         )
                     )
@@ -47,17 +45,8 @@ class TestSetGetRooms(TestCase):
                         RoomPosition(x, y, z)
                     )
                     self.assertEqual(
-                        [
-                            room.position.x, room.position.y, room.position.z,
-                            room.title_id,
-                            room.description_id
-
-                        ],
-                        [
-                            x, y, z,
-                            d['{}.{}.{}'.format(x, y, z)][0],
-                            d['{}.{}.{}'.format(x, y, z)][1],
-                        ]
+                        [room.position.x, room.position.y, room.position.z],
+                        [x, y, z]
                     )
         print('\n', i, ' rooms tested NO pipeline in {:.10f}'.format(time.time() - start))
         await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
@@ -72,8 +61,6 @@ class TestSetGetRooms(TestCase):
                     roomz['{}.{}.{}'.format(x, y, z)] = Room(
                         position=position,
                         terrain=TerrainEnum.WALL_OF_BRICKS,
-                        title_id=d['{}.{}.{}'.format(x, y, z)][0],
-                        description_id=d['{}.{}.{}'.format(x, y, z)][1],
                     )
         await sut.set_rooms(*roomz.values())
         rooms = await sut.get_rooms(*positions)
@@ -81,14 +68,10 @@ class TestSetGetRooms(TestCase):
             self.assertEqual(
                 [
                     room.position.x, room.position.y, room.position.z,
-                    room.title_id,
-                    room.description_id
 
                 ],
                 [
                     positions[i][0], positions[i][1], positions[i][2],
-                    roomz['{}.{}.{}'.format(room.position.x, room.position.y, room.position.z)].title_id,
-                    roomz['{}.{}.{}'.format(room.position.x, room.position.y, room.position.z)].description_id,
                 ]
             )
         print('\n', i+1, ' rooms tested WITH pipeline in {:.10f}'.format(time.time() - _start))
@@ -145,8 +128,6 @@ class TestBigMap(TestCase):
                     roomz['{}.{}.{}'.format(x, y, z)] = Room(
                         position=position,
                         terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
-                        title_id=1,
-                        description_id=1,
                     )
             print(500 * x, ' rooms saved')
             await sut.set_rooms(*roomz.values())
@@ -179,8 +160,6 @@ class TestMapLines(TestCase):
                     roomz['{}.{}.{}'.format(x, y, z)] = Room(
                         position=position,
                         terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
-                        title_id=y+2,
-                        description_id=y+3,
                         entity_ids=sorted([1, 2, 3, 4, y+5])
                     )
         await sut.set_rooms(*roomz.values())
@@ -200,11 +179,10 @@ class TestMapLines(TestCase):
                     k = '{}.{}.{}'.format(0, from_y + req, 0)
                     self.assertEqual(
                         [
-                            r[req].position.x, r[req].position.y, r[req].position.z,
-                            r[req].title_id, r[req].description_id, r[req].entity_ids],
+                            r[req].position.x, r[req].position.y, r[req].position.z, r[req].entity_ids],
                         [
                             roomz[k].position.x, roomz[k].position.y, roomz[k].position.z,
-                            roomz[k].title_id, roomz[k].description_id, sorted(roomz[k].entity_ids)
+                            sorted(roomz[k].entity_ids)
 
                         ]
                     )
