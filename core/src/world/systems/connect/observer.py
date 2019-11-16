@@ -24,10 +24,10 @@ class ConnectionsObserver:
         await self.on_connect(entity)
 
     def _bake_callback(self, message, response):
-        return self.transport.emit(message['n'], message['c'], response)
+        return self.transport.send(message['n'], message['c'], response)
 
     def _on_error(self, message, error):
-        return self.transport.emit(message['n'], message['c'], error)
+        return self.transport.send(message['n'], message['c'], error)
 
     async def on_connect(self, entity: Entity):
         pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)

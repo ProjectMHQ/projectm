@@ -45,6 +45,19 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
             ping_timeout=5
         )
 
+    def _base_flow(self, entity_id=1):
+        self.current_entity_id = entity_id
+        redis_eid = '{}'.format(entity_id).encode()
+        self.redis.eval.side_effect = [redis_eid]
+        self.redis.hget.side_effect = [None, redis_eid]
+        self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
+        self.redis.hscan_iter.side_effect = lambda *a, **kw: []
+        self.redis.pipeline().hmset.side_effect = self._checktype
+        self._bake_user()
+        self._on_create.append(self._check_on_create)
+        self._run_test()
+        self.assertTrue(self.typeschecked)
+
     async def do_ping_pong(self):
         private = socketio.AsyncClient()
         self.private = private

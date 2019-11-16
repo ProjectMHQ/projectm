@@ -19,6 +19,7 @@ class RedisMultipleQueuesPublisher:
 
     async def put(self, message: typing.Dict):
         entity_id = str(message['e_id'])
+
         queue = int.from_bytes(hashlib.sha256(entity_id.encode()).digest(), 'little') % self.num_queues
         redis = await self.redis()
         await redis.rpush(self.queue_prefix + str(queue), json.dumps(message))
@@ -44,7 +45,7 @@ class RedisQueueConsumer:
 
         if item:
             item = item[1]
-        return json.loads(item)
+        return item and json.loads(item)
 
     async def qsize(self):
         redis = await self.redis()

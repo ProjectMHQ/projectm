@@ -4,6 +4,7 @@ import time
 from unittest.mock import call, ANY, Mock
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
+from core.src.world.builder import async_redis_data
 from core.src.world.components import ComponentTypeEnum
 from core.src.world.repositories.data_repository import RedisDataRepository
 from core.src.world.run_worker import worker_queue_manager
@@ -45,16 +46,7 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
             redis_queue=self.cmd_queue
         )
         self._on_cmd_answer = None
-
-    async def test_monitor(self):
-        s = int(time.time())
-        while 1:
-            await asyncio.sleep(5)
-            if self.end:
-                break
-            else:
-                if s - int(time.time()) > self.max_execution_time:
-                    raise TimeoutError('Test Timeout')
+        self.async_redis_data = async_redis_data
 
     async def do_ping_pong(self):
         private = socketio.AsyncClient()
@@ -90,7 +82,6 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
 
     def _prepare_test(self):
         self._start_worker()
-        self.loop.create_task(self.test_monitor())
         self.redis.hscan_iter.side_effect = self._hscan_iter_side_effect
         self.ping_pong_starts_at = int(time.time())
         self.channels_monitor.set_socketio_instance(self.sio_server)
@@ -98,23 +89,17 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
         self.loop.create_task(self.do_ping_pong())
         self.loop.create_task(self._do_look_command())
 
-
     async def _do_look_command(self):
         await asyncio.sleep(1)
-        print('DOING LOOK COMMAND')
         await self.private.emit('cmd', 'look', namespace='/{}'.format(self._private_channel_id))
 
         def _on_cmd_answer(data):
-            self.assertEqual(data, {'title': 'Nowhere', 'description': 'A non place', 'content': []})
+            self.assertEqual(data,
+                             {'event': 'look', 'title': 'Room Title', 'description': 'Room Description',
+                              'content': ['A three-headed monkey']})
             self.done()
 
         self._on_cmd_answer = _on_cmd_answer
-
-    async def monitor_execution(self):
-        while 1:
-            await asyncio.sleep(1)
-            if len(self._pings) == 5:
-                self.done()
 
     def _hscan_iter_side_effect(self, p):
         """
@@ -126,14 +111,25 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
              '{},{}'.format(self.current_entity_id, self.ping_pong_starts_at).encode())
         ] if self._private_channel_id else []))
 
-    def _base_flow(self, entity_id=1):
+    async def async_redis(self):
+        async def pp(v):
+            return v
+        self.async_redis_data.pipeline().execute.side_effect = [
+            pp([b'\x01', []]),
+            pp([b'\x01', []])
+        ]
+        return self.async_redis_data
+
+    def _cmd_base_flow(self, entity_id=1):
         self.current_entity_id = entity_id
         redis_eid = '{}'.format(entity_id).encode()
         self.redis.eval.side_effect = [redis_eid]
-        self.redis.hget.side_effect = [None, redis_eid, None]
+        self.redis.hget.side_effect = [None, redis_eid, b'[1, 1, 0]', b'[1, 1, 0]', b'[1, 1, 0]']
         self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
         self.redis.hscan_iter.side_effect = lambda *a, **kw: []
         self.redis.pipeline().hmset.side_effect = self._checktype
+        self.async_redis_data.side_effect = self.async_redis
+        self.redis.pipeline().smembers.side_effect = [[]]
         self._bake_user()
         self._on_create.append(self._check_on_create)
         self._run_test()
@@ -141,6 +137,7 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
 
     def test(self):
         self.redis.reset_mock()
+        self.async_redis_data.reset_mock()
 
         def _on_auth(*a, **kw):
             data = a[0]['data']
@@ -149,7 +146,7 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
             self._prepare_test()
 
         self._on_auth = [_on_auth]
-        self._base_flow(entity_id=random.randint(1, 9999))
+        self._cmd_base_flow(entity_id=random.randint(1, 9999))
         Mock.assert_called_with(self.redis.eval,
                                 "\n            local val = redis.call('bitpos', 'e:m', 0)"
                                 "\n            redis.call('setbit', 'e:m', val, 1)"

@@ -4,7 +4,7 @@ from collections import OrderedDict
 from unittest import TestCase
 import time
 
-from core.src.world.services.system_utils import async_redis_pool_factory
+from core.src.world.services.system_utils import get_redis_factory, RedisType
 from etc import settings
 from core.src.world.repositories.map_repository import RedisMapRepository
 from core.src.world.domain.room import Room, RoomPosition
@@ -17,7 +17,7 @@ class TestSetGetRooms(TestCase):
         loop.run_until_complete(self.async_test())
 
     async def async_test(self):
-        sut = RedisMapRepository(async_redis_pool_factory)
+        sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
         await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
         futures = []
         d = {}
@@ -115,7 +115,7 @@ class TestBigMap(TestCase):
         loop.run_until_complete(self.asyncio_test())
 
     async def asyncio_test(self):
-        sut = RedisMapRepository(async_redis_pool_factory)
+        sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
         await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
         max_x, max_y, max_z = 500, 500, 1
         start = time.time()
@@ -147,7 +147,7 @@ class TestMapLines(TestCase):
         loop.run_until_complete(self.asyncio_test())
 
     async def asyncio_test(self):
-        sut = RedisMapRepository(async_redis_pool_factory)
+        sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
         await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
         max_x, max_y, max_z = 50, 50, 1
         start = time.time()

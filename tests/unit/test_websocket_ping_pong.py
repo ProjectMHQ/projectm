@@ -11,10 +11,77 @@ from etc import settings
 import binascii
 import os
 import socketio
-from tests.unit.test_websocket_character_create_auth import BaseWSFlowTestCase
+
+from tests.unit.bake_user import BakeUserTestCase
 
 
-class TestWebsocketPingPong(BaseWSFlowTestCase):
+class TestWebsocketPingPong(BakeUserTestCase):
+
+    def done(self):
+        self.end = True
+
+    async def async_test(self):
+        sio = self.sio_client
+
+        @sio.on('connect')
+        async def connect(*a, **kw):
+            await sio.emit(
+                'create', {
+                    'token': self._get_websocket_token('world:create'),
+                    'name': 'Hero %s' % self.randstuff
+                }
+            )
+
+        @sio.on('create')
+        async def create(*a, **kw):
+            for c in self._on_create:
+                c(*a, **kw)
+
+        await sio.connect('http://127.0.0.1:{}'.format(self.socketioport))
+        s = int(time.time())
+        while 1:
+            if int(time.time()) - s > self.max_execution_time:
+                raise TimeoutError('Max Execution time hit. Test started %s, now %s', s, int(time.time()))
+            if self.end:
+                print('End = True')
+                break
+            await asyncio.sleep(1)
+
+    async def _do_auth(self, token):
+        sio = self.sio_client
+
+        @sio.on('auth')
+        async def auth(*a, **kw):
+            data = a[0]['data']
+            self.assertEqual(data['character_id'], self._returned_character_id)
+            self._private_channel_id = data['channel_id']
+            assert binascii.unhexlify(self._private_channel_id), self._private_channel_id
+            for c in self._on_auth:
+                c(*a, **kw)
+
+        await sio.emit(
+            'auth', {
+                'token': token
+            }
+        )
+
+    def _checktype(self, a, b):
+        if a.startswith('e:'):
+            for k, v in b.items():
+                if k == 1:
+                    int(v)
+        self.typeschecked = True
+
+    def _check_on_create(self, resp):
+        assert resp['success'], resp
+        self._returned_character_id = resp['character_id']
+        assert self._returned_character_id
+        self.begin_auth_flow()
+
+    def begin_auth_flow(self):
+        auth_token = self._get_websocket_token('world:auth', character_id=self._returned_character_id)
+        self.loop.create_task(self._do_auth(auth_token))
+
     """
     small integration test for websocket flow. redis mocked.
     """
@@ -34,13 +101,28 @@ class TestWebsocketPingPong(BaseWSFlowTestCase):
         self.loop = asyncio.get_event_loop()
         self.channels_factory = WebsocketChannelsRepository(self.redis)
         self.data_repository = RedisDataRepository(self.redis)
+        self.redis_queue = asyncio.Queue()
         self.channels_monitor = WebsocketChannelsService(
             channels_repository=self.channels_factory,
             loop=self.loop,
             data_repository=self.data_repository,
             ping_interval=1,
-            ping_timeout=5
+            ping_timeout=10,
+            redis_queue=self.redis_queue
         )
+
+    def _base_flow(self, entity_id=1):
+        self.current_entity_id = entity_id
+        redis_eid = '{}'.format(entity_id).encode()
+        self.redis.eval.side_effect = [redis_eid]
+        self.redis.hget.side_effect = [None, redis_eid]
+        self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
+        self.redis.hscan_iter.side_effect = lambda *a, **kw: []
+        self.redis.pipeline().hmset.side_effect = self._checktype
+        self._bake_user()
+        self._on_create.append(self._check_on_create)
+        self._run_test()
+        self.assertTrue(self.typeschecked)
 
     async def do_ping_pong(self):
         private = socketio.AsyncClient()
@@ -90,6 +172,7 @@ class TestWebsocketPingPong(BaseWSFlowTestCase):
         ] if self._private_channel_id else []))
 
     def test(self):
+        self._private_channel_id = None
         self.redis.reset_mock()
 
         def _on_auth(*a, **kw):

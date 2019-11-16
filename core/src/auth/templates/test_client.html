@@ -171,7 +171,7 @@
 
             authenticate = function () {
                 console.log( 'Authenticating character id ' + character_id + ' with token: ' + token )
-                socket.io.emit(
+                socket.io.send(
                     'auth',
                     JSON.stringify( {
                         'token': token
@@ -211,7 +211,7 @@
             $('#message').on('keypress',function(e) {
                 if(e.which == 13) {
                     console.log('enter')
-                    socket.io.emit(
+                    socket.io.send(
                         'msg',
                         JSON.stringify({"ctx": "world", "data": $( '#message' ).val()}),
                         () => {

@@ -21,11 +21,11 @@ class CommandsObserver:
 
             entity = Entity(EntityID(message['e_id']), transport=Transport(message['n'], self.transport))
             await self._commands[data[0]](entity, *data[1:])
+            print('asdf')
         except KeyError:
             await self._on_error(message, "Command not found: %s" % data[0])
         except TypeError as exc:
-            raise exc
             await self._on_error(message, "Command error: %s" % str(exc))
 
     def _on_error(self, message, error):
-        return self.transport.emit(message['n'], 'msg', error)
+        return self.transport.send(namespace=message['n'], payload={"event": "cmd", "error": error})

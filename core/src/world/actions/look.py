@@ -14,22 +14,12 @@ async def look(entity: Entity, *targets):
         )
     else:
         pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
-        if not pos:
-            await entity.emit_msg(
-                {
-                    "event": "look",
-                    "title": "Nowhere",
-                    "description": "A non place",
-                    "content": []
-                }
-            )
-        else:
-            room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
-            await entity.emit_msg(
-                {
-                    "event": "look",
-                    "title": room.title,
-                    "description": room.description,
-                    "content": room.content
-                }
-            )
+        room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
+        await entity.emit_msg(
+            {
+                "event": "look",
+                "title": room.title,
+                "description": room.description,
+                "content": room.content
+            }
+        )
