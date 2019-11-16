@@ -28,8 +28,8 @@ class TestRedisMultiQueue(TestCase):
             prova3asdfaa=4
         )
         for cid, cidv in ids.items():
-            await self.publisher.put(cid, {'message': cid})
-            self.assertEqual(await self.consumers[cidv].get(), {'message': cid})
+            await self.publisher.put({'message': cid})
+            self.assertEqual(await self.consumers[cidv].get(), {'message': cid, 'e_id': cid})
 
     def test(self):
         self.loop.run_until_complete(self.async_test())
@@ -77,7 +77,7 @@ class TestRedisWorkerQueueService(TestCase):
             prova3asdfaa=4
         )
         for cid, cidv in ids.items():
-            await self.publisher.put(cid, {'c': 'cmd', 'e_id': cidv, 'd': cid})
+            await self.publisher.put({'c': 'cmd', 'e_id': cidv, 'd': cid})
 
     def test(self):
         self.loop.run_until_complete(self.async_test())

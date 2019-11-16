@@ -17,14 +17,10 @@ class Room:
         self,
         position: RoomPosition = None,
         terrain: TerrainEnum = TerrainEnum.NULL,
-        title_id: int = 0,
-        description_id: int = 0,
         entity_ids: typing.List[int] = list()
     ):
         self._position = position
         self._terrain = terrain
-        self._title_id = title_id
-        self._description_id = description_id
         self._entity_ids = entity_ids
 
     @property
@@ -34,14 +30,6 @@ class Room:
     @property
     def terrain(self) -> TerrainEnum:
         return self._terrain
-
-    @property
-    def title_id(self) -> int:
-        return self._title_id
-
-    @property
-    def description_id(self) -> int:
-        return self._description_id
 
     @property
     def entity_ids(self) -> typing.List[int]:
@@ -80,7 +68,7 @@ class Room:
                 self.position.x, self.position.y, self.position.z
             ) or '',
             self.terrain and self.terrain.name,
-            self.title_id,
-            self.description_id,
+            self.title,
+            self.description,
             self.entity_ids or []
         )

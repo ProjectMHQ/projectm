@@ -10,16 +10,25 @@ async def look(
     errback=None
 ):
     if targets:
-        errback("Command Not Implemented")
+        await errback("Command Not Implemented")
     else:
         pos = world_repository.get_component_value_by_entity(entity_id, PosComponent)
-        room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
-        await callback(
-            {
+        if not pos:
+            await callback(
                 {
-                        "title": room.title,
-                        "description": room.description,
-                        "content": room.content
+                    "title": "Nowhere",
+                    "description": "A non place",
+                    "content": []
                 }
-            }
-        )
+            )
+        else:
+            room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
+            await callback(
+                {
+                    {
+                            "title": room.title,
+                            "description": room.description,
+                            "content": room.content
+                    }
+                }
+            )

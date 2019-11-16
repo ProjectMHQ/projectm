@@ -118,7 +118,7 @@ class RedisDataRepository:
             '{}:{}'.format(self._entity_prefix, entity_id),
             component.key
         )
-        return component(res)
+        return res and component(res)
 
     def get_components_values_by_entities(
             self,

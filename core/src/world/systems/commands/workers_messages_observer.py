@@ -13,12 +13,15 @@ class MessagesObserver:
         assert message['c'] == 'cmd'
         data = message['d'].strip().split(' ')
         try:
-            self._commands[message](
-                *data,
-                callback=lambda res: self._bake_callback(message, res),
-                errback=lambda err: self._bake_errback(message, err)
-            )
+            if not data:
+                raise TypeError('Empty command?')
 
+            await self._commands[data[0]](
+                message['e_id'],
+                *data[1:],
+                callback=lambda res: self._bake_callback(message, res),
+                errback=lambda err: self._on_error(message, err)
+            )
         except KeyError:
             await self._on_error(
                 message, "Command not found: %s" % data[0]
@@ -29,10 +32,7 @@ class MessagesObserver:
             )
 
     def _bake_callback(self, message, response):
-        self.transport.emit(message['n'], {"cmd": message["c":], "response": response})
-
-    def _bake_errback(self, message, error):
-        self.transport.emit(message['n'], {"cmd": message["c":], "error": error})
+        return self.transport.emit(message['n'], message['c'], response)
 
     def _on_error(self, message, error):
-        self.transport.emit(message['n'], {"cmd": message["c":], "error": error})
+        return self.transport.emit(message['n'], message['c'], error)

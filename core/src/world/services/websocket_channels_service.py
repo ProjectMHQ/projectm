@@ -86,7 +86,6 @@ class WebsocketChannelsService:
 
         async def cb(_, data):
             await self.redis_queues_manager.put(
-                str(channel.entity_id),
                 {
                     'n': channel.connection_id,
                     'e_id': channel.entity_id,
