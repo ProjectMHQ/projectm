@@ -39,21 +39,21 @@ class ConnectionsObserver:
     async def greet(self, entity: Entity):
         await entity.emit_msg(  # FIXME TEST - Remove
             {
-                "event": "msg",
+                "event": "greet",
                 "message": "Welcome to a new place!"
             }
         )
         await asyncio.sleep(3)
         await entity.emit_msg(
             {
-                "event": "msg",
+                "event": "greet",
                 "message": "Look around..."
             }
         )
         await asyncio.sleep(3)
         await entity.emit_msg(
             {
-                "event": "msg",
+                "event": "greet",
                 "message": "...but be careful!"
             }
         )

@@ -27,9 +27,7 @@ def parse(filename):
                     rooms.append(
                         Room(
                             position=RoomPosition(x=x, y=y, z=0),
-                            terrain=room_enum,
-                            title_id=room_enum.value,
-                            description_id=room_enum.value
+                            terrain=room_enum
                         )
                     )
             except IndexError:

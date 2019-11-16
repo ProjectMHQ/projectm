@@ -1,3 +1,4 @@
+import json
 import typing
 
 from core.src.world.components import ComponentType
@@ -21,3 +22,19 @@ class PosComponent(ComponentType):
         if not repo:
             from core.src.world.builder import world_repository as repo
         return repo.get_entity_position(entity_id)
+
+    @property
+    def serialized(self):
+        return json.dumps(self.value)
+
+    @property
+    def x(self):
+        return self._value[0]
+
+    @property
+    def y(self):
+        return self._value[1]
+
+    @property
+    def z(self):
+        return self._value[2]

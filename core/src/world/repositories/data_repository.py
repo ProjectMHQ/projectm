@@ -54,8 +54,8 @@ class RedisDataRepository:
                 )
                 if c.has_data() and not c.has_operation():
                     LOGGER.core.debug('Absolute value, component data set')
-                    _comp_v = {entity.entity_id: c.value}
-                    _ent_v = {c.key: c.value}
+                    _comp_v = {entity.entity_id: c.serialized}
+                    _ent_v = {c.key: c.serialized}
                     try:
                         components_updates[c.key].update(_comp_v)
                     except KeyError:
@@ -118,7 +118,7 @@ class RedisDataRepository:
             '{}:{}'.format(self._entity_prefix, entity_id),
             component.key
         )
-        return res and component(res)
+        return res and component(component.cast_type(res))
 
     def get_components_values_by_entities(
             self,

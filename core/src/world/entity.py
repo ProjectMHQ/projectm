@@ -12,8 +12,8 @@ class Entity:
         self._pending_changes = {}
         self.transport = transport
 
-    def emit_msg(self, payload: typing.Dict):
-        self.transport.transport.emit(self.transport.namespace, 'msg', payload)
+    async def emit_msg(self, payload: typing.Dict):
+        return await self.transport.transport.emit(self.transport.namespace, 'msg', payload)
 
     def set(self, component: ComponentType):
         self._pending_changes[component.key] = component

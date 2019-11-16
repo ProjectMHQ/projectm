@@ -11,5 +11,5 @@ class SocketioTransportInterface(TransportInterface):
     def __init__(self, transport):
         self.transport = transport
 
-    def emit(self, namespace, topic, payload):
-        return self.transport.emit(topic, payload, namespace='/{}'.format(namespace))
+    async def emit(self, namespace, topic, payload):
+        return await self.transport.emit(topic, payload, namespace='/{}'.format(namespace))

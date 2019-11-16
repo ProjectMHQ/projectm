@@ -1,4 +1,5 @@
 import abc
+import json
 import typing
 
 from core.src.world.components.types import ComponentTypeEnum
@@ -39,5 +40,9 @@ class ComponentType(metaclass=abc.ABCMeta):
         elif cls.component_type == bool:
             return bool(data)
         elif cls.component_type == list:
-            return data and list(data) or None
+            return data and json.loads(data.decode()) or None
         return data is not None and cls.component_type(data)
+
+    @property
+    def serialized(self):
+        return self.value
