@@ -23,8 +23,8 @@ class RedisMapRepository:
         self._pipelines = None
         self._redis = None
 
-        self.max_y = 20
-        self.max_x = 58
+        self.max_y = 20  # FIXME TODO
+        self.max_x = 58  # FIXME TODO
         self.min_x = 0
         self.min_y = 0
 

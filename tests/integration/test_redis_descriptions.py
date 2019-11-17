@@ -8,6 +8,8 @@ from core.src.auth.builder import strict_redis
 
 class TestRedisDescriptionsRepository(TestCase):
     def setUp(self):
+        assert settings.INTEGRATION_TESTS
+        assert settings.RUNNING_TESTS
         strict_redis.flushdb()
         self.sut = descriptions_repository
 

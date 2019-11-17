@@ -13,6 +13,8 @@ from core.src.world.utils.world_types import TerrainEnum
 
 class TestSetGetRooms(TestCase):
     def test(self):
+        assert settings.INTEGRATION_TESTS
+        assert settings.RUNNING_TESTS
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.async_test())
 
@@ -149,34 +151,33 @@ class TestMapLines(TestCase):
     async def asyncio_test(self):
         sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
         await (await sut.redis()).flushdb()
-        max_x, max_y, max_z = 50, 50, 1
+        max_x, max_y = 50, 50
         start = time.time()
         print('\nBaking {}x{} map'.format(max_x, max_y))
         roomz = OrderedDict()
         for x in range(0, max_x):
             for y in range(0, max_y):
-                for z in range(0, max_z):
-                    position = RoomPosition(x=x, y=y, z=z)
-                    roomz['{}.{}.{}'.format(x, y, z)] = Room(
-                        position=position,
-                        terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
-                        entity_ids=sorted([1, 2, 3, 4, y+5])
-                    )
+                position = RoomPosition(x=x, y=y, z=0)
+                roomz['{}.{}.{}'.format(x, y, 0)] = Room(
+                    position=position,
+                    terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
+                    entity_ids=sorted([1, 2, 3, 4, y+5])
+                )
         await sut.set_rooms(*roomz.values())
         print('\n{}x{} map baked in {}'.format(max_x, max_y, time.time() - start))
 
-        from_y, to_y = 0, 9
-        for x in range(1, 210, 10):
-            futures = [sut.get_rooms_on_y(0, from_y, to_y, 0) for _ in range(0, x)]
+        from_x, to_x = 0, 9
+        for yy in range(0, 210, 10):
+            futures = [sut.get_rooms_on_y(0, from_x, to_x, 0) for _ in range(0, yy)]
             s = time.time()
             res = await asyncio.gather(*futures)
             print(
-                'Get line of {} rooms. Concurrency: '.format(to_y-from_y), x,
+                'Get line of {} rooms. Concurrency: '.format(to_x-from_x), yy,
                 ' users. Time: {:.8f}'.format(time.time() - s)
             )
             for r in res:
-                for req in range(0, to_y):
-                    k = '{}.{}.{}'.format(0, from_y + req, 0)
+                for req in range(0, to_x):
+                    k = '{}.{}.{}'.format(from_x + req, 0, 0)
                     self.assertEqual(
                         [
                             r[req].position.x, r[req].position.y, r[req].position.z, r[req].entity_ids],
@@ -186,4 +187,3 @@ class TestMapLines(TestCase):
 
                         ]
                     )
-        print('Rooms: %s' '\n'.join([str(x) for x in r]))

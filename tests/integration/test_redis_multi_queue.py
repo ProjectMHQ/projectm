@@ -9,6 +9,8 @@ from core.src.world.services.system_utils import get_redis_factory, RedisType
 
 class TestRedisMultiQueue(TestCase):
     def setUp(self):
+        assert settings.INTEGRATION_TESTS
+        assert settings.RUNNING_TESTS
         strict_redis.flushdb()
         self.loop = asyncio.get_event_loop()
         self.publisher = RedisMultipleQueuesPublisher(
