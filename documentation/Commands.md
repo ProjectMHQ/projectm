@@ -49,33 +49,48 @@ Almost any event may come asynchronously, at any time, on the same topic, if it 
 - request topic: `cmd`
 - request payload: `n, s, w, e, u, d  (north, south, west, east, up, down)`
 - response topic: `msg`
-- response error:
-```
-{
-    "event": "move",
-    "status": "error",
-    "message": "You cannot go there"
-}
-```
-- response:
+- responses flow:
 
-```
-** Afther checking the movement can be done, the first event is fired. 
-   In this state the movement can be interrupted:
 
+1) The server receives the command and checks about the movement. 
+   This first step may lead to an error (see below, response errors).
+
+2) Once a movement is authorized, an event with status `begin` is fired. 
+   In this state the movement can be interrupted.
+
+3) Another movement check is done to ensure the movement can still be done.
+   The check may lead to an error.
+   If the movement is authorized again, it cannot be interrupted anymore and it is
+   immediately executed. An event with status `done` is emitted.
+   
+4) Once a movement is completed and the entity position changes, `map` and `look` events are fired as well.
+ 
+Events
+ 
+* Begin movement:
+```
 {
     "event": "move",
     "status": "begin",
-    "message": "You begin to move to <direction>"
+    "direction": <direction>
 }
+```
 
-** Right before moving this other event is fired. 
-   In this state the movement cannot be interrupted anymore:
+* Done movement:
+```
+{
+    "event": "move",
+    "status": "success",
+    "direction": <direction>
+}
+```
+* Terrain error:
+```
 
 {
     "event": "move",
-    "status": "done",
-    "message": "You move to <direction>"
+    "status": "error",
+    "code": "terrain",
+    "direction": <direction>
 }
 ```
-Once a movement is completed and the entity position changes, `getmap` and `look` events are fired as well.

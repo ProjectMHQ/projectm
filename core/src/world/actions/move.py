@@ -21,11 +21,21 @@ class DirectionEnum(enum.Enum):
     DOWN = 'd'
 
 
-MSG_NO_WALKABLE = {
-    "event": "move",
-    "status": "error",
-    "message": "You cannot go there"
-}
+def get_msg_no_walkable(d):
+    return {
+        "event": "move",
+        "status": "error",
+        "direction": "{}".format(d.name.lower()),
+        "code": "terrain"
+    }
+
+
+def get_msg_movement(d, status):
+    return {
+        "event": "move",
+        "status": status,
+        "direction": "{}".format(d.name.lower())
+    }
 
 
 def direction_to_coords_delta(direction: DirectionEnum) -> typing.Tuple:
@@ -54,33 +64,21 @@ async def move_entity(entity: Entity, direction: str):
     where = apply_delta_to_room_position(RoomPosition(pos.x, pos.y, pos.z), delta)
     room = await map_repository.get_room(where)
     if not room:
-        await entity.emit_msg(MSG_NO_WALKABLE)
+        await entity.emit_msg(get_msg_no_walkable(direction))
         return
 
     if not await room.walkable_by(entity):
-        await entity.emit_msg(MSG_NO_WALKABLE)
+        await entity.emit_msg(get_msg_no_walkable(direction))
         return
 
-    await entity.emit_msg(
-        {
-            "event": "move",
-            "status": "begin",
-            "message": "You begin to move to {}".format(direction.name.lower())
-        }
-    )
+    await entity.emit_msg(get_msg_movement(direction, "begin"))
     await asyncio.sleep(1)
     room = await map_repository.get_room(where)
     if not await room.walkable_by(entity):
-        await entity.emit_msg(MSG_NO_WALKABLE)
+        await entity.emit_msg(get_msg_no_walkable(direction))
         return
 
-    await entity.emit_msg(
-        {
-            "event": "move",
-            "status": "done",
-            "message": "You move to {}".format(direction.name.lower())
-        }
-    )
+    await entity.emit_msg(await entity.emit_msg(get_msg_movement(direction, "success")))
     await cast_entity(entity, PosComponent([where.x, where.y, where.z]))
     await asyncio.gather(
         getmap(entity),
