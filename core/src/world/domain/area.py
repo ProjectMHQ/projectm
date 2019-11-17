@@ -1,5 +1,7 @@
 import asyncio
 
+import time
+
 from core.src.world.builder import map_repository
 from core.src.world.components.pos import PosComponent
 
@@ -19,7 +21,7 @@ class Area:
 
     @property
     def min_y(self):
-        return self.center.y - int(self.size / 2)
+        return self.center.y - int(self.size / 2) - self.size % 2
 
     @property
     def max_y(self):
@@ -29,7 +31,7 @@ class Area:
         res = []
         from_x = max([self.min_x, map_repository.min_x])
         to_x = min([self.max_x, map_repository.max_x])
-        for y in range(self.max_y, self.min_y, -1):
+        for y in range(self.max_y, self.min_y - 1, -1):
             if map_repository.min_y <= y <= map_repository.max_y:
                 data = await map_repository.get_rooms_on_y(y, from_x, to_x+1, self.center.z)
 
@@ -56,19 +58,15 @@ class Area:
 
 
 if __name__ == '__main__':
+    ii = 0
     size = 9
-    a = Area(center=PosComponent([2, 19, 0]), square_size=size)
+    a = Area(center=PosComponent([5, 5, 0]), square_size=size)
     loop = asyncio.get_event_loop()
+    start = time.time()
     q = [(x and x.terrain.value or 0) for x in loop.run_until_complete(a.get_rooms())]
-
+    print('{:.4f}'.format(time.time() - start))
     print(q)
-
-    p = ""
-    c = {
-        0: " ",
-        1: "#",
-        2: "."
-    }
+    c = {0: " ", 1: "#", 2: "."}
     lines = []
     for i in range(size, len(q), size):
         lines.append([c[x] for x in q[i-size:i]])
@@ -80,7 +78,5 @@ if __name__ == '__main__':
             lines[i][len(line) - (half-ch)] = 'X'
             break
         ch += len(line)
-
     for line in lines:
         print("".join(line))
-
