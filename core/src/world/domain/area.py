@@ -31,9 +31,9 @@ class Area:
         res = []
         from_x = max([self.min_x, map_repository.min_x])
         to_x = min([self.max_x, map_repository.max_x])
-        for y in range(self.max_y, self.min_y - 1, -1):
+        for y in range(self.max_y, self.min_y, -1):
             if map_repository.min_y <= y <= map_repository.max_y:
-                data = await map_repository.get_rooms_on_y(y, from_x, to_x+1, self.center.z)
+                data = await map_repository.get_rooms_on_y(y, from_x, to_x + 1, self.center.z)
 
                 if self.min_x <= map_repository.min_x:
                     data = ([None] * (self.size - len(data))) + data
@@ -42,7 +42,7 @@ class Area:
                     data = data + ([None] * (self.size - len(data)))
 
                 res.extend(data)
-                assert len(data) == 9, (len(data), from_x, to_x)
+                assert len(data) == self.size, (len(data), from_x, to_x)
             else:
                 res.extend([None] * self.size)
         return res
@@ -64,11 +64,12 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     start = time.time()
     q = [(x and x.terrain.value or 0) for x in loop.run_until_complete(a.get_rooms())]
+    assert len(q) == size*size, len(q)
     print('{:.4f}'.format(time.time() - start))
     print(q)
     c = {0: " ", 1: "#", 2: "."}
     lines = []
-    for i in range(size, len(q), size):
+    for i in range(0, len(q)+size, size):
         lines.append([c[x] for x in q[i-size:i]])
     ch = 0
     half = int((size*size)/2) + 1
