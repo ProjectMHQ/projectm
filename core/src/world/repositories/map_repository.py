@@ -23,8 +23,8 @@ class RedisMapRepository:
         self._pipelines = None
         self._redis = None
 
-        self.max_y = 2000
-        self.max_x = 2000
+        self.max_y = 20
+        self.max_x = 59
         self.min_x = 0
         self.min_y = 0
 
@@ -34,7 +34,8 @@ class RedisMapRepository:
         return self._redis
 
     def _coords_to_int(self, x: int, y: int, bytesize=1) -> int:
-        return x * bytesize * self.mul + y * bytesize
+        intcoord = (y * bytesize * self.mul) + x * bytesize
+        return intcoord
 
     @staticmethod
     def _pack_coords(x: int, y: int, z: int) -> bytes:
@@ -140,18 +141,17 @@ class RedisMapRepository:
             )
         return response
 
-    async def get_rooms_on_y(self, x: int, from_y: int, to_y: int, z: int):
-        assert to_y > from_y
+    async def get_rooms_on_y(self, y: int, from_x: int, to_x: int, z: int):
+        assert to_x > from_x
         redis = await self.redis()
         pipeline = redis.pipeline()
         if z:
-            packed_coordinates = (self._pack_coords(x, y, z) for y in range(from_y, to_y))
+            packed_coordinates = (self._pack_coords(x, y, z) for x in range(from_x, to_x))
             pipeline.hmget(self.z_valued_rooms_data_key, *packed_coordinates)
         else:
-            k = self._coords_to_int(x, from_y)
-            pipeline.getrange(self.terrains_bitmap_key, k, k + ((to_y - from_y) - 1))
-
-        _ = [self._get_room_content(pipeline, x, y, z) for y in range(from_y, to_y)]
+            k = self._coords_to_int(from_x, y)
+            pipeline.getrange(self.terrains_bitmap_key, k, k + ((to_x - from_x) - 1))
+        _ = [self._get_room_content(pipeline, x, y, z) for x in range(from_x, to_x)]
         response = []
         i = 0
         result = await pipeline.execute()
@@ -162,7 +162,7 @@ class RedisMapRepository:
                 terrain = int(value)
                 response.append(
                     Room(
-                        position=RoomPosition(x, from_y + d, z),
+                        position=RoomPosition(from_x + d, y, z),
                         terrain=TerrainEnum(terrain),
                     )
                 )
@@ -170,11 +170,11 @@ class RedisMapRepository:
             for res in result[i+1]:
                 response[i].add_entity_ids(list(res))
         else:
-            terrains = struct.unpack('B'*(to_y - from_y), result[0])
-            for d in range(0, to_y-from_y):
+            terrains = struct.unpack('B' * (to_x - from_x), result[0])
+            for d in range(0, to_x - from_x):
                 response.append(
                     Room(
-                        position=RoomPosition(x, from_y + d, z),
+                        position=RoomPosition(from_x + d, y, z),
                         terrain=TerrainEnum(terrains[d]),
                         entity_ids=[int(x) for x in result[d+1]]
                     )

@@ -19,25 +19,24 @@ def parse(filename):
     max_y = len(lines) - 1
     max_x = max([len(line) for line in lines]) - 1
     rooms = []
-    for x in range(0, max_x):
-        for y in range(0, max_y):
-            try:
-                room_enum = terrains[lines[x][y]]
-                if room_enum:
-                    rooms.append(
-                        Room(
-                            position=RoomPosition(x=x, y=y, z=0),
-                            terrain=room_enum
-                        )
+    for y in range(max_y, -1, -1):
+        print('{:02d}'.format(max_y-y), lines[y])
+        for x in range(0, max_x + 1):
+            room_enum = terrains[lines[y][x]]
+            if room_enum:
+                rooms.append(
+                    Room(
+                        position=RoomPosition(x=x, y=max_y-y, z=0),
+                        terrain=room_enum
                     )
-            except IndexError:
-                pass
+                )
+    print('   ' + ''.join([str(x)[-1] for x in range(0, max_x+1)]))
     return rooms
 
 
 async def set_rooms(data):
     res = await map_repository.set_rooms(*data)
-    print('\n'.join([str(x) for x in res]))
+    #print('\n'.join([str(x) for x in res]))
 
 
 content = parse('./mappa_prova_1')

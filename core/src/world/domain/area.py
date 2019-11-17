@@ -19,7 +19,7 @@ class Area:
 
     @property
     def min_y(self):
-        return self.center.y - int(self.size / 2) - self.size % 2
+        return self.center.y - int(self.size / 2)
 
     @property
     def max_y(self):
@@ -27,16 +27,17 @@ class Area:
 
     async def get_rooms(self):
         res = []
-        from_y = max([self.min_y, map_repository.min_y])
-        to_y = min([self.max_y, map_repository.max_y])
-        for x in range(self.min_x, self.max_x):
-            if x >= map_repository.min_x:
-                data = await map_repository.get_rooms_on_y(x, from_y, to_y, self.center.z)
-                if map_repository.min_y > from_y:
-                    data = ([None] * (from_y - map_repository.min_y)) + data
-                if to_y > map_repository.max_y:
-                    data = data + ([None] * (to_y - map_repository.max_y))
+        from_x = max([self.min_x, map_repository.min_x])
+        to_x = min([self.max_x, map_repository.max_x])
+        for y in range(self.min_y, self.max_y):
+            if map_repository.min_y <= y <= map_repository.max_y:
+                data = await map_repository.get_rooms_on_y(y, from_x, to_x, self.center.z)
+                if map_repository.min_x > self.min_x:
+                    data = ([None] * abs(self.min_x - map_repository.min_x)) + data
+                if self.max_x > map_repository.max_x:
+                    data = data + ([None] * (self.max_x - map_repository.max_x))
                 res.extend(data)
+                assert len(data) == 9, len(data)
             else:
                 res.extend([None] * self.size)
         return res
@@ -53,7 +54,7 @@ class Area:
 
 if __name__ == '__main__':
     size = 9
-    a = Area(center=PosComponent([3, 2, 0]), square_size=size)
+    a = Area(center=PosComponent([1, 1, 0]), square_size=size)
     loop = asyncio.get_event_loop()
     q = [(x and x.terrain.value or 0) for x in loop.run_until_complete(a.get_rooms())]
     p = ""
@@ -62,6 +63,8 @@ if __name__ == '__main__':
         1: "#",
         2: "."
     }
+    lines = []
     for i in range(size, len(q), size):
-        p += "".join([c[x] for x in q[i-size:i]]) + '\n'
-    print(p)
+        lines.append("".join([c[x] for x in q[i-size:i]]) + '\n')
+    print(''.join(lines[::-1]))
+
