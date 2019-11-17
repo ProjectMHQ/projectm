@@ -3,11 +3,11 @@
 
 ***
 
-#### World commands and events for private namespaces
+### World commands and events for private namespaces
 
-Almost any event may come asynchronously, at any time, on the same topic, if it is requred to update the client status.
+Almost any event may come asynchronously, at any time, on the same topic, if it is required to update the client status.
 
-##### - look
+#### - look
 
 - request topic: `cmd`
 - request payload: `look [id]`
@@ -25,7 +25,7 @@ Almost any event may come asynchronously, at any time, on the same topic, if it 
 ```
 
 
-##### - getmap
+#### - getmap
 
 - request topic: `cmd`
 - request payload: `getmap`
@@ -44,13 +44,13 @@ Almost any event may come asynchronously, at any time, on the same topic, if it 
 }
 ```
 
-##### - movement
+#### - movement
 
 - request topic: `cmd`
 - request payload: `n, s, w, e, u, d  (north, south, west, east, up, down)`
 - response topic: `msg`
-- responses flow:
 
+Flow:
 
 1) The server receives the command and checks about the movement. 
    This first step may lead to an error (see below, response errors).
@@ -61,13 +61,14 @@ Almost any event may come asynchronously, at any time, on the same topic, if it 
 3) Another movement check is done to ensure the movement can still be done.
    The check may lead to an error.
    If the movement is authorized again, it cannot be interrupted anymore and it is
-   immediately executed. An event with status `done` is emitted.
+   immediately executed. An event with status `success` is emitted and the entity is 
+   finally moved into another location.
    
-4) Once a movement is completed and the entity position changes, `map` and `look` events are fired as well.
+4) Once a movement is completed and the entity position change, `map` and `look` events are fired as well.
  
-Events
+Events:
  
-* Begin movement:
+* Movement begin:
 ```
 {
     "event": "move",
@@ -76,7 +77,7 @@ Events
 }
 ```
 
-* Done movement:
+* Movement success:
 ```
 {
     "event": "move",
@@ -86,7 +87,6 @@ Events
 ```
 * Terrain error:
 ```
-
 {
     "event": "move",
     "status": "error",
