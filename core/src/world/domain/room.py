@@ -73,3 +73,6 @@ class Room:
             self.description,
             self.entity_ids or []
         )
+
+    async def walkable_by(self, entity):
+        return True
