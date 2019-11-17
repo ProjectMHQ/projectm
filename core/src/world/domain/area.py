@@ -1,6 +1,6 @@
 import asyncio
-
 import time
+import typing
 
 from core.src.world.builder import map_repository
 from core.src.world.components.pos import PosComponent
@@ -12,19 +12,19 @@ class Area:
         self.size = square_size
 
     @property
-    def min_x(self):
+    def min_x(self) -> int:
         return self.center.x - int(self.size / 2)
 
     @property
-    def max_x(self):
+    def max_x(self) -> int:
         return self.center.x + int(self.size / 2)
 
     @property
-    def min_y(self):
+    def min_y(self) -> int:
         return self.center.y - int(self.size / 2) - self.size % 2
 
     @property
-    def max_y(self):
+    def max_y(self) -> int:
         return self.center.y + int(self.size / 2)
 
     async def get_rooms(self):
@@ -47,13 +47,14 @@ class Area:
                 res.extend([None] * self.size)
         return res
 
-    async def get_map(self):
+    async def get_map(self) -> typing.Dict:
         rooms = await self.get_rooms()
         res = {'base': [], 'data': []}
-        for i, r in enumerate(rooms):
+        for index, r in enumerate(rooms):
             res['base'].append(r and r.terrain.value or 0)
             if r and r.content:
-                res['data'].append({'descr': r.content[-1], 'pos': i})
+                for entry in r.content:
+                    res['data'].append({'description': entry.description, 'pos': index})
         return res
 
 
