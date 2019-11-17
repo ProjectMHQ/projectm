@@ -3,6 +3,7 @@ import enum
 
 import typing
 
+from core.src.world import exceptions
 from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
@@ -62,7 +63,11 @@ async def move_entity(entity: Entity, direction: str):
     pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
     delta = direction_to_coords_delta(direction)
     where = apply_delta_to_room_position(RoomPosition(pos.x, pos.y, pos.z), delta)
-    room = await map_repository.get_room(where)
+    try:
+        room = await map_repository.get_room(where)
+    except exceptions.RoomError:
+        room = None
+
     if not room:
         await entity.emit_msg(get_msg_no_walkable(direction))
         return
@@ -71,9 +76,13 @@ async def move_entity(entity: Entity, direction: str):
         await entity.emit_msg(get_msg_no_walkable(direction))
         return
     await entity.emit_msg(get_msg_movement(direction, "begin"))
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
 
-    room = await map_repository.get_room(where)
+    try:
+        room = await map_repository.get_room(where)
+    except exceptions.RoomError:
+        room = None
+
     if not await room.walkable_by(entity):
         await entity.emit_msg(get_msg_no_walkable(direction))
         return

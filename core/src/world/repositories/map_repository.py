@@ -1,9 +1,12 @@
 import asyncio
 import struct
 
+import typing
 from aioredis import Redis
 from aioredis.commands import Pipeline
 
+from core.src.auth.logging_factory import LOGGER
+from core.src.world import exceptions
 from core.src.world.domain.room import Room, RoomPosition
 from core.src.world.utils.world_types import TerrainEnum
 
@@ -76,7 +79,12 @@ class RedisMapRepository:
         not external_pipeline and await pipeline.execute()
         return room
 
-    async def get_room(self, position: RoomPosition) -> Room:
+    async def get_room(self, position: RoomPosition) -> typing.Optional[Room]:
+        if (self.min_y > position.y) or (self.max_y < position.y):
+            raise exceptions.RoomError
+        if (self.min_x > position.x) or (self.max_x < position.x):
+            raise exceptions.RoomError
+
         redis = await self.redis()
         pipeline = redis.pipeline()
         if position.z:
@@ -88,6 +96,9 @@ class RedisMapRepository:
             pipeline.getrange(self.terrains_bitmap_key, k, k)
         self._get_room_content(pipeline, position.x, position.y, position.z)
         result = await pipeline.execute()
+        if not result or not result[0]:
+            LOGGER.core.error('Room Error. Request: %s, Result: %s', position, result)
+            raise exceptions.RoomError
         if position.z:
             terrain = int(result[0])
         else:

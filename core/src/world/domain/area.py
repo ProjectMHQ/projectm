@@ -52,5 +52,5 @@ class Area:
             res['base'].append(r and r.terrain.value or 0)
             if r and r.content:
                 for entry in r.content:
-                    res['data'].append({'description': entry.description, 'pos': index})
+                    res['data'].append({'description': entry, 'pos': index})
         return res
