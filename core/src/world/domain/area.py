@@ -29,7 +29,7 @@ class Area:
         res = []
         from_x = max([self.min_x, map_repository.min_x])
         to_x = min([self.max_x, map_repository.max_x])
-        for y in range(self.min_y, self.max_y):
+        for y in range(self.max_y, self.min_y, -1):
             if map_repository.min_y <= y <= map_repository.max_y:
                 data = await map_repository.get_rooms_on_y(y, from_x, to_x+1, self.center.z)
 
@@ -57,9 +57,12 @@ class Area:
 
 if __name__ == '__main__':
     size = 9
-    a = Area(center=PosComponent([0, 0, 0]), square_size=size)
+    a = Area(center=PosComponent([2, 19, 0]), square_size=size)
     loop = asyncio.get_event_loop()
     q = [(x and x.terrain.value or 0) for x in loop.run_until_complete(a.get_rooms())]
+
+    print(q)
+
     p = ""
     c = {
         0: " ",
@@ -78,6 +81,6 @@ if __name__ == '__main__':
             break
         ch += len(line)
 
-    for line in lines[::-1]:
+    for line in lines:
         print("".join(line))
 
