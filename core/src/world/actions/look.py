@@ -20,6 +20,7 @@ async def look(entity: Entity, *targets):
                 "event": "look",
                 "title": room.title,
                 "description": room.description,
-                "content": room.content
+                "content": room.content,
+                "pos": [room.position.x, room.position.y, room.position.z]
             }
         )
