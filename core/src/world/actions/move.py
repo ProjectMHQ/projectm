@@ -23,8 +23,7 @@ class DirectionEnum(enum.Enum):
 
 MSG_NO_WALKABLE = {
     "event": "move",
-    "error": "invalid",
-    "code": "no_walkable",
+    "status": "error",
     "message": "You cannot go there"
 }
 
@@ -49,28 +48,19 @@ def apply_delta_to_room_position(room_position: RoomPosition, delta: typing.Tupl
 
 
 async def move_entity(entity: Entity, direction: str):
-    try:
-        direction = DirectionEnum(direction.lower())
-    except Exception:
-        raise
-
+    direction = DirectionEnum(direction.lower())
     pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
     delta = direction_to_coords_delta(direction)
     where = apply_delta_to_room_position(RoomPosition(pos.x, pos.y, pos.z), delta)
     room = await map_repository.get_room(where)
     if not room:
-        await entity.emit_msg(
-            {
-                "event": "move",
-                "error": "invalid",
-                "code": "non_exists",
-                "message": "Location does not exists"
-            }
-        )
+        await entity.emit_msg(MSG_NO_WALKABLE)
         return
+
     if not await room.walkable_by(entity):
         await entity.emit_msg(MSG_NO_WALKABLE)
         return
+
     await entity.emit_msg(
         {
             "event": "move",
@@ -81,8 +71,9 @@ async def move_entity(entity: Entity, direction: str):
     await asyncio.sleep(1)
     room = await map_repository.get_room(where)
     if not await room.walkable_by(entity):
-        entity.emit_msg(MSG_NO_WALKABLE)
+        await entity.emit_msg(MSG_NO_WALKABLE)
         return
+
     await entity.emit_msg(
         {
             "event": "move",
