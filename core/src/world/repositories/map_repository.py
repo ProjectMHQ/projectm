@@ -24,7 +24,7 @@ class RedisMapRepository:
         self._redis = None
 
         self.max_y = 20
-        self.max_x = 59
+        self.max_x = 58
         self.min_x = 0
         self.min_y = 0
 

@@ -11,7 +11,7 @@ class Area:
 
     @property
     def min_x(self):
-        return self.center.x - int(self.size / 2) - self.size % 2
+        return self.center.x - int(self.size / 2)
 
     @property
     def max_x(self):
@@ -23,7 +23,7 @@ class Area:
 
     @property
     def max_y(self):
-        return self.center.y + int(self.size / 2) + self.size % 2
+        return self.center.y + int(self.size / 2)
 
     async def get_rooms(self):
         res = []
@@ -31,13 +31,16 @@ class Area:
         to_x = min([self.max_x, map_repository.max_x])
         for y in range(self.min_y, self.max_y):
             if map_repository.min_y <= y <= map_repository.max_y:
-                data = await map_repository.get_rooms_on_y(y, from_x, to_x, self.center.z)
-                if map_repository.min_x > self.min_x:
-                    data = ([None] * abs(self.min_x - map_repository.min_x)) + data
-                if self.max_x > map_repository.max_x:
-                    data = data + ([None] * (self.max_x - map_repository.max_x))
+                data = await map_repository.get_rooms_on_y(y, from_x, to_x+1, self.center.z)
+
+                if self.min_x <= map_repository.min_x:
+                    data = ([None] * (self.size - len(data))) + data
+
+                if self.max_x >= map_repository.max_x:
+                    data = data + ([None] * (self.size - len(data)))
+
                 res.extend(data)
-                assert len(data) == 9, len(data)
+                assert len(data) == 9, (len(data), from_x, to_x)
             else:
                 res.extend([None] * self.size)
         return res
@@ -54,7 +57,7 @@ class Area:
 
 if __name__ == '__main__':
     size = 9
-    a = Area(center=PosComponent([1, 1, 0]), square_size=size)
+    a = Area(center=PosComponent([0, 0, 0]), square_size=size)
     loop = asyncio.get_event_loop()
     q = [(x and x.terrain.value or 0) for x in loop.run_until_complete(a.get_rooms())]
     p = ""
@@ -65,6 +68,16 @@ if __name__ == '__main__':
     }
     lines = []
     for i in range(size, len(q), size):
-        lines.append("".join([c[x] for x in q[i-size:i]]) + '\n')
-    print(''.join(lines[::-1]))
+        lines.append([c[x] for x in q[i-size:i]])
+    ch = 0
+    half = int((size*size)/2) + 1
+    for i, line in enumerate(lines):
+        x = ch + len(line)
+        if x > half:
+            lines[i][len(line) - (half-ch)] = 'X'
+            break
+        ch += len(line)
+
+    for line in lines[::-1]:
+        print("".join(line))
 

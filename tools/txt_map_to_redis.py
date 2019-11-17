@@ -36,7 +36,7 @@ def parse(filename):
 
 async def set_rooms(data):
     res = await map_repository.set_rooms(*data)
-    #print('\n'.join([str(x) for x in res]))
+    print('\n'.join([str(x) for x in res]))
 
 
 content = parse('./mappa_prova_1')
