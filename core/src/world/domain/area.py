@@ -1,5 +1,3 @@
-import asyncio
-import time
 import typing
 
 from core.src.world.builder import map_repository
@@ -56,29 +54,3 @@ class Area:
                 for entry in r.content:
                     res['data'].append({'description': entry.description, 'pos': index})
         return res
-
-
-if __name__ == '__main__':
-    ii = 0
-    size = 9
-    a = Area(center=PosComponent([5, 5, 0]), square_size=size)
-    loop = asyncio.get_event_loop()
-    start = time.time()
-    q = [(x and x.terrain.value or 0) for x in loop.run_until_complete(a.get_rooms())]
-    assert len(q) == size*size, len(q)
-    print('{:.4f}'.format(time.time() - start))
-    print(q)
-    c = {0: " ", 1: "#", 2: "."}
-    lines = []
-    for i in range(0, len(q)+size, size):
-        lines.append([c[x] for x in q[i-size:i]])
-    ch = 0
-    half = int((size*size)/2) + 1
-    for i, line in enumerate(lines):
-        x = ch + len(line)
-        if x > half:
-            lines[i][len(line) - (half-ch)] = 'X'
-            break
-        ch += len(line)
-    for line in lines:
-        print("".join(line))
