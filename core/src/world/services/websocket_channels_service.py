@@ -71,7 +71,9 @@ class WebsocketChannelsService:
                 await self.socketio.emit('presence', 'PONG', namespace='/{}'.format(connection_id))
 
     def remove_handlers(self, channel):
-        self.socketio.emit('disconnect', '', '/{}'.format(channel.connection_id))
+        self.loop.create_task(
+            self.socketio.emit('disconnect', '', '/{}'.format(channel.connection_id))
+        )
         self.socketio.handlers.pop('/{}'.format(channel.connection_id), None)
 
     async def subscribe_pong_from_channels(self, connection_id: str):
@@ -99,7 +101,7 @@ class WebsocketChannelsService:
                 self.loop.create_task(
                     observer.on_message(
                         channel.connection_id,
-                        self.channels_cache[channel.connection_id],
+                        self.connections_statuses[channel.connection_id]['entity_id'],
                         data
                     )
                 )
@@ -152,11 +154,12 @@ class WebsocketChannelsService:
         self._pending_channels.put_nowait(channel)
 
     async def _check_connection_status(self, channel):
-        now = int(time.time())
-        self.channels_cache[channel.connection_id] = channel.entity_id
         if not self.connections_statuses.get(channel.connection_id):
             LOGGER.websocket_monitor.debug('Channel %s status never saved. Saving', channel)
-            self.connections_statuses[channel.connection_id] = {"seen_at": int(time.time())}
+            self.connections_statuses[channel.connection_id] = {
+                "seen_at": int(time.time()),
+                "entity_id": channel.entity_id
+            }
             await asyncio.gather(
                 self.subscribe_pong_from_channels(channel.connection_id),
                 self.bind_channel(channel)
@@ -167,23 +170,25 @@ class WebsocketChannelsService:
                 )
             )
         if self.connections_statuses[channel.connection_id].get('open'):
-            if not self.connections_statuses[channel.connection_id].get('last_ping') or now - \
+            if not self.connections_statuses[channel.connection_id].get('last_ping') or int(time.time()) - \
                     self.connections_statuses[channel.connection_id]['last_ping'] > self.ping_interval:
                 for observer in self._on_ping:
                     observer(channel.connection_id)
                 await self.ping_channel(channel.connection_id)
 
-        if (self.connections_statuses[channel.connection_id].get('last_pong') and
-            now - self.connections_statuses[channel.connection_id]['last_pong'] > self.ping_timeout) or \
-                (not self.connections_statuses[channel.connection_id].get('last_pong') and
-                 now - self.connections_statuses[channel.connection_id]['seen_at'] > self.ping_timeout):
-            LOGGER.websocket_monitor.info('Ping timeout for channel %s', channel)
-            for observer in self._on_delete_channel:
-                observer(channel.connection_id)
-            self.remove_channel(channel)
+        if self.connections_statuses[channel.connection_id].get('last_pong') \
+                and int(time.time()) - self.connections_statuses[channel.connection_id]['last_pong'] > \
+                self.ping_timeout:
+            self._remove_channel(channel)
 
-    def remove_channel(self, channel):
+        if not self.connections_statuses[channel.connection_id].get('last_pong') \
+                and int(time.time()) - self.connections_statuses[channel.connection_id]['seen_at'] > self.ping_timeout:
+            self._remove_channel(channel)
+
+    def _remove_channel(self, channel):
+        LOGGER.websocket_monitor.info('Ping timeout for channel %s', channel)
+        for observer in self._on_delete_channel:
+            observer(channel.connection_id)
         self.channels_repository.delete(channel.connection_id)
-        self.channels_cache.pop(channel.connection_id, None)
         self.connections_statuses.pop(channel.connection_id, None)
         self.remove_handlers(channel)

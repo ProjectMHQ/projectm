@@ -25,6 +25,8 @@ class TestSetGetRooms(TestCase):
         d = {}
         i = 0
         max_x, max_y, max_z = 25, 25, 5
+        sut.max_y = max_y
+        sut.max_x = max_x
         start = time.time()
         for x in range(0, max_x):
             for y in range(0, max_y):
@@ -120,6 +122,8 @@ class TestBigMap(TestCase):
         sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
         await (await sut.redis()).flushdb()
         max_x, max_y, max_z = 500, 500, 1
+        sut.max_y = max_y
+        sut.max_x = max_x
         start = time.time()
         print('\nBaking {}x{} map'.format(max_x, max_y))
         for x in range(0, max_x):
@@ -152,6 +156,8 @@ class TestMapLines(TestCase):
         sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
         await (await sut.redis()).flushdb()
         max_x, max_y = 50, 50
+        sut.max_y = max_y
+        sut.max_x = max_x
         start = time.time()
         print('\nBaking {}x{} map'.format(max_x, max_y))
         roomz = OrderedDict()
