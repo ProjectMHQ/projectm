@@ -96,7 +96,7 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
         def _on_cmd_answer(data):
             self.assertEqual(data,
                              {'event': 'look', 'title': 'Room Title', 'description': 'Room Description',
-                              'content': ['A three-headed monkey']})
+                              'content': ['A three-headed monkey'], 'pos': [1, 1, 0]})
             self.done()
 
         self._on_cmd_answer = _on_cmd_answer

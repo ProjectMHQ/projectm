@@ -1,7 +1,6 @@
 import typing
 
-from core.src.world.utils.world_types import TerrainEnum
-
+from core.src.world.utils.world_types import TerrainEnum, is_terrain_walkable
 
 RoomPosition = typing.NamedTuple(
     'RoomPosition', (
@@ -75,4 +74,4 @@ class Room:
         )
 
     async def walkable_by(self, entity):
-        return True
+        return is_terrain_walkable(self.terrain)

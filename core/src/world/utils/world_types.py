@@ -32,3 +32,12 @@ Transport = typing.NamedTuple(
         ('transport', callable)
     )
 )
+
+
+def is_terrain_walkable(terrain_type: TerrainEnum):
+    return {
+        TerrainEnum.NULL: False,
+        TerrainEnum.WALL_OF_BRICKS: False,
+        TerrainEnum.PATH: True,
+        TerrainEnum.GRASS: True
+    }[terrain_type]
