@@ -1,11 +1,13 @@
 import asyncio
 import random
 import time
-from unittest.mock import Mock, call, ANY
+from unittest.mock import call, ANY, Mock
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
+from core.src.world.builder import async_redis_data
 from core.src.world.components import ComponentTypeEnum
 from core.src.world.repositories.data_repository import RedisDataRepository
+from core.src.world.run_worker import worker_queue_manager
 from core.src.world.services.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 import binascii
@@ -14,7 +16,7 @@ import socketio
 from tests.unit.test_websocket_character_create_auth import BaseWSFlowTestCase
 
 
-class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
+class TestWebsocketCmd(BaseWSFlowTestCase):
     """
     small integration test for websocket flow. redis mocked.
     """
@@ -29,34 +31,22 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
         self._on_auth = []
         self.end = False
         self._private_channel_id = None
-        self._engaged_private_channel_id = None
-        self.max_execution_time = 55
+        self.max_execution_time = 120
         self._pings = []
-        self.wasconnected = False
-        self._expected_pings = 0
         self.loop = asyncio.get_event_loop()
         self.channels_factory = WebsocketChannelsRepository(self.redis)
         self.data_repository = RedisDataRepository(self.redis)
+        self.cmd_queue = asyncio.Queue()
         self.channels_monitor = WebsocketChannelsService(
             channels_repository=self.channels_factory,
             loop=self.loop,
             data_repository=self.data_repository,
-            ping_interval=1,
-            ping_timeout=5
+            ping_interval=30,
+            ping_timeout=50,
+            redis_queue=self.cmd_queue
         )
-
-    def _base_flow(self, entity_id=1):
-        self.current_entity_id = entity_id
-        redis_eid = '{}'.format(entity_id).encode()
-        self.redis.eval.side_effect = [redis_eid]
-        self.redis.hget.side_effect = [None, redis_eid]
-        self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
-        self.redis.hscan_iter.side_effect = lambda *a, **kw: []
-        self.redis.pipeline().hmset.side_effect = self._checktype
-        self._bake_user()
-        self._on_create.append(self._check_on_create)
-        self._run_test()
-        self.assertTrue(self.typeschecked)
+        self._on_cmd_answer = None
+        self.async_redis_data = async_redis_data
 
     async def do_ping_pong(self):
         private = socketio.AsyncClient()
@@ -65,44 +55,51 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
         @private.on('connect', namespace='/{}'.format(self._private_channel_id))
         async def connect():
             print('Connected to private namespace /{}'.format(self._private_channel_id))
-            self.loop.create_task(self.monitor_execution())
 
         @private.on('presence', namespace='/{}'.format(self._private_channel_id))
         async def presence(data):
+            assert self._private_channel_id
             assert data == 'PING'
+            await private.emit('presence', 'PONG', namespace='/{}'.format(self._private_channel_id))
             self._pings.append([int(time.time()), data])
 
+        @private.on('msg', namespace='/{}'.format(self._private_channel_id))
+        async def presence(data):
+            assert self._private_channel_id
+            self._on_cmd_answer and self._on_cmd_answer(data)
+
         await private.connect(
-            'http://127.0.0.1:{}'.format(self.socketioport),
-            namespaces=['/{}'.format(self._private_channel_id)],
+            'http://127.0.0.1:{}'.format(self.socketioport), namespaces=['/{}'.format(self._private_channel_id)]
         )
-        self._engaged_private_channel_id = self._private_channel_id
 
     def _on_server_delete_channel(self, channel_id):
-        print('SERVER DELETE CHANNEL ', channel_id)
-        assert channel_id == self._engaged_private_channel_id
-        self._engaged_private_channel_id = None
+        assert channel_id == self._private_channel_id, (channel_id, self._private_channel_id)
+        self._private_channel_id = None
 
-    def _on_ping_event(self, channel_id):
-        assert channel_id == self._engaged_private_channel_id
-        self._expected_pings += 1
+    def _start_worker(self):
+        worker_queue_manager.consumer = self.cmd_queue
+        self.loop.create_task(worker_queue_manager.run())
 
-    def _prepare_ping_pong(self):
+    def _prepare_test(self):
+        self._start_worker()
         self.redis.hscan_iter.side_effect = self._hscan_iter_side_effect
         self.ping_pong_starts_at = int(time.time())
-        self.channels_monitor.add_on_channel_delete_event(self._on_server_delete_channel)
-        self.channels_monitor.add_on_ping_event(self._on_ping_event)
         self.channels_monitor.set_socketio_instance(self.sio_server)
         self.loop.create_task(self.channels_monitor.start())
         self.loop.create_task(self.do_ping_pong())
+        self.loop.create_task(self._do_look_command())
 
-    async def monitor_execution(self):
-        while 1:
-            self.wasconnected = self.wasconnected or self.private.connected
-            await asyncio.sleep(0.1)
-            if self.wasconnected and not self._engaged_private_channel_id:
-                self.done()
-                break
+    async def _do_look_command(self):
+        await asyncio.sleep(1)
+        await self.private.emit('cmd', 'look', namespace='/{}'.format(self._private_channel_id))
+
+        def _on_cmd_answer(data):
+            self.assertEqual(data,
+                             {'event': 'look', 'title': 'Room Title', 'description': 'Room Description',
+                              'content': ['A three-headed monkey'], 'pos': [1, 1, 0]})
+            self.done()
+
+        self._on_cmd_answer = _on_cmd_answer
 
     def _hscan_iter_side_effect(self, p):
         """
@@ -110,30 +107,53 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
         """
         assert p == 'wschans', p
         return (x for x in ([
-            ('c:{}'.format(self._engaged_private_channel_id).encode(),
+            ('c:{}'.format(self._private_channel_id).encode(),
              '{},{}'.format(self.current_entity_id, self.ping_pong_starts_at).encode())
-        ] if self._engaged_private_channel_id else []))
+        ] if self._private_channel_id else []))
+
+    async def async_redis(self):
+        async def pp(v):
+            return v
+        self.async_redis_data.pipeline().execute.side_effect = [
+            pp([b'\x01', []]),
+            pp([b'\x01', []])
+        ]
+        return self.async_redis_data
+
+    def _cmd_base_flow(self, entity_id=1):
+        self.current_entity_id = entity_id
+        redis_eid = '{}'.format(entity_id).encode()
+        self.redis.eval.side_effect = [redis_eid]
+        self.redis.hget.side_effect = [None, redis_eid, b'[1, 1, 0]', b'[1, 1, 0]', b'[1, 1, 0]']
+        self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
+        self.redis.hscan_iter.side_effect = lambda *a, **kw: []
+        self.redis.pipeline().hmset.side_effect = self._checktype
+        self.async_redis_data.side_effect = self.async_redis
+        self.redis.pipeline().smembers.side_effect = [[]]
+        self._bake_user()
+        self._on_create.append(self._check_on_create)
+        self._run_test()
+        self.assertTrue(self.typeschecked)
 
     def test(self):
         self.redis.reset_mock()
+        self.async_redis_data.reset_mock()
 
         def _on_auth(*a, **kw):
             data = a[0]['data']
             self.assertEqual(data['character_id'], self._returned_character_id)
             self._private_channel_id = data['channel_id']
-            self._prepare_ping_pong()
+            self._prepare_test()
 
         self._on_auth = [_on_auth]
-        self._base_flow(entity_id=random.randint(1, 9999))
-        self.assertEqual(len(self._pings), self._expected_pings, msg="{} {}".format(len(self._pings), self._expected_pings))
-
+        self._cmd_base_flow(entity_id=random.randint(1, 9999))
         Mock.assert_called_with(self.redis.eval,
                                 "\n            local val = redis.call('bitpos', 'e:m', 0)"
                                 "\n            redis.call('setbit', 'e:m', val, 1)"
                                 "\n            return val\n            ",
                                 0)
         Mock.assert_called(self.redis.pipeline)
-
+        Mock.assert_called(self.redis.pipeline().execute)
         Mock.assert_has_calls(
             self.redis.pipeline().setbit,
             any_order=True,
@@ -170,4 +190,3 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
             ]
         )
         Mock.assert_called_with(self.redis.hscan_iter, 'wschans')
-        Mock.assert_called_with(self.redis.hdel, 'wschans', 'c:{}'.format(self._private_channel_id))

@@ -4,32 +4,34 @@ from unittest import TestCase
 from core.src.auth.builder import strict_redis
 from core.src.world.services.redis_queue import RedisMultipleQueuesPublisher, RedisQueueConsumer
 from core.src.world.services.worker_queue_service import WorkerQueueService
-from core.src.world.utils import async_redis_pool_factory
+from core.src.world.services.system_utils import get_redis_factory, RedisType
 
 
 class TestRedisMultiQueue(TestCase):
     def setUp(self):
-        strict_redis.flushdb(settings.REDIS_TEST_DB)
+        assert settings.INTEGRATION_TESTS
+        assert settings.RUNNING_TESTS
+        strict_redis.flushdb()
         self.loop = asyncio.get_event_loop()
         self.publisher = RedisMultipleQueuesPublisher(
-            async_redis_pool_factory,
+            get_redis_factory(RedisType.QUEUES),
             num_queues=5
         )
         self.consumers = [
-            RedisQueueConsumer(async_redis_pool_factory, x) for x in range(0, 5)
+            RedisQueueConsumer(get_redis_factory(RedisType.QUEUES), x) for x in range(0, 5)
         ]
 
     async def async_test(self):
-        ids = dict(
-            prova3asdfaaa1=0,
-            prova3=1,
-            prova2=2,
-            prova=3,
-            prova3asdfaa=4
-        )
+        ids = {
+            1: 0,
+            2: 1,
+            4: 2,
+            3: 3,
+            7: 4
+        }
         for cid, cidv in ids.items():
-            await self.publisher.put(cid, {'message': cid})
-            self.assertEqual(await self.consumers[cidv].get(), {'message': cid})
+            await self.publisher.put({'message': cid, 'e_id': cid, 'c': 'cmd'})
+            self.assertEqual(await self.consumers[cidv].get(), {'message': cid, 'e_id': cid, 'c': 'cmd'})
 
     def test(self):
         self.loop.run_until_complete(self.async_test())
@@ -38,16 +40,16 @@ class TestRedisMultiQueue(TestCase):
 class TestRedisWorkerQueueService(TestCase):
     def setUp(self):
         self.messages = []
-        strict_redis.flushdb(settings.REDIS_TEST_DB)
+        strict_redis.flushdb()
         self.loop = asyncio.get_event_loop()
         self.publisher = RedisMultipleQueuesPublisher(
-            async_redis_pool_factory,
+            get_redis_factory(RedisType.QUEUES),
             num_queues=5
         )
         self.workers = [
             WorkerQueueService(
                 self.loop,
-                RedisQueueConsumer(async_redis_pool_factory, x)
+                RedisQueueConsumer(get_redis_factory(RedisType.QUEUES), x)
             ) for x in range(0, 5)
         ]
 
@@ -60,7 +62,7 @@ class TestRedisWorkerQueueService(TestCase):
         for i, worker in enumerate(self.workers):
             self.loop.create_task(worker.run())
             self.observers.append(Obs())
-            worker.add_messages_observer('cmd', self.observers[i])
+            worker.add_queue_observer('cmd', self.observers[i])
 
     async def on_message(self, message):
         self.messages.append(message)
@@ -69,17 +71,20 @@ class TestRedisWorkerQueueService(TestCase):
         return
 
     async def async_test(self):
-        ids = dict(
-            prova3asdfaaa1=0,
-            prova3=1,
-            prova2=2,
-            prova=3,
-            prova3asdfaa=4
-        )
+        ids = {
+            1: 0,
+            2: 1,
+            4: 2,
+            3: 3,
+            7: 4
+        }
         for cid, cidv in ids.items():
-            await self.publisher.put(cid, {'c': 'cmd', 'e_id': cidv, 'd': cid})
+            await self.publisher.put({'c': 'cmd', 'e_id': cid, 'd': cidv})
+        await asyncio.sleep(0.5)
 
     def test(self):
+        ids = {0, 1, 2, 3, 4}
         self.loop.run_until_complete(self.async_test())
-        for i, msg in enumerate(self.messages):
-            assert i == msg['e_id']
+        for m in self.messages:
+            ids.remove(m['d'])
+        self.assertEqual(set(), ids)

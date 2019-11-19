@@ -8,3 +8,7 @@ class EntityAlreadySavedException(WorldException):
 
 class NotImplementedException(WorldException):
     pass
+
+
+class RoomError(WorldException):
+    pass

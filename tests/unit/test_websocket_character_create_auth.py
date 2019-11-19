@@ -1,11 +1,7 @@
 import random
 from unittest.mock import call, ANY, Mock
 import time
-
-from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 from core.src.world.components import ComponentTypeEnum
-from core.src.world.repositories.data_repository import RedisDataRepository
-from core.src.world.services.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 import asyncio
 import binascii
@@ -81,19 +77,6 @@ class BaseWSFlowTestCase(BakeUserTestCase):
         auth_token = self._get_websocket_token('world:auth', character_id=self._returned_character_id)
         self.loop.create_task(self._do_auth(auth_token))
 
-    def _base_flow(self, entity_id=1):
-        self.current_entity_id = entity_id
-        redis_eid = '{}'.format(entity_id).encode()
-        self.redis.eval.side_effect = [redis_eid]
-        self.redis.hget.side_effect = [None, redis_eid]
-        self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
-        self.redis.hscan_iter.side_effect = lambda *a, **kw: []
-        self.redis.pipeline().hmset.side_effect = self._checktype
-        self._bake_user()
-        self._on_create.append(self._check_on_create)
-        self._run_test()
-        self.assertTrue(self.typeschecked)
-
 
 class TestWebsocketCharacterAuthentication(BaseWSFlowTestCase):
     """
@@ -112,6 +95,19 @@ class TestWebsocketCharacterAuthentication(BaseWSFlowTestCase):
         self._private_channel_id = None
         self.max_execution_time = 54
         self.loop = asyncio.get_event_loop()
+
+    def _base_flow(self, entity_id=1):
+        self.current_entity_id = entity_id
+        redis_eid = '{}'.format(entity_id).encode()
+        self.redis.eval.side_effect = [redis_eid]
+        self.redis.hget.side_effect = [None, redis_eid]
+        self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
+        self.redis.hscan_iter.side_effect = lambda *a, **kw: []
+        self.redis.pipeline().hmset.side_effect = self._checktype
+        self._bake_user()
+        self._on_create.append(self._check_on_create)
+        self._run_test()
+        self.assertTrue(self.typeschecked)
 
     def test(self):
         self.redis.reset_mock()

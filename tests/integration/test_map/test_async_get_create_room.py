@@ -4,25 +4,29 @@ from collections import OrderedDict
 from unittest import TestCase
 import time
 
-from core.src.world.utils import async_redis_pool_factory
+from core.src.world.services.system_utils import get_redis_factory, RedisType
 from etc import settings
 from core.src.world.repositories.map_repository import RedisMapRepository
 from core.src.world.domain.room import Room, RoomPosition
-from core.src.world.world_types import TerrainEnum
+from core.src.world.utils.world_types import TerrainEnum
 
 
 class TestSetGetRooms(TestCase):
     def test(self):
+        assert settings.INTEGRATION_TESTS
+        assert settings.RUNNING_TESTS
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.async_test())
 
     async def async_test(self):
-        sut = RedisMapRepository(async_redis_pool_factory)
-        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
+        sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
+        await (await sut.redis()).flushdb()
         futures = []
         d = {}
         i = 0
         max_x, max_y, max_z = 25, 25, 5
+        sut.max_y = max_y
+        sut.max_x = max_x
         start = time.time()
         for x in range(0, max_x):
             for y in range(0, max_y):
@@ -33,9 +37,7 @@ class TestSetGetRooms(TestCase):
                         sut.set_room(
                             Room(
                                 position=RoomPosition(x=x, y=y, z=z),
-                                terrain=TerrainEnum.WALL_OF_BRICKS,
-                                title_id=d['{}.{}.{}'.format(x, y, z)][0],
-                                description_id=d['{}.{}.{}'.format(x, y, z)][1],
+                                terrain=TerrainEnum.WALL_OF_BRICKS
                             )
                         )
                     )
@@ -47,20 +49,11 @@ class TestSetGetRooms(TestCase):
                         RoomPosition(x, y, z)
                     )
                     self.assertEqual(
-                        [
-                            room.position.x, room.position.y, room.position.z,
-                            room.title_id,
-                            room.description_id
-
-                        ],
-                        [
-                            x, y, z,
-                            d['{}.{}.{}'.format(x, y, z)][0],
-                            d['{}.{}.{}'.format(x, y, z)][1],
-                        ]
+                        [room.position.x, room.position.y, room.position.z],
+                        [x, y, z]
                     )
         print('\n', i, ' rooms tested NO pipeline in {:.10f}'.format(time.time() - start))
-        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
+        await (await sut.redis()).flushdb()
         _start = time.time()
         roomz = OrderedDict()
         positions = []
@@ -72,8 +65,6 @@ class TestSetGetRooms(TestCase):
                     roomz['{}.{}.{}'.format(x, y, z)] = Room(
                         position=position,
                         terrain=TerrainEnum.WALL_OF_BRICKS,
-                        title_id=d['{}.{}.{}'.format(x, y, z)][0],
-                        description_id=d['{}.{}.{}'.format(x, y, z)][1],
                     )
         await sut.set_rooms(*roomz.values())
         rooms = await sut.get_rooms(*positions)
@@ -81,14 +72,10 @@ class TestSetGetRooms(TestCase):
             self.assertEqual(
                 [
                     room.position.x, room.position.y, room.position.z,
-                    room.title_id,
-                    room.description_id
 
                 ],
                 [
                     positions[i][0], positions[i][1], positions[i][2],
-                    roomz['{}.{}.{}'.format(room.position.x, room.position.y, room.position.z)].title_id,
-                    roomz['{}.{}.{}'.format(room.position.x, room.position.y, room.position.z)].description_id,
                 ]
             )
         print('\n', i+1, ' rooms tested WITH pipeline in {:.10f}'.format(time.time() - _start))
@@ -132,9 +119,11 @@ class TestBigMap(TestCase):
         loop.run_until_complete(self.asyncio_test())
 
     async def asyncio_test(self):
-        sut = RedisMapRepository(async_redis_pool_factory)
-        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
+        sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
+        await (await sut.redis()).flushdb()
         max_x, max_y, max_z = 500, 500, 1
+        sut.max_y = max_y
+        sut.max_x = max_x
         start = time.time()
         print('\nBaking {}x{} map'.format(max_x, max_y))
         for x in range(0, max_x):
@@ -145,8 +134,6 @@ class TestBigMap(TestCase):
                     roomz['{}.{}.{}'.format(x, y, z)] = Room(
                         position=position,
                         terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
-                        title_id=1,
-                        description_id=1,
                     )
             print(500 * x, ' rooms saved')
             await sut.set_rooms(*roomz.values())
@@ -166,46 +153,43 @@ class TestMapLines(TestCase):
         loop.run_until_complete(self.asyncio_test())
 
     async def asyncio_test(self):
-        sut = RedisMapRepository(async_redis_pool_factory)
-        await (await sut.redis()).flushdb(settings.REDIS_TEST_DB)
-        max_x, max_y, max_z = 50, 50, 1
+        sut = RedisMapRepository(get_redis_factory(RedisType.DATA))
+        await (await sut.redis()).flushdb()
+        max_x, max_y = 50, 50
+        sut.max_y = max_y
+        sut.max_x = max_x
         start = time.time()
         print('\nBaking {}x{} map'.format(max_x, max_y))
         roomz = OrderedDict()
         for x in range(0, max_x):
             for y in range(0, max_y):
-                for z in range(0, max_z):
-                    position = RoomPosition(x=x, y=y, z=z)
-                    roomz['{}.{}.{}'.format(x, y, z)] = Room(
-                        position=position,
-                        terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
-                        title_id=y+2,
-                        description_id=y+3,
-                        entity_ids=sorted([1, 2, 3, 4, y+5])
-                    )
+                position = RoomPosition(x=x, y=y, z=0)
+                roomz['{}.{}.{}'.format(x, y, 0)] = Room(
+                    position=position,
+                    terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
+                    entity_ids=sorted([1, 2, 3, 4, y+5])
+                )
         await sut.set_rooms(*roomz.values())
         print('\n{}x{} map baked in {}'.format(max_x, max_y, time.time() - start))
 
-        from_y, to_y = 0, 9
-        for x in range(1, 210, 10):
-            futures = [sut.get_rooms_on_y(0, from_y, to_y, 0) for _ in range(0, x)]
+        from_x, to_x = 0, 9
+        for yy in range(0, 210, 10):
+            futures = [sut.get_rooms_on_y(0, from_x, to_x, 0) for _ in range(0, yy)]
             s = time.time()
             res = await asyncio.gather(*futures)
             print(
-                'Get line of {} rooms. Concurrency: '.format(to_y-from_y), x,
+                'Get line of {} rooms. Concurrency: '.format(to_x-from_x), yy,
                 ' users. Time: {:.8f}'.format(time.time() - s)
             )
             for r in res:
-                for req in range(0, to_y):
-                    k = '{}.{}.{}'.format(0, from_y + req, 0)
+                for req in range(0, to_x):
+                    k = '{}.{}.{}'.format(from_x + req, 0, 0)
                     self.assertEqual(
                         [
-                            r[req].position.x, r[req].position.y, r[req].position.z,
-                            r[req].title_id, r[req].description_id, r[req].entity_ids],
+                            r[req].position.x, r[req].position.y, r[req].position.z, r[req].entity_ids],
                         [
                             roomz[k].position.x, roomz[k].position.y, roomz[k].position.z,
-                            roomz[k].title_id, roomz[k].description_id, sorted(roomz[k].entity_ids)
+                            sorted(roomz[k].entity_ids)
 
                         ]
                     )
-        print('Rooms: %s' '\n'.join([str(x) for x in r]))

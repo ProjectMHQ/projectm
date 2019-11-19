@@ -1,25 +1,26 @@
 from core.src.world.builder import map_repository, world_repository
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
+from core.src.world.entity import Entity
 
 
-async def look(
-    entity_id: int,
-    *targets,
-    callback=None,
-    errback=None
-):
+async def look(entity: Entity, *targets):
     if targets:
-        errback("Command Not Implemented")
-    else:
-        pos = world_repository.get_component_value_by_entity(entity_id, PosComponent)
-        room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
-        await callback(
+        await entity.emit_msg(
             {
-                {
-                        "title": room.title,
-                        "description": room.description,
-                        "content": room.content
-                }
+                "event": "look",
+                "error": "Command not implemented"
+            }
+        )
+    else:
+        pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
+        room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
+        await entity.emit_msg(
+            {
+                "event": "look",
+                "title": room.title,
+                "description": room.description,
+                "content": room.content,
+                "pos": [room.position.x, room.position.y, room.position.z]
             }
         )
