@@ -22,7 +22,7 @@ class WebsocketChannelsService:
             loop=None,
             data_repository=None,
             redis_queue=None,
-            ping_interval=30,
+            ping_interval=10,
             ping_timeout=90
     ):
         self.loop = loop
@@ -126,13 +126,14 @@ class WebsocketChannelsService:
         self.socketio.on(
             'connect', _on_connect, namespace='/{}'.format(channel.connection_id)
         )
+        await self.subscribe_pong_from_channels(channel.connection_id)
 
     async def ping_channel(self, connection_id: str):
+        await self.socketio.emit('presence', 'PING', namespace='/{}'.format(connection_id))
         LOGGER.websocket_monitor.debug('Sending PING message to connection_id [ %s ]', connection_id)
         self.connections_statuses[connection_id]['last_ping'] = int(time.time())
         for event_handler in self._on_ping:
             event_handler(connection_id)
-        await self.socketio.emit('presence', 'PING', namespace='/{}'.format(connection_id))
 
     async def start(self):
         self.loop.create_task(self.start_monitoring())
@@ -143,10 +144,11 @@ class WebsocketChannelsService:
     async def start_monitoring(self):
         while 1:
             await self.monitor_connection_statuses()
-            await asyncio.sleep(1)
+            await asyncio.sleep(5)
 
     async def monitor_connection_statuses(self):
-        channels = self.channels_repository.get_active_channels()
+        channels = list(self.channels_repository.get_active_channels())
+        LOGGER.websocket_monitor.debug('Monitoring %s', channels)
         for channel in channels:
             self.loop.create_task(self._check_connection_status(channel))
 
@@ -160,10 +162,7 @@ class WebsocketChannelsService:
                 "seen_at": int(time.time()),
                 "entity_id": channel.entity_id
             }
-            await asyncio.gather(
-                self.subscribe_pong_from_channels(channel.connection_id),
-                self.bind_channel(channel)
-            )
+            await self.bind_channel(channel)
             self._on_new_channel_observers and self.loop.create_task(
                 asyncio.gather(
                     *(observer.on_event(channel) for observer in self._on_new_channel_observers)
@@ -172,16 +171,16 @@ class WebsocketChannelsService:
         if self.connections_statuses[channel.connection_id].get('open'):
             if not self.connections_statuses[channel.connection_id].get('last_ping') or int(time.time()) - \
                     self.connections_statuses[channel.connection_id]['last_ping'] > self.ping_interval:
+                await self.ping_channel(channel.connection_id)
                 for observer in self._on_ping:
                     observer(channel.connection_id)
-                await self.ping_channel(channel.connection_id)
 
-        if self.connections_statuses[channel.connection_id].get('last_pong') \
+        elif self.connections_statuses[channel.connection_id].get('last_pong') \
                 and int(time.time()) - self.connections_statuses[channel.connection_id]['last_pong'] > \
                 self.ping_timeout:
             self._remove_channel(channel)
 
-        if not self.connections_statuses[channel.connection_id].get('last_pong') \
+        elif not self.connections_statuses[channel.connection_id].get('last_pong') \
                 and int(time.time()) - self.connections_statuses[channel.connection_id]['seen_at'] > self.ping_timeout:
             self._remove_channel(channel)
 
