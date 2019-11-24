@@ -1,20 +1,36 @@
 import asyncio
 from asyncio import coroutine
 
+from core.src.world.actions.services.scheduled_actions_factories import ScheduledAction
+from core.src.world.entity import Entity
+
 
 class SingletonActionsScheduler:
     def __init__(self, loop=asyncio.get_event_loop()):
         self.loop = loop
-        self.schedule = {}
+        self._scheduled_actions = {}
 
-    async def schedule(self, entity_id: int, action: coroutine):
-        curr_action = self.schedule.get(entity_id)
+    async def schedule(self, action: ScheduledAction):
+        curr_action = self._scheduled_actions.get(action.entity.entity_id)
         if not curr_action:
-            await self._schedule_action(entity_id, action)
-        if curr_action.can_be_stopped_by(action):
-            await curr_action.stop()
-            await self._schedule_action(entity_id, action)
+            await self._schedule_action(action)
+            return
+        if curr_action.can_be_stopped():
+            curr_action.stop()
+            await self._schedule_action(action)
 
-    async def _schedule_action(self, entity_id: int, action: coroutine):
-        self.schedule[entity_id] = action
-        self.loop.create_task(action.scheduled())
+    async def _schedule_action(self, action: ScheduledAction):
+        self._scheduled_actions[action.entity.entity_id] = action
+        self.loop.create_task(action.start(self))
+
+    async def stop_current_action_if_exists(self, entity: Entity):
+        curr_action = self._scheduled_actions.get(entity.entity_id)
+        if curr_action:
+            if not curr_action.can_be_stopped():
+                return False
+            await curr_action.blocking_stop()
+            self._scheduled_actions.pop(entity.entity_id, None)
+        return True
+
+    def remove_action_for_entity_id(self, entity_id: int):
+        self._scheduled_actions.pop(entity_id)
