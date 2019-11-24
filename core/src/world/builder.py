@@ -1,5 +1,5 @@
 from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
-from core.src.world.services.websocket_channels_service import WebsocketChannelsService
+from core.src.world.services.websocket.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository

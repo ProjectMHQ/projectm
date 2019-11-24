@@ -26,23 +26,7 @@ app = web.Application()
 sio.attach(app)
 
 
-WS_MOTD = """{}\n\n
-
-            #########################################################################
-
-            ██████╗ ██████╗  ██████╗      ██╗███████╗ ██████╗████████╗    ███╗   ███╗
-            ██╔══██╗██╔══██╗██╔═══██╗     ██║██╔════╝██╔════╝╚══██╔══╝    ████╗ ████║
-            ██████╔╝██████╔╝██║   ██║     ██║█████╗  ██║        ██║       ██╔████╔██║
-            ██╔═══╝ ██╔══██╗██║   ██║██   ██║██╔══╝  ██║        ██║       ██║╚██╔╝██║
-            ██║     ██║  ██║╚██████╔╝╚█████╔╝███████╗╚██████╗   ██║       ██║ ╚═╝ ██║
-            ╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚════╝ ╚══════╝ ╚═════╝   ╚═╝       ╚═╝     ╚═╝
-
-            #########################################################################
-
-                                                                    Ver 0.0.1
-
-                                                                ##################
-\n\n\n\n"""
+WS_MOTD = """Project M\n"""
 
 
 @sio.event
@@ -91,6 +75,6 @@ async def authenticate_character(sid, payload):
     channel = ws_channels_repository.create(entity_id)
     await websocket_channels_service.enable_channel(channel)
     await sio.emit('auth', {'data': {
-        'channel_id': channel.connection_id,
+        'channel_id': channel.id,
         'character_id': token['data']['character_id']
     }}, to=sid)

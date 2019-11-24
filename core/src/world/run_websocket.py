@@ -1,7 +1,7 @@
 from aiohttp import web
 
 from core.src.world.builder import websocket_channels_service
-from core.src.world.services.websocket_router import sio, loop, app
+from core.src.world.services.websocket.websocket_router import sio, loop, app
 from etc import settings
 
 if __name__ == '__main__':

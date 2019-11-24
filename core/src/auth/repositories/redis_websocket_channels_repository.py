@@ -11,8 +11,8 @@ WebsocketChannel = typing.NamedTuple(
     'WebsocketChannel',
     (
         ('entity_id', int),
-        ('connection_id', str),
-        ('created_at', int)
+        ('created_at', int),
+        ('id', str)
     )
 )
 
@@ -22,8 +22,8 @@ def _ws_channel_factory(a: typing.Tuple[bytes, bytes]) -> WebsocketChannel:
     data = v.decode().split(',')
     assert len(data) == 2
     return WebsocketChannel(
-        connection_id=k.decode().replace('c:', ''),
-        entity_id=data[0] and int(data[0]),
+        id=k.decode().replace('c:', ''),
+        entity_id=int(data[0]),
         created_at=int(data[1])
     )
 
@@ -40,7 +40,7 @@ class WebsocketChannelsRepository:
         connection_id = hmac.HMAC(key, '{}:{}'.format(entity_id, nonce).encode(), digestmod=hashlib.sha256).hexdigest()
         now = int(time.time())
         self.redis.hset(self._prefix, 'c:' + connection_id, '{},{}'.format(entity_id, now))
-        response = WebsocketChannel(entity_id=entity_id, connection_id=connection_id, created_at=now)
+        response = WebsocketChannel(entity_id=entity_id, id=connection_id, created_at=now)
         LOGGER.core.debug('WebsocketChannelsRespository.create(%s) response: %s', entity_id, response)
         return response
 
@@ -55,7 +55,7 @@ class WebsocketChannelsRepository:
             return
         data = res.decode().split(',')
         assert len(data) == 2, data
-        response = WebsocketChannel(entity_id=data[0], connection_id=connection_id, created_at=data[1])
+        response = WebsocketChannel(entity_id=data[0], id=connection_id, created_at=data[1])
         LOGGER.core.debug('WebsocketChannelsRespository.get(%s) response: %s', connection_id, response)
         return response
 

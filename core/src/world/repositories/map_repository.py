@@ -42,7 +42,7 @@ class RedisMapRepository:
 
     @staticmethod
     def _pack_coords(x: int, y: int, z: int) -> bytes:
-        return struct.pack('>HHH', x, y, z)
+        return struct.pack('>hhh', x, y, z)
 
     def _get_room_content(self, pipeline: Pipeline, x: int, y: int, z: int):
         pipeline.smembers(self.room_content_key.format(self._pack_coords(x, y, z)))

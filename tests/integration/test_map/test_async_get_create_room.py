@@ -125,17 +125,19 @@ class TestBigMap(TestCase):
         sut.max_y = max_y
         sut.max_x = max_x
         start = time.time()
+        i = 0
         print('\nBaking {}x{} map'.format(max_x, max_y))
-        for x in range(0, max_x):
+        for x in range(max_x, -1, -1):
             roomz = OrderedDict()
-            for y in range(0, max_y):
+            for y in range(max_y, -1, -1):
                 for z in range(0, max_z):
+                    i += 1
                     position = RoomPosition(x=x, y=y, z=z)
                     roomz['{}.{}.{}'.format(x, y, z)] = Room(
                         position=position,
                         terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
                     )
-            print(500 * x, ' rooms saved')
+            print(i, ' rooms saved')
             await sut.set_rooms(*roomz.values())
         print('\n{}x{} map baked in {}'.format(max_x, max_y, time.time() - start))
         start = time.time()
