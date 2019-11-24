@@ -116,7 +116,7 @@ class WebsocketChannelsService:
         self.channels_by_entity_id[channel.entity_id] = channel.id
 
     async def _on_close(self, channel, reason):
-        self.socketio.namespace_handlers.pop('/{}'.format(channel.id, None))
+        self.socketio.namespace_handlers.pop('/{}'.format(channel.id), None)
         self.channels_repository.delete(channel.id)
 
         if reason != 'concurrency':
