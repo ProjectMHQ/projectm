@@ -15,7 +15,10 @@ class CommandsObserver:
 
     async def on_message(self, message: typing.Dict):
         assert message['c'] == 'cmd'
+        from core.src.world.run_worker import singleton_actions_scheduler
+        await singleton_actions_scheduler.stop_current_action_if_exists(message['e_id'])
         try:
+
             data = message['d'].strip().split(' ')
             if not data:
                 raise TypeError('Empty command?')

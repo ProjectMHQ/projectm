@@ -60,9 +60,6 @@ def apply_delta_to_room_position(room_position: RoomPosition, delta: typing.Tupl
 
 
 async def move_entity(entity: Entity, direction: str):
-    from core.src.world.run_worker import singleton_actions_scheduler
-    await singleton_actions_scheduler.stop_current_action_if_exists(entity)
-
     direction = DirectionEnum(direction.lower())
     pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
     delta = direction_to_coords_delta(direction)
@@ -80,6 +77,8 @@ async def move_entity(entity: Entity, direction: str):
         await entity.emit_msg(get_msg_no_walkable(direction))
         return
     await entity.emit_msg(get_msg_movement(direction, "begin"))
+
+    from core.src.world.run_worker import singleton_actions_scheduler
     await singleton_actions_scheduler.schedule(
         cancellable_scheduled_action_factory(
             entity,

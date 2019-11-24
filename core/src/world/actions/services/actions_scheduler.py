@@ -23,13 +23,13 @@ class SingletonActionsScheduler:
         self._scheduled_actions[action.entity.entity_id] = action
         self.loop.create_task(action.start(self))
 
-    async def stop_current_action_if_exists(self, entity: Entity):
-        curr_action = self._scheduled_actions.get(entity.entity_id)
+    async def stop_current_action_if_exists(self, entity_id: int):
+        curr_action = self._scheduled_actions.get(entity_id)
         if curr_action:
             if not curr_action.can_be_stopped():
                 return False
             await curr_action.blocking_stop()
-            self._scheduled_actions.pop(entity.entity_id, None)
+            self._scheduled_actions.pop(entity_id, None)
         return True
 
     def remove_action_for_entity_id(self, entity_id: int):
