@@ -27,7 +27,7 @@ class PrivateNamespace(AsyncNamespace):
 
     async def on_connect(self, sid, data):
         if self.sid and self.sid != sid:
-            self.disconnect(self.sid)
+            await self.disconnect(self.sid)
         self.sid = sid
 
         self.connected = True
