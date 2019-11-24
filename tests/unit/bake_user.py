@@ -53,7 +53,7 @@ class BakeUserTestCase(TestCase):
         self.loop.run_until_complete(self.async_test())
 
     async def _run_websocket_server(self):
-        from core.src.world.services.websocket_router import app, sio
+        from core.src.world.services.websocket.websocket_router import app, sio
         self.sio_server = sio
         self.loop.create_task(_run_app(app, host='127.0.0.1', port=self.socketioport))
 

@@ -6,7 +6,7 @@ from unittest.mock import Mock, call, ANY
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 from core.src.world.components import ComponentTypeEnum
 from core.src.world.repositories.data_repository import RedisDataRepository
-from core.src.world.services.websocket_channels_service import WebsocketChannelsService
+from core.src.world.services.websocket.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 import binascii
 import os
