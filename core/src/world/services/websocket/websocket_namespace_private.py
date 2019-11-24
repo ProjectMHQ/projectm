@@ -27,9 +27,9 @@ class PrivateNamespace(AsyncNamespace):
 
     async def on_connect(self, sid, data):
         if self.sid and self.sid != sid:
-            await self.do_concurrency_close()
-
+            self.disconnect(self.sid)
         self.sid = sid
+
         self.connected = True
         self.connected_at = int(time.time())
         await self.redis_queue.put(
@@ -107,7 +107,8 @@ class PrivateNamespace(AsyncNamespace):
         )
         now = int(time.time())
         if now - self.last_ping_sent >= (self.ping_interval - self.ping_interval * 0.1):
-            await self.ping()
+            if self.connected:
+                await self.ping()
 
         ping_timeout = False
         if self.last_pong_received:

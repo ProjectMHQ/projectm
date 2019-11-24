@@ -16,7 +16,7 @@ class WebsocketChannelsService:
             data_repository=None,
             redis_queue=None,
             ping_interval=15,
-            ping_timeout=354444
+            ping_timeout=35
     ):
         self.loop = loop
         self.connections_statuses = {}

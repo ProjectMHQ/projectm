@@ -12,6 +12,7 @@ import binascii
 import os
 import socketio
 from tests.unit.test_websocket_character_create_auth import BaseWSFlowTestCase
+from core.src.world.builder import websocket_channels_service
 
 
 class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
@@ -37,13 +38,16 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
         self.loop = asyncio.get_event_loop()
         self.channels_factory = WebsocketChannelsRepository(self.redis)
         self.data_repository = RedisDataRepository(self.redis)
+        self.redis_queue = asyncio.Queue()
         self.channels_monitor = WebsocketChannelsService(
             channels_repository=self.channels_factory,
             loop=self.loop,
             data_repository=self.data_repository,
             ping_interval=1,
-            ping_timeout=5
+            ping_timeout=5,
+            redis_queue=self.redis_queue
         )
+        self.channels_monitor._pending_channels = websocket_channels_service._pending_channels
 
     def _base_flow(self, entity_id=1):
         self.current_entity_id = entity_id
@@ -78,20 +82,30 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
         )
         self._engaged_private_channel_id = self._private_channel_id
 
-    def _on_server_delete_channel(self, channel_id):
-        print('SERVER DELETE CHANNEL ', channel_id)
-        assert channel_id == self._engaged_private_channel_id
-        self._engaged_private_channel_id = None
+    def _on_server_delete_channel(self):
 
-    def _on_ping_event(self, channel_id):
-        assert channel_id == self._engaged_private_channel_id
-        self._expected_pings += 1
+        class Observer:
+            @staticmethod
+            async def on_event(channel):
+                print('SERVER DELETE CHANNEL ', channel.id)
+                assert channel.id == self._engaged_private_channel_id
+                self._engaged_private_channel_id = None
+        return Observer()
+
+    def _on_ping_event(self):
+
+        class Observer:
+            @staticmethod
+            async def on_event(channel):
+                assert channel.id == self._engaged_private_channel_id
+                self._expected_pings += 1
+        return Observer()
 
     def _prepare_ping_pong(self):
         self.redis.hscan_iter.side_effect = self._hscan_iter_side_effect
         self.ping_pong_starts_at = int(time.time())
-        self.channels_monitor.add_on_channel_delete_event(self._on_server_delete_channel)
-        self.channels_monitor.add_on_ping_event(self._on_ping_event)
+        self.channels_monitor.add_on_channel_delete_observer(self._on_server_delete_channel())
+        self.channels_monitor.add_on_ping_observer(self._on_ping_event())
         self.channels_monitor.set_socketio_instance(self.sio_server)
         self.loop.create_task(self.channels_monitor.start())
         self.loop.create_task(self.do_ping_pong())
