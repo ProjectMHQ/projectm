@@ -77,7 +77,10 @@ async def move_entity(entity: Entity, direction: str):
         return
     await entity.emit_msg(get_msg_movement(direction, "begin"))
     await asyncio.sleep(0.1)
+    await scheduler.schedule(entity, 0.1, _scheduled_move(entity, direction, where))
 
+
+async def _scheduled_move(entity: Entity, direction: DirectionEnum, where: RoomPosition):
     try:
         room = await map_repository.get_room(where)
     except exceptions.RoomError:
