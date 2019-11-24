@@ -66,5 +66,3 @@ class ScheduledAction:
             self.stopped = True
             self.done = True
         scheduler.remove_action_for_entity_id(self.entity.entity_id)
-
-

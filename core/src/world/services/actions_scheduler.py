@@ -1,8 +1,6 @@
 import asyncio
-from asyncio import coroutine
 
-from core.src.world.actions.services.scheduled_actions_factories import ScheduledAction
-from core.src.world.entity import Entity
+from core.src.world.actions.scheduled_actions_factories import ScheduledAction
 
 
 class SingletonActionsScheduler:
@@ -28,9 +26,9 @@ class SingletonActionsScheduler:
         if curr_action:
             if not curr_action.can_be_stopped():
                 return False
-            await curr_action.blocking_stop()
+            curr_action.stop()
             self._scheduled_actions.pop(entity_id, None)
         return True
 
     def remove_action_for_entity_id(self, entity_id: int):
-        self._scheduled_actions.pop(entity_id)
+        self._scheduled_actions.pop(entity_id, None)

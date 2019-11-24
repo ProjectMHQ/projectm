@@ -3,7 +3,7 @@ import asyncio
 import socketio
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.actions.services.actions_scheduler import SingletonActionsScheduler
+from core.src.world.services.actions_scheduler import SingletonActionsScheduler
 from core.src.world.services.redis_queue import RedisQueueConsumer
 from core.src.world.services.socketio_interface import SocketioTransportInterface
 from core.src.world.services.system_utils import RedisType, get_redis_factory

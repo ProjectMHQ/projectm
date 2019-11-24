@@ -76,12 +76,19 @@ Events:
     "direction": <direction>
 }
 ```
-
 * Movement success:
 ```
 {
     "event": "move",
     "status": "success",
+    "direction": <direction>
+}
+```
+* Movement interrupted:
+```
+{
+    "event": "move",
+    "status": "canceled",
     "direction": <direction>
 }
 ```

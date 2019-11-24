@@ -4,10 +4,11 @@ import enum
 import typing
 
 from core.src.world import exceptions
+from core.src.world.actions import singleton_scheduled_action
 from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
-from core.src.world.actions.services.scheduled_actions_factories import cancellable_scheduled_action_factory
+from core.src.world.actions.scheduled_actions_factories import cancellable_scheduled_action_factory
 from core.src.world.builder import world_repository, map_repository
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
@@ -59,6 +60,7 @@ def apply_delta_to_room_position(room_position: RoomPosition, delta: typing.Tupl
     )
 
 
+@singleton_scheduled_action
 async def move_entity(entity: Entity, direction: str):
     direction = DirectionEnum(direction.lower())
     pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
