@@ -3,6 +3,7 @@ import asyncio
 import socketio
 
 from core.src.auth.logging_factory import LOGGER
+from core.src.world.services.actions_scheduler import SingletonActionsScheduler
 from core.src.world.services.redis_queue import RedisQueueConsumer
 from core.src.world.services.socketio_interface import SocketioTransportInterface
 from core.src.world.services.system_utils import RedisType, get_redis_factory
@@ -23,6 +24,8 @@ transport = SocketioTransportInterface(
 )
 cmds_observer = commands_observer_factory(transport)
 connections_observer = ConnectionsObserver(transport)
+
+singleton_actions_scheduler = SingletonActionsScheduler()
 
 worker_queue_manager.add_queue_observer('connected', connections_observer)
 worker_queue_manager.add_queue_observer('cmd', cmds_observer)

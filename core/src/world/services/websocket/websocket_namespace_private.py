@@ -40,6 +40,7 @@ class PrivateNamespace(AsyncNamespace):
                 'c': 'connected'
             }
         )
+        await self.ping()
         await self.observer.on_connect(self.channel)
 
     async def on_disconnect(self, sid):
