@@ -16,7 +16,7 @@ class WebsocketChannelsService:
             data_repository=None,
             redis_queue=None,
             ping_interval=15,
-            ping_timeout=3500
+            ping_timeout=35
     ):
         self.loop = loop
         self.connections_statuses = {}
@@ -97,7 +97,9 @@ class WebsocketChannelsService:
 
     async def _close_other_namespaces_for_entity(self, channel):
         if channel.entity_id in self.channels_by_entity_id:
-            namespace = self.socketio.namespace_handlers['/{}'.format(self.channels_by_entity_id[channel.entity_id])]
+            namespace = self.socketio.namespace_handlers[
+                '/{}'.format(self.channels_by_entity_id[channel.entity_id])
+            ]
             await namespace.do_concurrency_close()
 
     async def activate_namespace(self, channel):

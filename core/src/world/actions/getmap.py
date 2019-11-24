@@ -14,7 +14,7 @@ async def getmap(entity: Entity):
             "event": "map",
             "base": area_map["base"],
             "data": area_map["data"],
-            "shape": area.size
+            "shape": [area.size, area.size]  # placeholder for rows,cols 
         },
         topic="map"
     )
