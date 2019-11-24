@@ -116,7 +116,13 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
             return v
         self.async_redis_data.pipeline().execute.side_effect = [
             pp([b'\x01', []]),
-            pp([b'\x01', []])
+            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
+            pp([b'\x01', []]),
         ]
         return self.async_redis_data
 
@@ -124,7 +130,9 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
         self.current_entity_id = entity_id
         redis_eid = '{}'.format(entity_id).encode()
         self.redis.eval.side_effect = [redis_eid]
-        self.redis.hget.side_effect = [None, redis_eid, b'[1, 1, 0]', b'[1, 1, 0]', b'[1, 1, 0]']
+        self.redis.hget.side_effect = [
+            None, redis_eid, b'[1, 1, 0]', b'[1, 1, 0]', b'[1, 1, 0]', b'[1, 1, 0]'
+        ]
         self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
         self.redis.hscan_iter.side_effect = lambda *a, **kw: []
         self.redis.pipeline().hmset.side_effect = self._checktype
