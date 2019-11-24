@@ -90,7 +90,7 @@ async def _scheduled_move(entity: Entity, direction: DirectionEnum, where: RoomP
         await entity.emit_msg(get_msg_no_walkable(direction))
         return
 
-    await entity.emit_msg(await entity.emit_msg(get_msg_movement(direction, "success")))
+    await entity.emit_msg(get_msg_movement(direction, "success"))
     await cast_entity(entity, PosComponent([where.x, where.y, where.z]))
     await asyncio.gather(
         getmap(entity),

@@ -2,6 +2,7 @@ import asyncio
 import typing
 
 from core.src.world.actions.cast import cast_entity
+from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
 from core.src.world.builder import world_repository
 from core.src.world.components.pos import PosComponent
@@ -29,6 +30,7 @@ class ConnectionsObserver:
             await cast_entity(entity, get_base_room_for_entity(entity))
             await self.greet(entity)
         await look(entity)
+        await getmap(entity)
 
     async def greet(self, entity: Entity):
         await entity.emit_msg(  # FIXME TEST - Remove
