@@ -5,7 +5,7 @@ from core.src.world.components.pos import PosComponent
 
 
 class Area:
-    def __init__(self, center: PosComponent, square_size=9):
+    def __init__(self, center: PosComponent, square_size=15):
         self.center = center
         self.size = square_size
 
