@@ -1,6 +1,4 @@
-import asyncio
 import socketio
-from aiohttp import web
 import time
 
 from core.src.world.builder import world_repository, websocket_channels_service
@@ -20,10 +18,7 @@ sio_settings = dict(client_manager=mgr, async_mode='aiohttp')
 if settings.ENABLE_CORS:
     sio_settings['cors_allowed_origins'] = '*'
 
-loop = asyncio.get_event_loop()
 sio = socketio.AsyncServer(**sio_settings)
-app = web.Application()
-sio.attach(app)
 
 
 WS_MOTD = """Project M\n"""
@@ -75,6 +70,6 @@ async def authenticate_character(sid, payload):
     channel = ws_channels_repository.create(entity_id)
     await websocket_channels_service.enable_channel(channel)
     await sio.emit('auth', {'data': {
-        'channel_id': channel.connection_id,
+        'channel_id': channel.id,
         'character_id': token['data']['character_id']
     }}, to=sid)

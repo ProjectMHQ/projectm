@@ -47,6 +47,7 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
         )
         self._on_cmd_answer = None
         self.async_redis_data = async_redis_data
+        self.ping_timeout = False
 
     async def do_ping_pong(self):
         private = socketio.AsyncClient()
@@ -59,7 +60,10 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
         @private.on('presence', namespace='/{}'.format(self._private_channel_id))
         async def presence(data):
             assert self._private_channel_id
-            assert data == 'PING'
+            if not self.ping_timeout:
+                assert data == 'PING'
+            else:
+                assert data in ('PING', 'PING TIMEOUT')
             await private.emit('presence', 'PONG', namespace='/{}'.format(self._private_channel_id))
             self._pings.append([int(time.time()), data])
 
@@ -116,12 +120,15 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
             return v
         self.async_redis_data.pipeline().execute.side_effect = [
             pp([b'\x01', []]),
-            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
-            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
-            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
-            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
-            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
-            pp([b'\x01\x01\x01\x01\x01\x01', [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01\x01\x01\x01', [], [], [], [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01\x01\x01\x01', [], [], [], [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01\x01\x01\x01', [], [], [], [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01\x01\x01\x01', [], [], [], [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01\x01\x01\x01', [], [], [], [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01\x01\x01\x01', [], [], [], [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01\x01\x01\x01', [], [], [], [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01\x01\x01\x01', [], [], [], [], [], [], [], [], []]),
+            pp([b'\x01\x01\x01\x01\x01\x01\x01\x01\x01', [], [], [], [], [], [], [], [], []]),
             pp([b'\x01', []]),
         ]
         return self.async_redis_data

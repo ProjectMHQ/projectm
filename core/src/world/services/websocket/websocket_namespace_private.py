@@ -26,6 +26,9 @@ class PrivateNamespace(AsyncNamespace):
         self.sid = None
 
     async def on_connect(self, sid, data):
+        LOGGER.websocket_monitor.debug(
+            'Session %s connected to channel %s (entity %s)', sid, self.channel.id, self.channel.entity_id
+        )
         if self.sid and self.sid != sid:
             await self.disconnect(self.sid)
         self.sid = sid
