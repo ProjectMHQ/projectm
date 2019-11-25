@@ -16,7 +16,7 @@ class WebsocketChannelsService:
             data_repository=None,
             redis_queue=None,
             ping_interval=15,
-            ping_timeout=3500
+            ping_timeout=35
     ):
         self.loop = loop
         self.connections_statuses = {}
@@ -68,6 +68,7 @@ class WebsocketChannelsService:
         while 1:
             channel = await self._pending_channels.get()
             self.loop.create_task(self._activate_pending_channel(channel))
+            await asyncio.sleep(0.01)
 
     async def bootstrap_server(self):
         channels = list(self.channels_repository.get_active_channels())
@@ -89,7 +90,7 @@ class WebsocketChannelsService:
             for observer in self._on_delete_channel_observers:
                 self.loop.create_task(observer.on_event(channel))
 
-        elif channel.id not in self.socketio.handlers.keys():
+        elif '/{}'.format(channel.id) not in self.socketio.namespace_handlers:
             await self._close_other_namespaces_for_entity(channel)
             await self.activate_namespace(channel)
             for observer in self._on_new_channel_observers:
@@ -97,7 +98,9 @@ class WebsocketChannelsService:
 
     async def _close_other_namespaces_for_entity(self, channel):
         if channel.entity_id in self.channels_by_entity_id:
-            namespace = self.socketio.namespace_handlers['/{}'.format(self.channels_by_entity_id[channel.entity_id])]
+            namespace = self.socketio.namespace_handlers[
+                '/{}'.format(self.channels_by_entity_id[channel.entity_id])
+            ]
             await namespace.do_concurrency_close()
 
     async def activate_namespace(self, channel):
@@ -113,7 +116,7 @@ class WebsocketChannelsService:
         self.channels_by_entity_id[channel.entity_id] = channel.id
 
     async def _on_close(self, channel, reason):
-        self.socketio.namespace_handlers.pop('/{}'.format(channel.id, None))
+        self.socketio.namespace_handlers.pop('/{}'.format(channel.id), None)
         self.channels_repository.delete(channel.id)
 
         if reason != 'concurrency':

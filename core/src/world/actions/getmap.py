@@ -7,12 +7,14 @@ from core.src.world.entity import Entity
 async def getmap(entity: Entity):
     pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
     assert pos
-    area_map = await Area(pos).get_map()
+    area = Area(pos)
+    area_map = await area.get_map()
     await entity.emit_msg(
         {
             "event": "map",
             "base": area_map["base"],
-            "data": area_map["data"]
+            "data": area_map["data"],
+            "shape": [area.size, area.size]  # placeholder for rows,cols
         },
         topic="map"
     )

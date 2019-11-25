@@ -17,11 +17,10 @@ loop = asyncio.get_event_loop()
 async_redis_queues = get_redis_factory(RedisType.QUEUES)
 queue = RedisQueueConsumer(async_redis_queues, 0)
 worker_queue_manager = WorkerQueueService(loop, queue)
-transport = SocketioTransportInterface(
-    socketio.AsyncRedisManager(
-        'redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT)
-    )
+mgr = socketio.AsyncRedisManager(
+    'redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT)
 )
+transport = SocketioTransportInterface(socketio.AsyncServer(client_manager=mgr))
 cmds_observer = commands_observer_factory(transport)
 connections_observer = ConnectionsObserver(transport)
 

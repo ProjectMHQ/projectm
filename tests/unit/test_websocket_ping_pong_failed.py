@@ -34,7 +34,7 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
         self.max_execution_time = 55
         self._pings = []
         self.wasconnected = False
-        self._expected_pings = 0
+        self._expected_pings = 1
         self.loop = asyncio.get_event_loop()
         self.channels_factory = WebsocketChannelsRepository(self.redis)
         self.data_repository = RedisDataRepository(self.redis)
@@ -73,7 +73,10 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
 
         @private.on('presence', namespace='/{}'.format(self._private_channel_id))
         async def presence(data):
-            assert data == 'PING'
+            if not self.ping_timeout:
+                assert data == 'PING'
+            else:
+                assert data in ('PING', 'PING TIMEOUT')
             self._pings.append([int(time.time()), data])
 
         await private.connect(
@@ -129,6 +132,7 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
         ] if self._engaged_private_channel_id else []))
 
     def test(self):
+        self.ping_timeout = True
         self.redis.reset_mock()
 
         def _on_auth(*a, **kw):
