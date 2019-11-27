@@ -36,7 +36,6 @@ class Room:
 
     def add_entity_ids(self, *data: int):
         self.entity_ids.extend([x for x in data])
-
     """
     I still have to handle title, description, etc... 
     this is a placeholder for testing
