@@ -45,6 +45,8 @@ class TestMapArea(TestCase):
         await map_repository.set_rooms(*self.content)
 
     async def _get_map(self, x, y):
+        map_repository.max_x = 58
+        map_repository.max_y = 20
         size = 9
         a = Area(center=PosComponent([x, y, 0]), square_size=size)
         q = [(x and x.terrain.value or 0) for x in await a.get_rooms()]
