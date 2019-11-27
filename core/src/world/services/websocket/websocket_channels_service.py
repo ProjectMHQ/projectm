@@ -119,7 +119,7 @@ class WebsocketChannelsService:
         self.socketio.namespace_handlers.pop('/{}'.format(channel.id), None)
         self.channels_repository.delete(channel.id)
 
-        if reason != 'concurrency':
+        if channel.id == self.channels_by_entity_id[channel.channel.entity_id]:
             self.channels_by_entity_id.pop(channel.entity_id, None)
 
         for observer in self._on_delete_channel_observers:

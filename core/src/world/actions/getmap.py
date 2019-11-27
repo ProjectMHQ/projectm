@@ -1,3 +1,6 @@
+import time
+
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.builder import world_repository
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
@@ -5,6 +8,7 @@ from core.src.world.entity import Entity
 
 
 async def getmap(entity: Entity):
+    start = time.time()
     pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
     assert pos
     area = Area(pos)
@@ -18,3 +22,4 @@ async def getmap(entity: Entity):
         },
         topic="map"
     )
+    LOGGER.websocket_monitor.debug('Map served in %s', '{:.4f}'.format(time.time() - start))

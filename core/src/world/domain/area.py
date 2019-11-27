@@ -1,11 +1,14 @@
 import typing
 
+import time
+
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.builder import map_repository
 from core.src.world.components.pos import PosComponent
 
 
 class Area:
-    def __init__(self, center: PosComponent, square_size=15):
+    def __init__(self, center: PosComponent, square_size=11):
         self.center = center
         self.size = square_size
 
@@ -46,7 +49,9 @@ class Area:
         return res
 
     async def get_map(self) -> typing.Dict:
+        start = time.time()
         rooms = await self.get_rooms()
+        LOGGER.websocket_monitor.debug('Rooms fetched in in %s', '{:.4f}'.format(time.time() - start))
         res = {'base': [], 'data': []}
         for index, r in enumerate(rooms):
             res['base'].append(r and r.terrain.value or 0)
