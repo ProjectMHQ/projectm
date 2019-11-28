@@ -3,7 +3,6 @@ import typing
 import time
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.builder import map_repository
 from core.src.world.components.pos import PosComponent
 
 
@@ -34,6 +33,8 @@ class Area:
         return self.center.y + int(self.size / 2)
 
     async def get_rooms(self):
+        from core.src.world.builder import map_repository
+
         res = []
         from_x = max([self.min_x, map_repository.min_x])
         to_x = min([self.max_x, map_repository.max_x])

@@ -5,7 +5,7 @@ import typing
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.domain.area import Area
 from core.src.world.entity import Entity
-from core.src.world.services.redis_pubsub_service import PubSub
+from core.src.world.services.redis_pubsub_interface import PubSub
 
 
 class RedisPubSubEventsSubscriberService:

@@ -1,5 +1,8 @@
 from enum import Enum
-from core.src.world.services.redis_pubsub_service import PubSub
+
+import typing
+
+from core.src.world.services.redis_pubsub_interface import PubSub
 
 
 class EventType(Enum):
@@ -10,14 +13,14 @@ class EventType(Enum):
     ENTITY_DO_PUBLIC_ACTION = 5
 
 
-class RedisPubSubEventsEmitterService:
+class RedisPubSubEventsPublisherService:
     def __init__(self, pubsub: PubSub):
         self.pubsub = pubsub
         self._redis = None
-        self._prefix = 'ev:r:'
+        self._rooms_events_prefix = 'ev:r:'
 
-    def pos_to_key(self, room_position):
-        return self._prefix + room_position.x + ':' + room_position.y + ':' + room_position.z
+    def pos_to_key(self, pos):
+        return '{}:{}:{}:{}'.format(self._rooms_events_prefix, pos.x, pos.y, pos.z)
 
     async def on_entity_left_room(self, entity, room_position):
         msg = {
@@ -55,9 +58,9 @@ class RedisPubSubEventsEmitterService:
         }
         await self.pubsub.publish(self.pos_to_key(room_position), msg)
 
-    async def on_entity_do_public_action(self, entity, room_position, action_public_message):
+    async def on_entity_do_public_action(self, entity, room_position, action_public_payload: typing.Dict):
         msg = {
-            "m": action_public_message,
+            "p": action_public_payload,
             "en": entity.entity_id,
             "ev": EventType.ENTITY_DO_PUBLIC_ACTION.value,
             "s": 1  # todo fixme

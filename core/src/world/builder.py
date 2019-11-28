@@ -1,4 +1,7 @@
 from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
+from core.src.world.services.redis_pubsub_interface import PubSub
+from core.src.world.services.redis_pubsub_publisher_service import RedisPubSubEventsPublisherService
+from core.src.world.services.redis_pubsub_subscriber_service import RedisPubSubEventsSubscriberService
 from core.src.world.services.websocket.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 
@@ -28,3 +31,6 @@ websocket_channels_service = WebsocketChannelsService(
     data_repository=world_repository,
     redis_queue=redis_queues_service
 )
+pubsub = PubSub(async_redis_data)
+events_subscriber_service = RedisPubSubEventsSubscriberService(pubsub)
+events_publisher_service = RedisPubSubEventsPublisherService(pubsub)

@@ -5,25 +5,22 @@
 
 import asyncio
 import json
-import pickle
 import async_generator
 
 import aioredis
 import typing
 
-import time
-
 
 class PubSub:
     # pylint: disable=R0902, too-many-instance-attributes
-    _TERMINATE = object()
+    _TERMINATE = "EXTERMINATE"
 
     def __init__(self,
-                 redis: aioredis.Redis,
-                 serializer=pickle.dumps,
-                 deserializer=pickle.loads) -> None:
+                 redis: callable,
+                 serializer=json.dumps,
+                 deserializer=json.loads) -> None:
 
-        self.redis = redis
+        self._redis_factory = redis
         self.serializer = serializer
         self.deserializer = deserializer
 
@@ -34,6 +31,12 @@ class PubSub:
             aioredis.abc.AbcChannel,
             typing.Set[asyncio.Queue],
         ] = {}
+        self._redis = None
+        
+    async def redis(self) -> aioredis.Redis:
+        if not self._redis:
+            self._redis = await self._redis_factory()
+        return self._redis
 
     async def start(self):
         self._reader_fut = asyncio.ensure_future(self.reader())
@@ -66,9 +69,10 @@ class PubSub:
             ])
 
     async def publish(self, channel, message):
+        redis = await self.redis()
         # pylint: disable=E1102, not-callable
         serialized = self.serializer(message)
-        await self.redis.publish(channel, serialized)
+        await redis.publish(channel, serialized)
 
     @async_generator.asynccontextmanager
     async def _subscribe(self,
@@ -79,6 +83,7 @@ class PubSub:
         Async context manager that provides a multi-consumer proxy for aioredis'
         pubsub single-consumer.
         """
+        redis = await self.redis()
         async with self._lock:
             handler = self._mpsc.pattern if is_pattern else self._mpsc.channel
             registration = handler(channel)
@@ -86,9 +91,9 @@ class PubSub:
 
             if registration not in self._registry:
                 if is_pattern:
-                    method, name = self.redis.psubscribe, 'pattern'
+                    method, name = redis.psubscribe, 'pattern'
                 else:
-                    method, name = self.redis.subscribe, 'channel'
+                    method, name = redis.subscribe, 'channel'
 
                 await method(registration)
                 self._registry[registration] = set()
@@ -101,9 +106,9 @@ class PubSub:
                 self._registry[registration].remove(subscription)
                 if not self._registry[registration]:
                     if is_pattern:
-                        method, name = self.redis.punsubscribe, 'pattern'
+                        method, name = redis.punsubscribe, 'pattern'
                     else:
-                        method, name = self.redis.unsubscribe, 'channel'
+                        method, name = redis.unsubscribe, 'channel'
 
                     await method(registration)
                     del self._registry[registration]
@@ -120,90 +125,3 @@ class PubSub:
                     break
                 else:
                     yield value
-
-
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-
-    async def getsub():
-        from core.src.world.builder import async_redis_data
-        redis = await async_redis_data()
-        ps = await PubSub(
-            await redis,
-            json.dumps,
-            json.loads
-        ).start()
-        return ps
-
-    async def unsubscribe(task):
-        await asyncio.sleep(2)
-        task.cancel()
-        print('done')
-
-
-    async def prova():
-        try:
-            sub = await getsub()
-            async for x in sub.subscribe('prova'):
-                print(x)
-        finally:
-            print('exited')
-
-    task = loop.create_task(prova())
-    loop.create_task(unsubscribe(task))
-    loop.run_forever()
-
-
-#if __name__ == '__main__':
-#    loop = asyncio.get_event_loop()
-#
-#    async def getsub():
-#        from core.src.world.builder import async_redis_data
-#        redis = await async_redis_data()
-#        ps = await PubSub(
-#            await redis,
-#            json.dumps,
-#            json.loads
-#        ).start()
-#        return ps
-#
-#    async def pub():
-#        i = 0
-#        from core.src.world.builder import async_redis_data
-#        r = await (await async_redis_data())
-#        await asyncio.sleep(0)
-#        ps = PubSub(
-#            r,
-#            json.dumps,
-#            json.loads
-#        )
-#        i += 1
-#        while 1:
-#            await ps.publish('prova' + str(i % 30000), str(i % 30000))
-#
-#    async def sub():
-#        s = time.time()
-#        _i = 0
-#
-#        async def _sub(d):
-#            nonlocal s
-#            nonlocal _i
-#            async for _x in ps.subscribe('prova' + str(d)):
-#                assert _x == str(d)
-#                _i += 1
-#                if not _i % 10000:
-#                    print('{} messages received in {}'.format(_i, time.time() - s))
-#        ps = await getsub()
-#
-#        for x in range(0, 30000):
-#            l.create_task(_sub(x))
-#
-#
-#    l = asyncio.get_event_loop()
-#    l.create_task(sub())
-#    #l.create_task(pub())
-#    #l.create_task(pub())
-#    #l.create_task(pub())
-#    #l.create_task(pub())
-#    l.run_forever()
-#

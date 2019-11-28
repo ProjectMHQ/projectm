@@ -38,3 +38,6 @@ class PosComponent(ComponentType):
     @property
     def z(self):
         return self._value[2]
+
+    def as_tuple(self):
+        return tuple(self.value)
