@@ -13,6 +13,9 @@ class PosComponent(ComponentType):
     def __init__(self, value: list):
         super().__init__(value)
 
+    def __str__(self):
+        return 'x: {}, y:{}, z: {}'.format(self.x, self.y, self.z)
+
     @property
     def value(self) -> typing.List[int]:
         return self._value

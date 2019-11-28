@@ -4,9 +4,10 @@ import typing
 from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
-from core.src.world.builder import world_repository
+from core.src.world.builder import world_repository, events_subscriber_service
 from core.src.world.components.pos import PosComponent
 from core.src.world.entity import Entity, EntityID
+from core.src.world.systems.pubsub.observer import PubSubObserver
 from core.src.world.utils.entity_utils import get_base_room_for_entity
 from core.src.world.utils.world_types import Transport
 
@@ -25,10 +26,14 @@ class ConnectionsObserver:
         await self.on_connect(entity)
 
     async def on_connect(self, entity: Entity):
+        pubsub_observer = PubSubObserver(entity)
+        events_subscriber_service.add_observer_for_entity_id(entity.entity_id, pubsub_observer)
         pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
         if not pos:
             await cast_entity(entity, get_base_room_for_entity(entity))
             await self.greet(entity)
+        else:
+            await cast_entity(entity, get_base_room_for_entity(entity), update=False)
         await look(entity)
         await getmap(entity)
 

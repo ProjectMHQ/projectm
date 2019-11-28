@@ -4,7 +4,7 @@ import enum
 import typing
 
 from core.src.world import exceptions
-from core.src.world.actions import singleton_scheduled_action
+from core.src.world.actions import singleton_action
 from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
@@ -68,7 +68,7 @@ def apply_delta_to_room_position(room_position: RoomPosition, delta: typing.Tupl
     )
 
 
-@singleton_scheduled_action
+@singleton_action
 async def move_entity(entity: Entity, direction: str):
     direction = DirectionEnum(direction.lower())
     pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
@@ -88,7 +88,7 @@ async def move_entity(entity: Entity, direction: str):
         return
     await events_publisher_service.on_entity_do_public_action(
         entity,
-        room.position,
+        pos,
         get_broadcast_msg_movement("begin", direction)
     )
     await entity.emit_msg(get_msg_movement(direction, "begin"))

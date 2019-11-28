@@ -32,6 +32,15 @@ class Area:
     def max_y(self) -> int:
         return self.center.y + int(self.size / 2)
 
+    def make_coordinates(self):
+        from core.src.world.builder import map_repository
+        from_x = max([self.min_x, map_repository.min_x])
+        to_x = min([self.max_x, map_repository.max_x])
+        for y in range(self.max_y, self.min_y, -1):
+            for x in range(from_x, to_x + 1):
+                self._rooms_coordinates.add((x, y, self.center.z))
+        return self
+
     async def get_rooms(self):
         from core.src.world.builder import map_repository
 

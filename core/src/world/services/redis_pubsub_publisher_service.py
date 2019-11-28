@@ -1,7 +1,5 @@
 from enum import Enum
-
 import typing
-
 from core.src.world.services.redis_pubsub_interface import PubSub
 
 

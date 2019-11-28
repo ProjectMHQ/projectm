@@ -12,7 +12,7 @@ class RedisPubSubEventsSubscriberService:
     def __init__(self, pubsub: PubSub, loop=asyncio.get_event_loop()):
         self.pubsub = pubsub
         self._redis = None
-        self._rooms_events_prefix = 'ev:r:'
+        self._rooms_events_prefix = 'ev:r'
         self._current_rooms_by_entity_id = dict()
         self._current_subscriptions_by_room = dict()
         self._tasks = dict()
@@ -29,10 +29,10 @@ class RedisPubSubEventsSubscriberService:
         return '{}:{}:{}:{}'.format(self._rooms_events_prefix, pos[0], pos[1], pos[2])
 
     def _get_current_rooms_by_entity_id(self, entity_id: int) -> typing.Set[typing.Tuple[int, int, int]]:
-        current_rooms = self._current_rooms_by_entity_id.get(entity_id, dict())
-        return set(current_rooms.keys())
+        current_rooms = self._current_rooms_by_entity_id.get(entity_id, set())
+        return set(current_rooms)
 
-    def _subscribe_rooms(self, entity: Entity, rooms: set):
+    async def _subscribe_rooms(self, entity: Entity, rooms: set):
         if not self._current_rooms_by_entity_id.get(entity.entity_id):
             self._current_rooms_by_entity_id[entity.entity_id] = rooms
         else:
@@ -49,33 +49,33 @@ class RedisPubSubEventsSubscriberService:
 
     async def _subscribe_pubsub_topic(self, room):
         try:
-            LOGGER.core.debug('Subscribing room %s', room)
             async for message in self.pubsub.subscribe(self.pos_to_key(room)):
-                map(
-                    lambda entity_id: self._on_new_message(entity_id, message),
-                    self._current_subscriptions_by_room.get(room, {}).get('e', set())
-                )
+                for entity_id in self._current_subscriptions_by_room.get(room, {}).get('e', set()):
+                    print(entity_id, message['en'])
+                    message['en'] != entity_id and self._on_new_message(entity_id, message, room)
+
         finally:
             assert not self._current_subscriptions_by_room[room]['e']
             self._current_subscriptions_by_room.pop(room, None)
-            LOGGER.core.debug('Unsubscribe room %s', room)
 
-    def _unsubscribe_rooms(self, entity: Entity, rooms: set):
+    async def _unsubscribe_rooms(self, entity: Entity, rooms: set):
         for room in rooms:
-            self._current_rooms_by_entity_id[entity.entity_id].pop(room)
-            self._current_subscriptions_by_room[room]['e'].pop(entity.entity_id)
+            self._current_rooms_by_entity_id[entity.entity_id].remove(room)
+            self._current_subscriptions_by_room[room]['e'].remove(entity.entity_id)
 
             if not self._current_subscriptions_by_room.get(room, {}).get('e', set()):
                 task = self._current_subscriptions_by_room.get(room, {}).get('t', None)
                 task and task.cancel()
-        if not self._current_rooms_by_entity_id:
-            self._current_rooms_by_entity_id.pop(entity.entity_id)
+        if not self._current_rooms_by_entity_id.get(entity.entity_id):
+            self._current_rooms_by_entity_id.pop(entity.entity_id, None)
 
-    def _on_new_message(self, entity_id, message):
+    def _on_new_message(self, entity_id, message, room):
         for observer in self._observers_by_entity_id.get(entity_id, []):
-            self.loop.create_task(observer.on_event(message))
+            LOGGER.core.debug('MESSAGE for entity_id %s: %s', entity_id, message)
+            self.loop.create_task(observer.on_event(message, room))
 
     async def subscribe_area(self, entity: Entity, area: Area):
+        LOGGER.core.debug('Entity %s subscribed Area with center %s', entity.entity_id, area.center)
         current_rooms = self._get_current_rooms_by_entity_id(entity.entity_id)
         rooms_to_unsubscribe = current_rooms - area.rooms_coordinates
         rooms_to_subscribe = area.rooms_coordinates - current_rooms
@@ -83,3 +83,6 @@ class RedisPubSubEventsSubscriberService:
             self._subscribe_rooms(entity, rooms_to_subscribe),
             self._unsubscribe_rooms(entity, rooms_to_unsubscribe)
         )
+
+    async def build_subscribes(self):
+        pass

@@ -1,7 +1,7 @@
 from functools import wraps
 
 
-def singleton_scheduled_action(fn):
+def singleton_action(fn):
     @wraps(fn)
     async def decorator(entity, *a, **kw):
         from core.src.world.run_worker import singleton_actions_scheduler
