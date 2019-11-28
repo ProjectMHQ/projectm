@@ -28,6 +28,7 @@ connections_observer = ConnectionsObserver(transport)
 singleton_actions_scheduler = SingletonActionsScheduler()
 
 worker_queue_manager.add_queue_observer('connected', connections_observer)
+worker_queue_manager.add_queue_observer('disconnected', connections_observer)
 worker_queue_manager.add_queue_observer('cmd', cmds_observer)
 
 

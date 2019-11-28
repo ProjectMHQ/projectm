@@ -22,12 +22,29 @@ class ConnectionsObserver:
         self._commands[command] = method
 
     async def on_message(self, message: typing.Dict):
-        assert message['c'] == 'connected'
         entity = Entity(EntityID(message['e_id']), transport=Transport(message['n'], self.transport))
-        await self.on_connect(entity)
+        if message['c'] == 'connected':
+            await self.on_connect(entity)
+        elif message['c'] == 'diconnected':
+            await self.on_disconnect(entity)
+        else:
+            raise ValueError('wtf?!')
+
+    @staticmethod
+    async def on_disconnect(entity: Entity):
+        current_connection = world_repository.get_raw_component_value_by_entities(
+            ConnectionComponent, entity.entity_id
+        )[0]
+        if current_connection == entity.transport.namespace:
+            world_repository.update_entities(
+                entity.set(ConnectionComponent(""))
+            )
+            await events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
-        self._attach_connection(entity)
+        world_repository.update_entities(
+            entity.set(ConnectionComponent(entity.transport.namespace))
+        )
         pubsub_observer = PubSubObserver(entity)
         events_subscriber_service.add_observer_for_entity_id(entity.entity_id, pubsub_observer)
         pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
@@ -38,11 +55,6 @@ class ConnectionsObserver:
             await cast_entity(entity, get_base_room_for_entity(entity), update=False)
         await look(entity)
         await getmap(entity)
-
-    def _attach_connection(self, entity: Entity):
-        world_repository.update_entities(
-            entity.set(ConnectionComponent(entity.transport.namespace))
-        )
 
     async def greet(self, entity: Entity):
         await entity.emit_msg(  # FIXME TEST - Remove

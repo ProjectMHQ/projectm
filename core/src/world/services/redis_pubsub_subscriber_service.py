@@ -86,3 +86,7 @@ class RedisPubSubEventsSubscriberService:
 
     async def bootstrap_subscribes(self):
         pass
+
+    async def unsubscribe_all(self, entity: Entity):
+        current_rooms = self._get_current_rooms_by_entity_id(entity.entity_id)
+        await self._unsubscribe_rooms(entity, current_rooms)

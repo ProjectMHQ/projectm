@@ -49,6 +49,13 @@ class PrivateNamespace(AsyncNamespace):
     async def on_disconnect(self, sid):
         self.connected = False
         self.disconnected_at = int(time.time())
+        await self.redis_queue.put({
+                'n': self.channel.id,
+                'e_id': self.channel.entity_id,
+                't': int(time.time()),
+                'c': 'disconnected'
+            }
+        )
         await self.observer.on_disconnect(self.channel)
 
     async def on_cmd(self, _, data):
