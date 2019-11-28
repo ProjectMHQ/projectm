@@ -84,5 +84,5 @@ class RedisPubSubEventsSubscriberService:
             self._unsubscribe_rooms(entity, rooms_to_unsubscribe)
         )
 
-    async def build_subscribes(self):
+    async def bootstrap_subscribes(self):
         pass

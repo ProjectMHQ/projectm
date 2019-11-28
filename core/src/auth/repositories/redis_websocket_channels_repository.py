@@ -3,6 +3,8 @@ import time
 import hashlib
 import hmac
 import typing
+
+import itertools
 from redis import StrictRedis
 from core.src.auth.logging_factory import LOGGER
 
@@ -57,6 +59,14 @@ class WebsocketChannelsRepository:
         assert len(data) == 2, data
         response = WebsocketChannel(entity_id=data[0], id=connection_id, created_at=data[1])
         LOGGER.core.debug('WebsocketChannelsRespository.get(%s) response: %s', connection_id, response)
+        return response
+
+    def get_many(self, *connection_ids: str) -> typing.Dict:
+        response = dict()
+        res = self.redis.hmget(self._prefix, *('c:{}'.format(connection_id) for connection_id in connection_ids))
+        for c_id, ch in zip(connection_ids, res):
+            ch = ch and ch.decode().split(',')
+            response[c_id] = ch and WebsocketChannel(entity_id=ch[0], id=c_id, created_at=ch[1])
         return response
 
     def get_active_channels(self) -> typing.Iterable[WebsocketChannel]:

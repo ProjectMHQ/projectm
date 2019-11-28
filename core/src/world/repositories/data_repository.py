@@ -128,10 +128,19 @@ class RedisDataRepository:
         _bits_statuses = self._get_components_statuses_by_entities(entities, components)
         _filtered = self._get_components_values_from_entities_storage(_bits_statuses)
         return {
-            EntityID(e.entity_id): {
+            e.entity_id: {
                 c.component_enum: c.cast_type(_filtered.get(e.entity_id, {}).get(c.key)) for c in components
             } for e in entities
         }
+
+    def get_raw_component_value_by_entities(
+            self, component, *entity_ids: int):
+        pipeline = self.redis.pipeline()
+        for entity_id in entity_ids:
+            key = '{}:{}'.format(self._entity_prefix, entity_id)
+            pipeline.hget(key, component.key)
+        results = pipeline.execute()
+        return (x.decode() for x in results if x)
 
     def get_components_values_by_components(
             self,
@@ -192,13 +201,20 @@ class RedisDataRepository:
         return bits_by_component
 
     def get_entity_ids_with_components(self, *components: ComponentType) -> typing.Iterator[int]:
-        _key = binascii.hexlify(os.urandom(8))
-        self.redis.bitop('AND', _key, *(c.key for c in components))
+        _key = os.urandom(8)
+        self.redis.bitop(
+            'AND',
+            _key,
+            *('{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix) for c in components)
+        )
         p = self.redis.pipeline()
-        self.redis.get(_key)
-        self.redis.delete(_key)
-        bitmap, _ = p.execute()
-        return (i for i, v in enumerate(bitarray.bitarray().frombytes(bitmap)) if v)
+        p.get(_key)
+        p.delete(_key)
+        res = p.execute()
+        bitmap, _ = res
+        array = bitarray.bitarray()
+        array.frombytes(bitmap)
+        return (i for i, v in enumerate(array) if v)
 
     def _get_components_values_from_components_storage(self, filtered_query: OrderedDict):
         pipeline = self.redis.pipeline()
