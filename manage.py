@@ -1,14 +1,14 @@
 import hashlib
 import json
 import os
+import typing
 from getpass import getpass
 from json import JSONDecodeError
 from typing import Dict
 
 import click
 import requests
-
-from etc import settings
+from requests import HTTPError
 
 
 class Client:
@@ -29,7 +29,10 @@ class Client:
         return self._user_id
 
     def _clean_localstorage(self):
-        os.remove(self.token_file)
+        try:
+            os.remove(self.token_file)
+        except FileNotFoundError:
+            pass
 
     @property
     def has_token(self):
@@ -74,27 +77,58 @@ class Client:
         res.raise_for_status()
         return res.content
 
-    def login(self, payload: Dict):
+    def login(self, payload: Dict) -> typing.Tuple[str, str]:
         res = requests.post(self.url + '/auth/login', data=json.dumps(payload))
         res.raise_for_status()
         self._user_id = res.json()['user_id']
         self._store_credentials(self._parse_token_from_cookies(res.cookies))
-        return self._user_id
+        return self._user_id, res.cookies
 
     def logout(self):
-        res = requests.post(self.url + '/auth/logout', cookies=self._get_cookie_from_token())
-        res.raise_for_status()
+        try:
+            res = requests.post(self.url + '/auth/logout', cookies=self._get_cookie_from_token())
+        except:
+            pass
         self._clean_localstorage()
-        return res.content
+        return True
 
-    def graphql(self, query, variables):
-        res = requests.post(
-            self.url + '/graphql',
-            data=json.dumps({'query': query, 'variables': variables}),
+    def get_details(self):
+        res = requests.get(
+            self.url + '/user',
             cookies=self._get_cookie_from_token()
         )
         res.raise_for_status()
         return res.json()
+
+    def get_characters(self):
+        res = requests.get(
+            self.url + '/user/character',
+            cookies=self._get_cookie_from_token()
+        )
+        res.raise_for_status()
+        return res.json()
+
+    def create_character(self, payload: Dict):
+        res = requests.post(
+            self.url + '/user/character',
+            cookies=self._get_cookie_from_token(),
+            data=json.dumps(payload)
+        )
+        res.raise_for_status()
+        return res.json()
+
+    def authenticate_character(self, character_id: str) -> typing.Tuple[str, str]:
+        payload = {
+            'entity_type': 'character',
+            'entity_id': character_id
+        }
+        res = requests.post(
+            self.url + '/auth/token',
+            data=json.dumps(payload),
+            cookies=self._get_cookie_from_token()
+        )
+        res.raise_for_status()
+        return res.json(), res.cookies
 
 
 def _get_login_data():
@@ -108,7 +142,29 @@ def _get_login_data():
 
 
 def get_client() -> Client:
-    return Client(settings.WEB_BASE_URL)
+    def get_client_url():
+        try:
+            with open('/tmp/__pm_client_url', 'r') as f:
+                d = f.read()
+                click.echo('using url %s' % d)
+        except FileNotFoundError:
+            d = input('Enter projectm base URL (default http://localhost:60160) : ')
+            d = d or 'http://localhost:60160'
+            check_res = requests.get(d + '/auth/login')
+            try:
+                check_res.raise_for_status()
+            except HTTPError as e:
+                if e.response.status_code == 405:
+                    pass
+                else:
+                    print('Error checking Client URL: ', str(e))
+                    exit(1)
+
+            with open('/tmp/__pm_client_url', 'w') as f:
+                f.write(d)
+        return d
+    url = get_client_url()
+    return Client(url)
 
 
 @click.group(name='client')
@@ -140,7 +196,7 @@ def login():
         return
     payload = _get_login_data()
     response = client.login(payload)
-    click.echo('Login response: %s' % response)
+    click.echo('Login response: %s - Cookies: %s' % response)
 
 
 @user.command()
@@ -151,6 +207,55 @@ def logout():
         return
     response = client.logout()
     click.echo('Logout response: %s' % response)
+
+
+@user.command()
+def details():
+    client = get_client()
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+    response = client.get_details()
+    click.echo('Response:\n%s' % json.dumps(response, indent=2))
+
+
+@main.group()
+def character():
+    pass
+
+
+@character.command()
+def ls():
+    client = get_client()
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+    response = client.get_characters()
+    click.echo('Response:\n%s' % json.dumps(response, indent=2))
+
+
+@character.command()
+def authenticate():
+    client = get_client()
+
+    if not client.is_logged_in:
+        click.echo('Not logged in')
+        return
+
+    by_name = {ch['name']: ch for ch in client.get_characters()['data']}
+    if not by_name:
+        click.echo('No characters created')
+        return
+
+    character_name = input('Enter your chacter name: ')
+    try:
+        character_id = by_name[character_name]['character_id']
+    except KeyError:
+        click.echo('No character with that name, available: [%s]' % ', '.join(list(by_name.keys())))
+        return
+    response = client.authenticate_character(character_id)
+
+    click.echo('Authenticate Character response:\n%s - Cookies: %s' % response)
 
 
 if __name__ == '__main__':

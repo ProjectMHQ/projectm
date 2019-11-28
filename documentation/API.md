@@ -1,9 +1,21 @@
 # Project M
 
-
 ***
 
-## API Documentation
+## API Flow Documentation
+
+Endpoints:
+
+development: localhost:60161 (or check local-settings.conf)
+staging: staging.pm.chatsubo.it
+
+Flow:
+- Create account with credentials (email, password):  ```POST /auth/signup => SIGNUP_OK```
+- Login in to the platform with credentials (email, password): ```POST /auth/login => LOGIN_OK (auth cookie set)```
+- From now on every request must be authenticated (authorization headers) until logout.
+- Ask world:create and world:auth tokens in order to fill actions on the websocket 
+- Ask characters of a user: ```GET /user/character => {data: Array}```
+- Logout from the platform with: ```POST /auth/logout => LOGOUT_CONFIRMED  (auth cookie removed)```
 
 ### Authentication
 
@@ -44,3 +56,20 @@ Note: _Confirmation links are sent to the email address via Twilio' SendGrid_
 - Response: ```200 LOGOUT_OK```
 - Set-Cookie: ```Authentication: ```
 
+##### Token
+- Requires Bearer Token: YES
+- URL: ```/auth/token```
+- Method: ```POST```
+- Payload: ```{"context": String, "id": String}```
+- Response: ```{"expires_at": Integer, "token": String}```
+- Params:
+  - ```context: ```
+     - ```world:create``` To create a new character
+     - ```world:auth``` To authorize an existing character
+
+##### User's characters
+- Requires Bearer Token: YES
+- URL: ```/user/character```
+- Method: ```GET```
+- Payload: EMPTY
+- Response: ```{"data": Array}```

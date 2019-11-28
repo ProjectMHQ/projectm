@@ -1,7 +1,7 @@
 from __future__ import with_statement
 import sys
 
-from core.src.database import Base
+from core.src.auth.database import Base
 
 sys.path.insert(0, './')
 
@@ -9,8 +9,6 @@ from etc.settings import DATASOURCE
 from logging.config import fileConfig
 from sqlalchemy import create_engine
 from alembic import context
-
-from core.src import models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -40,7 +38,7 @@ def run_migrations_offline():
     here as well.  By skipping the Engine creation
     we don't even need a DBAPI to be available.
 
-    Calls to context.execute() here emit the given string to the
+    Calls to context.execute() here send the given string to the
     script output.
 
     """
@@ -67,7 +65,8 @@ def run_migrations_online():
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=True
+            render_as_batch=True,
+            compare_type = True
         )
 
         with context.begin_transaction():

@@ -29,7 +29,7 @@ def upgrade():
         sa.Column('updated_at', sa.TIMESTAMP(), nullable=True),
         sa.Column('version_id', sa.Integer(), server_default='1', nullable=False),
         sa.Column('hashed_password', sa.String(length=36), nullable=False),
-        sa.Column('meta', core.src.database.JsonEncodedDict(), nullable=False),
+        sa.Column('meta', core.src.auth.database.json_column_type(), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('user', schema=None) as batch_op:
