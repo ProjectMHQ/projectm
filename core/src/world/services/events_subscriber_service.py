@@ -68,6 +68,8 @@ class RedisPubSubEventsSubscriberService:
             if not self._current_subscriptions_by_room.get(room, {}).get('e', set()):
                 task = self._current_subscriptions_by_room.get(room, {}).get('t', None)
                 task and task.cancel()
+        if not self._current_rooms_by_entity_id:
+            self._current_rooms_by_entity_id.pop(entity.entity_id)
 
     def _on_new_message(self, entity_id, message):
         for observer in self._observers_by_entity_id.get(entity_id, []):
