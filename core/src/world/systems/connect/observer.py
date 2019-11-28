@@ -25,16 +25,16 @@ class ConnectionsObserver:
         entity = Entity(EntityID(message['e_id']), transport=Transport(message['n'], self.transport))
         if message['c'] == 'connected':
             await self.on_connect(entity)
-        elif message['c'] == 'diconnected':
+        elif message['c'] == 'disconnected':
             await self.on_disconnect(entity)
         else:
             raise ValueError('wtf?!')
 
     @staticmethod
     async def on_disconnect(entity: Entity):
-        current_connection = world_repository.get_raw_component_value_by_entities(
+        current_connection = list(world_repository.get_raw_component_value_by_entities(
             ConnectionComponent, entity.entity_id
-        )[0]
+        ))[0]
         if current_connection == entity.transport.namespace:
             world_repository.update_entities(
                 entity.set(ConnectionComponent(""))

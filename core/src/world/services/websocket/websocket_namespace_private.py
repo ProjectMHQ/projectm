@@ -49,13 +49,6 @@ class PrivateNamespace(AsyncNamespace):
     async def on_disconnect(self, sid):
         self.connected = False
         self.disconnected_at = int(time.time())
-        await self.redis_queue.put({
-                'n': self.channel.id,
-                'e_id': self.channel.entity_id,
-                't': int(time.time()),
-                'c': 'disconnected'
-            }
-        )
         await self.observer.on_disconnect(self.channel)
 
     async def on_cmd(self, _, data):
@@ -84,6 +77,15 @@ class PrivateNamespace(AsyncNamespace):
                     await self.emit('msg', {"event": "disconnect", "reason": "excess_flood"})
                     await self.disconnect(self.sid)
                     await self.observer.on_close(self.channel, reason="flood")
+                    await self.redis_queue.put(
+                        {
+                            'n': self.channel.id,
+                            'e_id': self.channel.entity_id,
+                            't': int(time.time()),
+                            'c': 'disconnected',
+                            'r': 'flood'
+                        }
+                    )
 
             self.last_ping_received = int(time.time())
             await self.emit('presence', 'PONG')
@@ -137,6 +139,15 @@ class PrivateNamespace(AsyncNamespace):
             await self.emit('msg', {"event": "disconnect", "reason": "ping_timeout"})
             await self.disconnect(self.sid)
             await self.observer.on_close(self.channel, reason="timeout")
+            await self.redis_queue.put(
+                {
+                    'n': self.channel.id,
+                    'e_id': self.channel.entity_id,
+                    't': int(time.time()),
+                    'c': 'disconnected',
+                    'r': 'timeout'
+                }
+            )
         else:
             await asyncio.sleep(self.ping_interval)
             asyncio.ensure_future(self.monitor())
