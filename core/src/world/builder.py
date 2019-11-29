@@ -37,7 +37,6 @@ websocket_channels_service = WebsocketChannelsService(
 pubsub = PubSubManager(async_redis_data)
 messages_translator = get_messages_translator('it')
 pubsub_observer = PubSubObserver()
-pubsub_observer.add_messages_translator(messages_translator)
 
 events_subscriber_service = RedisPubSubEventsSubscriberService(pubsub)
 events_publisher_service = RedisPubSubEventsPublisherService(pubsub)

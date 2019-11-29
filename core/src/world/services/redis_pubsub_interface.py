@@ -10,8 +10,6 @@ import async_generator
 import aioredis
 import typing
 
-import time
-
 
 class PubSubManager:
     # pylint: disable=R0902, too-many-instance-attributes
