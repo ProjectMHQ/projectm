@@ -10,7 +10,9 @@ class PosComponent(ComponentType):
     key = ComponentTypeEnum.POS.value
     component_type = list
 
-    def __init__(self, value: list):
+    def __init__(self, value: (list, tuple)):
+        if value != list:
+            value = list(value)
         super().__init__(value)
 
     def __str__(self):

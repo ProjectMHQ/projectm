@@ -1,24 +1,38 @@
+import asyncio
 import typing
-import binascii
 from collections import OrderedDict
 
+import aioredis
 import bitarray
 import os
 from redis import StrictRedis
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components import ComponentType, ComponentTypeEnum
+from core.src.world.components.name import NameComponent
 from core.src.world.entity import Entity, EntityID
-from core.src.world.utils.world_types import Bit
+from core.src.world.utils.world_types import Bit, EvaluatedEntity
 
 
 class RedisDataRepository:
-    def __init__(self, redis: StrictRedis):
+    def __init__(self, redis: StrictRedis, async_redis_factory):
+        self._async_redis_factory = async_redis_factory
         self.redis = redis
         self._entity_prefix = 'e'
         self._component_prefix = 'c'
         self._map_suffix = 'm'
         self._data_suffix = 'd'
         redis.setbit('{}:{}'.format(self._entity_prefix, self._map_suffix), 0, 1)  # ensure the map is 1 based
+        self.async_lock = asyncio.Lock()
+        self._async_redis = None
+
+    async def async_redis(self) -> aioredis.Redis:
+        await self.async_lock.acquire()
+        try:
+            if not self._async_redis:
+                self._async_redis = await self._async_redis_factory()
+        finally:
+            self.async_lock.release()
+        return self._async_redis
 
     def _allocate_entity_id(self) -> int:
         script = """
@@ -272,3 +286,25 @@ class RedisDataRepository:
                     c_i += 1
             i += 1
         return data
+
+    async def get_entities_evaluation_by_entity(self, entity: Entity, *entity_ids: int) -> typing.List[EvaluatedEntity]:
+        result = []
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
+        for entity_id in entity_ids:
+            pipeline.hmget(
+                '{}:{}'.format(self._entity_prefix, entity_id),
+                NameComponent.key,
+            )
+        data = await pipeline.execute()
+        for el in data:
+            result.append(
+                EvaluatedEntity(
+                    name=el[0].decode(),
+                    type=0,
+                    status=0,
+                    known=True,
+                    excerpt="un brutto ceffo dall'aspetto elegante"
+                )
+            )
+        return result

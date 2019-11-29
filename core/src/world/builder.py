@@ -1,8 +1,11 @@
+import socketio
+
 from core.src.world.messages_translators.builder import get_messages_translator
 from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 from core.src.world.services.redis_pubsub_publisher_service import RedisPubSubEventsPublisherService
 from core.src.world.services.redis_pubsub_subscriber_service import RedisPubSubEventsSubscriberService
+from core.src.world.services.transport.socketio_interface import SocketioTransportInterface
 from core.src.world.services.transport.websocket_channels_service import WebsocketChannelsService
 from core.src.world.systems.pubsub.observer import PubSubObserver
 from etc import settings
@@ -25,7 +28,7 @@ else:
 
 map_repository = RedisMapRepository(async_redis_data)
 descriptions_repository = RedisDescriptionsRepository(async_redis_data)
-world_repository = RedisDataRepository(strict_redis)
+world_repository = RedisDataRepository(strict_redis, async_redis_data)
 channels_repository = WebsocketChannelsRepository(strict_redis)
 redis_queues_service = RedisMultipleQueuesPublisher(async_redis_queue, num_queues=settings.WORKERS)
 websocket_channels_service = WebsocketChannelsService(
@@ -36,7 +39,15 @@ websocket_channels_service = WebsocketChannelsService(
 
 pubsub = PubSubManager(async_redis_data)
 messages_translator = get_messages_translator('it')
-pubsub_observer = PubSubObserver()
 
 events_subscriber_service = RedisPubSubEventsSubscriberService(pubsub)
 events_publisher_service = RedisPubSubEventsPublisherService(pubsub)
+
+mgr = socketio.AsyncRedisManager(
+    'redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT)
+)
+transport = SocketioTransportInterface(
+    socketio.AsyncServer(client_manager=mgr),
+    messages_translator_strategy=messages_translator
+)
+pubsub_observer = PubSubObserver(world_repository, transport)

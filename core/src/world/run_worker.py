@@ -1,32 +1,22 @@
 import asyncio
 
-import socketio
-
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.actions_scheduler.singleton_actions_scheduler import SingletonActionsScheduler
-from core.src.world.builder import pubsub, events_subscriber_service, channels_repository, messages_translator, \
-    world_repository, pubsub_observer
+from core.src.world.builder import pubsub, events_subscriber_service, channels_repository, \
+    world_repository, pubsub_observer, transport
 from core.src.world.components.pos import PosComponent
 from core.src.world.services.redis_queue import RedisQueueConsumer
-from core.src.world.services.transport.socketio_interface import SocketioTransportInterface
 from core.src.world.services.system_utils import RedisType, get_redis_factory
 from core.src.world.services.worker_queue_service import WorkerQueueService
 from core.src.world.systems.commands import commands_observer_factory
 from core.src.world.systems.connect.observer import ConnectionsObserver
 
-from etc import settings
 
 loop = asyncio.get_event_loop()
 async_redis_queues = get_redis_factory(RedisType.QUEUES)
 queue = RedisQueueConsumer(async_redis_queues, 0)
 worker_queue_manager = WorkerQueueService(loop, queue)
-mgr = socketio.AsyncRedisManager(
-    'redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT)
-)
-transport = SocketioTransportInterface(
-    socketio.AsyncServer(client_manager=mgr),
-    messages_translator_strategy=messages_translator
-)
+
 
 cmds_observer = commands_observer_factory(transport)
 connections_observer = ConnectionsObserver(transport)
@@ -60,7 +50,6 @@ def check_entities_connection_status():
     components_values = world_repository.get_raw_component_value_by_entity_ids(
         ConnectionComponent, *connected_entity_ids
     )
-
     channels = channels_repository.get_many(*components_values)
     to_update = []
     online = []

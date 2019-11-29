@@ -33,6 +33,3 @@ class Entity:
     @property
     def pending_changes(self):
         return self._pending_changes
-
-    def recognize_entities(self, *entities):
-        pass

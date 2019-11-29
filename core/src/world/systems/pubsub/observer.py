@@ -7,7 +7,7 @@ from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.entity import Entity
 from core.src.world.services.redis_pubsub_publisher_service import PubSubEventType
-from core.src.world.utils.world_types import EvaluatedEntity
+from core.src.world.utils.world_types import EvaluatedEntity, Transport
 
 
 class InterestType(Enum):
@@ -17,8 +17,10 @@ class InterestType(Enum):
 
 
 class PubSubObserver:
-    def __init__(self, loop=asyncio.get_event_loop()):
+    def __init__(self, repository, transport, loop=asyncio.get_event_loop()):
         self.loop = loop
+        self.repository = repository
+        self.transport = transport
 
     @staticmethod
     async def _get_message_interest_type(room, curr_pos):
@@ -35,16 +37,18 @@ class PubSubObserver:
         else:
             return InterestType.NONE
 
-    async def on_event(self, entity: Entity, message: typing.Dict, room):
-        from core.src.world.builder import world_repository
-        curr_pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
+    async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
+        room = PosComponent(room)
+        entity = Entity(entity_id)
+        entity.transport = Transport(transport_id, self.transport)
+        curr_pos = self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         interest_type = await self._get_message_interest_type(room, curr_pos)
         if not interest_type.value:
             return
         await self.publish_event(entity, message, room, interest_type, curr_pos)
 
     async def publish_event(self, entity: Entity, message, room, interest_type, curr_pos):
-        who_what = await entity.recognize_entities(message['en_id'])[0]
+        who_what = (await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en']))[0]
         self.loop.create_task(self._publish_message(entity, message, room, interest_type, who_what, curr_pos))
         self.loop.create_task(self._publish_system_event(entity, message, room, interest_type, who_what, curr_pos))
 
@@ -76,14 +80,16 @@ class PubSubObserver:
         topic = 'map'
         payload.update(
             {
-                'e_id': message['en_id'],
+                'e_id': message['en'],
                 'type': entity.type,
             }
 
         )
-        rel_pos = Area(current_position).get_relative_position(room)
+        rel_area = Area(current_position)
+        rel_pos = rel_area.get_relative_position(room)
         prev_rel_pos = Area(current_position).get_relative_position(current_position)
-        if (0 < rel_pos < 81) and (0 < prev_rel_pos < 81):
+        array_size = (rel_area.size ** 2) - 1
+        if (0 < rel_pos < array_size) and (0 < prev_rel_pos < array_size):
             payload.update(
                 {
                     'event': 'entity_change_pos',
@@ -91,7 +97,7 @@ class PubSubObserver:
 
                 }
             )
-        elif (0 < rel_pos < 81) and not (0 < prev_rel_pos < 81):
+        elif (0 < rel_pos < array_size) and not (0 < prev_rel_pos < array_size):
             payload.update(
                 {
                     'event': 'entity_add',
@@ -99,11 +105,15 @@ class PubSubObserver:
 
                 }
             )
-        elif not (0 < rel_pos < 81) and (0 < prev_rel_pos < 81):
+        elif not (0 < rel_pos < array_size) and (0 < prev_rel_pos < array_size):
             payload.update(
                 {
                     'event': 'entity_remove'
 
                 }
+            )
+        else:
+            raise ValueError(
+                'Doh, rel_pos: %s, prev_rel_pos: %s' % (rel_pos, prev_rel_pos)
             )
         return topic, payload
