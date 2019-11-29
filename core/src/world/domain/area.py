@@ -6,6 +6,7 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
 from shapely.geometry.polygon import Polygon
 
+
 class Area:
     def __init__(self, center: PosComponent, square_size=15):
         self.center = center
@@ -97,4 +98,5 @@ class Area:
         from shapely.geometry import Point
         return self.polygon.contains(Point(pos.x, pos.y))
 
-
+    def get_relative_position(self, position: PosComponent) -> int:
+        return (self.max_y - position.y) * (self.max_x - self.min_x) + position.x - self.min_x

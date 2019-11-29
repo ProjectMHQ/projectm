@@ -33,20 +33,6 @@ class RedisPubSubEventsPublisherService:
             self.pubsub.publish(self.pos_to_key(previous_position), msg)
         )
 
-    async def on_entity_disappear_from_room(self, entity, room_position):
-        msg = {
-            "en": entity.entity_id,
-            "ev": PubSubEventType.ENTITY_DISAPPEAR_FROM_ROOM.value,
-        }
-        await self.pubsub.publish(self.pos_to_key(room_position), msg)
-
-    async def on_entity_appear_in_room(self, entity, room_position):
-        msg = {
-            "en": entity.entity_id,
-            "ev": PubSubEventType.ENTITY_APPEAR_IN_ROOM.value,
-        }
-        await self.pubsub.publish(self.pos_to_key(room_position), msg)
-
     async def on_entity_do_public_action(self, entity, room_position, action_public_payload: typing.Dict):
         msg = {
             "p": action_public_payload,
@@ -54,4 +40,3 @@ class RedisPubSubEventsPublisherService:
             "ev": PubSubEventType.ENTITY_DO_PUBLIC_ACTION.value,
         }
         await self.pubsub.publish(self.pos_to_key(room_position), msg)
-
