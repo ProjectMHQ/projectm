@@ -1,10 +1,10 @@
-from core.src.world.builder import map_repository, world_repository
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
 from core.src.world.entity import Entity
 
 
 async def look(entity: Entity, *targets):
+    from core.src.world.builder import map_repository, world_repository
     if targets:
         await entity.emit_msg(
             {
