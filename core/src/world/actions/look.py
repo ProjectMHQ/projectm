@@ -13,7 +13,7 @@ async def look(entity: Entity, *targets):
             }
         )
     else:
-        pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
+        pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
         await entity.emit_msg(
             {

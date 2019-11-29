@@ -73,7 +73,7 @@ def apply_delta_to_room_position(room_position: RoomPosition, delta: typing.Tupl
 @singleton_action
 async def move_entity(entity: Entity, direction: str):
     direction = DirectionEnum(direction.lower())
-    pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
+    pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     delta = direction_to_coords_delta(direction)
     where = apply_delta_to_room_position(RoomPosition(pos.x, pos.y, pos.z), delta)
     try:
@@ -142,7 +142,7 @@ class ScheduledMovement:
     async def stop(self):
         await events_publisher_service.on_entity_do_public_action(
             self.entity,
-            world_repository.get_component_value_by_entity(self.entity.entity_id, PosComponent),
+            world_repository.get_component_value_by_entity_id(self.entity.entity_id, PosComponent),
             get_broadcast_msg_movement("canceled", self.direction)
         )
 

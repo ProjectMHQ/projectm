@@ -4,13 +4,27 @@ import time
 
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
-
+from shapely.geometry.polygon import Polygon
 
 class Area:
     def __init__(self, center: PosComponent, square_size=15):
         self.center = center
         self.size = square_size
         self._rooms_coordinates = set()
+        self._polygon = None
+
+    @property
+    def polygon(self):
+        if not self._polygon:
+            self._polygon = Polygon(
+                [
+                    (self.min_x, self.min_y),
+                    (self.min_x, self.max_y),
+                    (self.max_x, self.max_y),
+                    (self.max_x, self.min_y),
+                ]
+            )
+        return self._polygon
 
     @property
     def rooms_coordinates(self) -> set:
@@ -76,3 +90,11 @@ class Area:
                 for entry in r.content:
                     res['data'].append({'description': entry, 'pos': index})
         return res
+
+    def is_position_inside(self, pos: PosComponent):
+        if pos.z != self.center.z:
+            return False
+        from shapely.geometry import Point
+        return self.polygon.contains(Point(pos.x, pos.y))
+
+

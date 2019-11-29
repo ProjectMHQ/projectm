@@ -19,12 +19,6 @@ class RedisPubSubEventsSubscriberService:
         self.loop = loop
         self._observers_by_entity_id = dict()
 
-    def add_observer_for_entity_id(self, entity_id, observer):
-        if not self._observers_by_entity_id.get(entity_id):
-            self._observers_by_entity_id[entity_id] = [observer]
-        else:
-            self._observers_by_entity_id[entity_id].append(observer)
-
     def pos_to_key(self, pos: typing.Tuple):
         return '{}:{}:{}:{}'.format(self._rooms_events_prefix, pos[0], pos[1], pos[2])
 
@@ -51,7 +45,6 @@ class RedisPubSubEventsSubscriberService:
         try:
             async for message in self.pubsub.subscribe(self.pos_to_key(room)):
                 for entity_id in self._current_subscriptions_by_room.get(room, {}).get('e', set()):
-                    print(entity_id, message['en'])
                     message['en'] != entity_id and self._on_new_message(entity_id, message, room)
 
         finally:
@@ -90,3 +83,12 @@ class RedisPubSubEventsSubscriberService:
     async def unsubscribe_all(self, entity: Entity):
         current_rooms = self._get_current_rooms_by_entity_id(entity.entity_id)
         await self._unsubscribe_rooms(entity, current_rooms)
+
+    def add_observer_for_entity_id(self, entity_id, observer):
+        if not self._observers_by_entity_id.get(entity_id):
+            self._observers_by_entity_id[entity_id] = [observer]
+        else:
+            self._observers_by_entity_id[entity_id].append(observer)
+
+    def remove_observer_for_entity_id(self, entity_id):
+        self._observers_by_entity_id.pop(entity_id, None)

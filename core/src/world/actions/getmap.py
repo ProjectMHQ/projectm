@@ -9,7 +9,7 @@ from core.src.world.entity import Entity
 
 async def getmap(entity: Entity):
     start = time.time()
-    pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
+    pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     assert pos
     area = Area(pos)
     area_map = await area.get_map()

@@ -113,7 +113,7 @@ class RedisDataRepository:
         LOGGER.core.debug('EntityRepository.update_entity_components, response: %s', response)
         return response
 
-    def get_component_value_by_entity(self, entity_id: int, component: typing.Type[ComponentType]):
+    def get_component_value_by_entity_id(self, entity_id: int, component: typing.Type[ComponentType]):
         res = self.redis.hget(
             '{}:{}'.format(self._entity_prefix, entity_id),
             component.key
@@ -133,7 +133,7 @@ class RedisDataRepository:
             } for e in entities
         }
 
-    def get_raw_component_value_by_entities(
+    def get_raw_component_value_by_entity_ids(
             self, component, *entity_ids: int):
         pipeline = self.redis.pipeline()
         for entity_id in entity_ids:

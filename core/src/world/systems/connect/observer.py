@@ -33,32 +33,30 @@ class ConnectionsObserver:
 
     @staticmethod
     async def on_disconnect(entity: Entity):
-        current_connection = list(world_repository.get_raw_component_value_by_entities(
+        current_connection = list(world_repository.get_raw_component_value_by_entity_ids(
             ConnectionComponent, entity.entity_id
         ))[0]
         if current_connection == entity.transport.namespace:
             world_repository.update_entities(
                 entity.set(ConnectionComponent(""))
             )
+            events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
             await events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
         world_repository.update_entities(
             entity.set(ConnectionComponent(entity.transport.namespace))
         )
-        pubsub_observer = PubSubObserver(entity)
-        events_subscriber_service.add_observer_for_entity_id(entity.entity_id, pubsub_observer)
-        pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
+        events_subscriber_service.add_observer_for_entity_id(
+            entity.entity_id, PubSubObserver(entity)
+        )
+        pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         if not pos:
             await cast_entity(entity, get_base_room_for_entity(entity))
             self.loop.create_task(self.greet(entity))
         else:
             await cast_entity(entity, get_base_room_for_entity(entity), update=False)
-        self.loop.create_task(
-            asyncio.gather(
-                look(entity), getmap(entity)
-            )
-        )
+        self.loop.create_task(asyncio.gather(look(entity), getmap(entity)))
 
     async def greet(self, entity: Entity):
         await entity.emit_msg(  # FIXME TEST - Remove

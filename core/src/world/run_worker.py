@@ -53,7 +53,7 @@ def check_entities_connection_status():
         return
     # FIXME TODO multiprocess workers must discriminate and works only on their own entities
 
-    components_values = world_repository.get_raw_component_value_by_entities(
+    components_values = world_repository.get_raw_component_value_by_entity_ids(
         ConnectionComponent, *connected_entity_ids
     )
 
