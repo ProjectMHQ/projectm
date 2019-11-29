@@ -2,7 +2,8 @@ import asyncio
 import struct
 
 import typing
-from aioredis import Redis
+
+import aioredis
 from aioredis.commands import Pipeline
 
 from core.src.auth.logging_factory import LOGGER
@@ -30,10 +31,15 @@ class RedisMapRepository:
         self.max_x = 131      # FIXME TODO
         self.min_x = 0
         self.min_y = 0
+        self.async_lock = asyncio.Lock()
 
-    async def redis(self) -> Redis:
-        if not self._redis:
-            self._redis = await self.redis_factory()
+    async def redis(self) -> aioredis.Redis:
+        await self.async_lock.acquire()
+        try:
+            if not self._redis:
+                self._redis = await self.redis_factory()
+        finally:
+            self.async_lock.release()
         return self._redis
 
     def _coords_to_int(self, x: int, y: int, bytesize=1) -> int:

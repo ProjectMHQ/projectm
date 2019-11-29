@@ -32,10 +32,15 @@ class PubSubManager:
             typing.Set[asyncio.Queue],
         ] = {}
         self._redis = None
+        self.async_lock = asyncio.Lock()
         
     async def redis(self) -> aioredis.Redis:
-        if not self._redis:
-            self._redis = await self._redis_factory()
+        await self.async_lock.acquire()
+        try:
+            if not self._redis:
+                self._redis = await self._redis_factory()
+        finally:
+            self.async_lock.release()
         return self._redis
 
     async def start(self):

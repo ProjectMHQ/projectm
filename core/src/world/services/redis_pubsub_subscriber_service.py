@@ -3,6 +3,7 @@ import asyncio
 import typing
 
 from core.src.auth.logging_factory import LOGGER
+from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.entity import Entity
 from core.src.world.services.redis_pubsub_interface import PubSubManager
@@ -77,8 +78,17 @@ class RedisPubSubEventsSubscriberService:
             self._unsubscribe_rooms(entity, rooms_to_unsubscribe)
         )
 
-    async def bootstrap_subscribes(self):
-        pass
+    async def bootstrap_subscribes(self, data: typing.Dict[Entity, typing.List[int]]):
+        futures = []
+        for en, pos_val in data.items():
+            print('Subscribing for entity %s' % en)
+            pos_val and futures.append(
+                self._subscribe_rooms(
+                    Entity(en),
+                    Area(PosComponent(pos_val)).make_coordinates().rooms_coordinates
+                )
+            )
+        return await asyncio.gather(*futures)
 
     async def unsubscribe_all(self, entity: Entity):
         current_rooms = self._get_current_rooms_by_entity_id(entity.entity_id)

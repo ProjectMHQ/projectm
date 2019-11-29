@@ -144,14 +144,14 @@ class RedisDataRepository:
 
     def get_components_values_by_components(
             self,
-            entities: typing.List[Entity],
+            entity_ids: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[ComponentTypeEnum, typing.Dict[EntityID, bytes]]:
-        _bits_statuses = self._get_components_statuses_by_components(entities, components)
+        _bits_statuses = self._get_components_statuses_by_components(entity_ids, components)
         _filtered = self._get_components_values_from_components_storage(_bits_statuses)
         s = {
             ComponentTypeEnum(c.key): {
-                EntityID(e.entity_id): c.cast_type(_filtered.get(c.key, {}).get(e.entity_id)) for e in entities
+                entity_id: c.cast_type(_filtered.get(c.key, {}).get(entity_id)) for entity_id in entity_ids
             } for c in components}
         return s
 
@@ -180,19 +180,19 @@ class RedisDataRepository:
 
     def _get_components_statuses_by_components(
             self,
-            entities: typing.List[Entity],
+            entities: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
     ) -> OrderedDict:
         pipeline = self.redis.pipeline()
         bits_by_component = OrderedDict()
         for _c in components:
             for _e in entities:
-                pipeline.getbit('{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix), _e.entity_id)
+                pipeline.getbit('{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix), _e)
         data = pipeline.execute()
         i = 0
         for comp in components:
             for ent in entities:
-                _comp_v = {ent.entity_id: [data[i], comp.component_type != bool]}
+                _comp_v = {ent: [data[i], comp.component_type != bool]}
                 try:
                     bits_by_component[comp.key].update(_comp_v)
                 except KeyError:
@@ -219,7 +219,10 @@ class RedisDataRepository:
     def _get_components_values_from_components_storage(self, filtered_query: OrderedDict):
         pipeline = self.redis.pipeline()
         for c_key in filtered_query:
-            keys = [ent_id for ent_id, status_and_querable in filtered_query[c_key].items() if all(status_and_querable)]
+            keys = [
+                ent_id for ent_id, status_and_querable in filtered_query[c_key].items()
+                if all(status_and_querable)
+            ]
             if keys:
                 pipeline.hmget('{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix), *keys)
         response = pipeline.execute()

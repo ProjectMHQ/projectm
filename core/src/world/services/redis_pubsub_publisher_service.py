@@ -1,6 +1,8 @@
 import asyncio
 from enum import Enum
 import typing
+
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 
 
@@ -27,9 +29,12 @@ class RedisPubSubEventsPublisherService:
             "curr": [room_position.x, room_position.y, room_position.z],
             "prev": [previous_position.x, previous_position.y, previous_position.z]
         }
+        room_key = self.pos_to_key(room_position)
+        prev_room_key = self.pos_to_key(previous_position)
+        LOGGER.core.debug('Publishing Message %s on channels %s %s', msg, room_key, prev_room_key)
         await asyncio.gather(
-            self.pubsub.publish(self.pos_to_key(room_position), msg),
-            self.pubsub.publish(self.pos_to_key(previous_position), msg)
+            self.pubsub.publish(room_key, msg),
+            self.pubsub.publish(prev_room_key, msg)
         )
 
     async def on_entity_do_public_action(self, entity, room_position, action_public_payload: typing.Dict):
@@ -38,4 +43,6 @@ class RedisPubSubEventsPublisherService:
             "en": entity.entity_id,
             "ev": PubSubEventType.ENTITY_DO_PUBLIC_ACTION.value,
         }
-        await self.pubsub.publish(self.pos_to_key(room_position), msg)
+        room_key = self.pos_to_key(room_position)
+        LOGGER.core.debug('Publishing Message %s on channel %s', msg, room_key)
+        await self.pubsub.publish(room_key, msg)

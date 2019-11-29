@@ -1,7 +1,9 @@
+import asyncio
 from enum import IntEnum
 
 import typing
-from aioredis import Redis
+
+import aioredis
 
 
 class DescriptionType(IntEnum):
@@ -16,10 +18,15 @@ class RedisDescriptionsRepository:
         self.terrain_suffix = 'r'
         self.entity_suffix = 'e'
         self._redis = None
+        self.async_lock = asyncio.Lock()
 
-    async def redis(self) -> Redis:
-        if not self._redis:
-            self._redis = await self.redis_factory()
+    async def redis(self) -> aioredis.Redis:
+        await self.async_lock.acquire()
+        try:
+            if not self._redis:
+                self._redis = await self.redis_factory()
+        finally:
+            self.async_lock.release()
         return self._redis
 
     async def save_entity_description(self, entity_id: int, title: str, description: str) -> typing.Dict:
