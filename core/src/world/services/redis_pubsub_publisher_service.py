@@ -20,19 +20,11 @@ class RedisPubSubEventsPublisherService:
     def pos_to_key(self, pos):
         return '{}:{}:{}:{}'.format(self._rooms_events_prefix, pos.x, pos.y, pos.z)
 
-    async def on_entity_left_room(self, entity, room_position):
-        msg = {
-            "en": entity.entity_id,
-            "ev": EventType.ENTITY_LEFT_ROOM.value,
-            "s": 1  # todo fixme
-        }
-        await self.pubsub.publish(self.pos_to_key(room_position), msg)
-
-    async def on_entity_join_room(self, entity, room_position):
+    async def on_entity_join_room(self, entity, room_position, previous_position):
         msg = {
             "en": entity.entity_id,
             "ev": EventType.ENTITY_JOIN_ROOM.value,
-            "s": 1  # todo fixme
+            "pr": [previous_position.x, previous_position.y, previous_position.z]
         }
         await self.pubsub.publish(self.pos_to_key(room_position), msg)
 
@@ -40,7 +32,6 @@ class RedisPubSubEventsPublisherService:
         msg = {
             "en": entity.entity_id,
             "ev": EventType.ENTITY_DISAPPEAR_FROM_ROOM.value,
-            "s": 1  # todo fixme
         }
         await self.pubsub.publish(self.pos_to_key(room_position), msg)
 
@@ -48,7 +39,6 @@ class RedisPubSubEventsPublisherService:
         msg = {
             "en": entity.entity_id,
             "ev": EventType.ENTITY_APPEAR_IN_ROOM.value,
-            "s": 1  # todo fixme
         }
         await self.pubsub.publish(self.pos_to_key(room_position), msg)
 
@@ -57,7 +47,6 @@ class RedisPubSubEventsPublisherService:
             "p": action_public_payload,
             "en": entity.entity_id,
             "ev": EventType.ENTITY_DO_PUBLIC_ACTION.value,
-            "s": 1  # todo fixme
         }
         await self.pubsub.publish(self.pos_to_key(room_position), msg)
 

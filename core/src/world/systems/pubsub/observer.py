@@ -1,3 +1,4 @@
+import asyncio
 from enum import Enum
 from shapely.geometry import Point
 from core.src.world.components.pos import PosComponent
@@ -11,14 +12,13 @@ class InterestType(Enum):
 
 
 class PubSubObserver:
-    def __init__(self, entity: Entity):
+    def __init__(self, entity: Entity, loop=asyncio.get_event_loop()):
         self._commands = {}
         self._entity = entity
+        self.loop = loop
 
-    async def _get_message_interest_type(self, room):
-        # FIXME TODO - Cache entity
-        from core.src.world.builder import world_repository
-        curr_pos = world_repository.get_component_value_by_entity_id(self._entity.entity_id, PosComponent)
+    @staticmethod
+    async def _get_message_interest_type(room, curr_pos):
         if curr_pos.z != room.z and (curr_pos.x == room.x) and (curr_pos.y == room.y):
             distance = abs(curr_pos.z - room.z)
         else:
@@ -31,10 +31,20 @@ class PubSubObserver:
             return InterestType.NONE
 
     async def on_event(self, message, room):
-        interest_type = await self._get_message_interest_type(room)
+        from core.src.world.builder import world_repository
+        curr_pos = world_repository.get_component_value_by_entity_id(self._entity.entity_id, PosComponent)
+        interest_type = await self._get_message_interest_type(room, curr_pos)
         if not interest_type.value:
             return
-        await self.publish_event(message, room)
+        await self.publish_event(message, room, interest_type, curr_pos)
 
-    async def publish_event(self):
-        raise NotImplementedError
+    async def publish_event(self, message, room, interest_type, curr_pos):
+        who_what = await self._entity.recognize_entities(message['en_id'])[0]
+        self.loop.create_task(self._publish_message(message, room, interest_type, who_what, curr_pos))
+        self.loop.create_task(self._publish_system_event(message, room, interest_type, who_what, curr_pos))
+
+    async def _publish_message(self, message, room, interest_type, who_what, current_position):
+        pass
+
+    async def _publish_system_event(self, message, room, interest_type, who_what, current_position):
+        self._entity.

@@ -41,3 +41,14 @@ def is_terrain_walkable(terrain_type: TerrainEnum):
         TerrainEnum.PATH: True,
         TerrainEnum.GRASS: True
     }[terrain_type]
+
+
+EvaluatedEntity = typing.NamedTuple(
+    'EvaluatedEntity',
+    (
+        ('name', str),
+        ('type', int),
+        ('status', str),
+        ('known', bool)
+    )
+)
