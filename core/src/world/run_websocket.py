@@ -2,7 +2,7 @@ import asyncio
 
 from aiohttp import web
 from core.src.world.builder import websocket_channels_service
-from core.src.world.services.websocket.websocket_namespace_main import sio
+from core.src.world.services.transport.websocket_namespace_main import sio
 from etc import settings
 
 app = web.Application()

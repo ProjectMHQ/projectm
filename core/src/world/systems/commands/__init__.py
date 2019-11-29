@@ -1,5 +1,5 @@
 def commands_observer_factory(transport):
-    from core.src.world.services.websocket.socketio_interface import TransportInterface
+    from core.src.world.services.transport.socketio_interface import TransportInterface
     from core.src.world.systems.commands.observer import CommandsObserver
     from core.src.world.actions.getmap import getmap
     from core.src.world.actions.look import look

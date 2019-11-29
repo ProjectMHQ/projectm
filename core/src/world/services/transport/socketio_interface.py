@@ -8,9 +8,12 @@ class TransportInterface(metaclass=abc.ABCMeta):
 
 
 class SocketioTransportInterface(TransportInterface):
-    def __init__(self, transport):
+    def __init__(self, transport, messages_translator_strategy=None):
         self.transport = transport
+        self.translator = messages_translator_strategy
 
     async def send(self, namespace, payload, topic='msg'):
+        if self.translator:
+            payload = self.translator.payload_msg_to_string(payload, topic)
         print('sending on namespace %s, topic %s, payload %s' % (namespace, topic, payload))
         return await self.transport.emit(topic, payload, namespace='/{}'.format(namespace))

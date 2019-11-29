@@ -45,7 +45,8 @@ def get_msg_movement(d, status):
     return {
         "event": "move",
         "status": status,
-        "direction": "{}".format(d.value)
+        "direction": "{}".format(d.value),
+        "speed": 1
     }
 
 

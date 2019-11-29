@@ -6,8 +6,9 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.actions_scheduler.singleton_actions_scheduler import SingletonActionsScheduler
 from core.src.world.builder import pubsub, events_subscriber_service, channels_repository
 from core.src.world.services.redis_queue import RedisQueueConsumer
-from core.src.world.services.websocket.socketio_interface import SocketioTransportInterface
+from core.src.world.services.transport.socketio_interface import SocketioTransportInterface
 from core.src.world.services.system_utils import RedisType, get_redis_factory
+from core.src.world.services.transport.messages_translators.builder import get_messages_translator
 from core.src.world.services.worker_queue_service import WorkerQueueService
 from core.src.world.systems.commands import commands_observer_factory
 from core.src.world.systems.connect.observer import ConnectionsObserver
@@ -21,10 +22,14 @@ worker_queue_manager = WorkerQueueService(loop, queue)
 mgr = socketio.AsyncRedisManager(
     'redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT)
 )
-transport = SocketioTransportInterface(socketio.AsyncServer(client_manager=mgr))
+transport_events_translator = get_messages_translator('it')
+transport = SocketioTransportInterface(
+    socketio.AsyncServer(client_manager=mgr),
+    messages_translator_strategy=transport_events_translator
+)
+
 cmds_observer = commands_observer_factory(transport)
 connections_observer = ConnectionsObserver(transport)
-
 singleton_actions_scheduler = SingletonActionsScheduler()
 
 worker_queue_manager.add_queue_observer('connected', connections_observer)
