@@ -1,6 +1,6 @@
 from enum import Enum
 import typing
-from core.src.world.services.redis_pubsub_interface import PubSub
+from core.src.world.services.redis_pubsub_interface import PubSubManager
 
 
 class EventType(Enum):
@@ -12,7 +12,7 @@ class EventType(Enum):
 
 
 class RedisPubSubEventsPublisherService:
-    def __init__(self, pubsub: PubSub):
+    def __init__(self, pubsub: PubSubManager):
         self.pubsub = pubsub
         self._redis = None
         self._rooms_events_prefix = 'ev:r'

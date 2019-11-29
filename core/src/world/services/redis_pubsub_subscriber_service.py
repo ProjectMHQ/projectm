@@ -5,11 +5,11 @@ import typing
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.domain.area import Area
 from core.src.world.entity import Entity
-from core.src.world.services.redis_pubsub_interface import PubSub
+from core.src.world.services.redis_pubsub_interface import PubSubManager
 
 
 class RedisPubSubEventsSubscriberService:
-    def __init__(self, pubsub: PubSub, loop=asyncio.get_event_loop()):
+    def __init__(self, pubsub: PubSubManager, loop=asyncio.get_event_loop()):
         self.pubsub = pubsub
         self._redis = None
         self._rooms_events_prefix = 'ev:r'

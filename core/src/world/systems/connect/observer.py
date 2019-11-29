@@ -4,11 +4,10 @@ import typing
 from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
-from core.src.world.builder import world_repository, events_subscriber_service
+from core.src.world.builder import world_repository, events_subscriber_service, pubsub_observer
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.entity import Entity, EntityID
-from core.src.world.systems.pubsub.observer import PubSubObserver
 from core.src.world.utils.entity_utils import get_base_room_for_entity
 from core.src.world.utils.world_types import Transport
 
@@ -37,9 +36,7 @@ class ConnectionsObserver:
             ConnectionComponent, entity.entity_id
         ))[0]
         if current_connection == entity.transport.namespace:
-            world_repository.update_entities(
-                entity.set(ConnectionComponent(""))
-            )
+            world_repository.update_entities(entity.set(ConnectionComponent("")))
             events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
             await events_subscriber_service.unsubscribe_all(entity)
 
@@ -47,9 +44,7 @@ class ConnectionsObserver:
         world_repository.update_entities(
             entity.set(ConnectionComponent(entity.transport.namespace))
         )
-        events_subscriber_service.add_observer_for_entity_id(
-            entity.entity_id, PubSubObserver(entity)
-        )
+        events_subscriber_service.add_observer_for_entity_id(entity.entity_id, pubsub_observer)
         pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         if not pos:
             await cast_entity(entity, get_base_room_for_entity(entity))

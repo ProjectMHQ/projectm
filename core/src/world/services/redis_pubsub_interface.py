@@ -13,7 +13,7 @@ import typing
 import time
 
 
-class PubSub:
+class PubSubManager:
     # pylint: disable=R0902, too-many-instance-attributes
     _TERMINATE = "EXTERMINATE"
 

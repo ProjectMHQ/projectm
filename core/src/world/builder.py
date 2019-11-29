@@ -1,8 +1,10 @@
 from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
-from core.src.world.services.redis_pubsub_interface import PubSub
+from core.src.world.services.redis_pubsub_interface import PubSubManager
 from core.src.world.services.redis_pubsub_publisher_service import RedisPubSubEventsPublisherService
 from core.src.world.services.redis_pubsub_subscriber_service import RedisPubSubEventsSubscriberService
+from core.src.world.services.transport.messages_translators.builder import get_messages_translator
 from core.src.world.services.transport.websocket_channels_service import WebsocketChannelsService
+from core.src.world.systems.pubsub.observer import PubSubObserver
 from etc import settings
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
@@ -31,6 +33,11 @@ websocket_channels_service = WebsocketChannelsService(
     data_repository=world_repository,
     redis_queue=redis_queues_service
 )
-pubsub = PubSub(async_redis_data)
+
+pubsub = PubSubManager(async_redis_data)
+messages_translator = get_messages_translator('it')
+pubsub_observer = PubSubObserver()
+pubsub_observer.add_messages_translator(messages_translator)
+
 events_subscriber_service = RedisPubSubEventsSubscriberService(pubsub)
 events_publisher_service = RedisPubSubEventsPublisherService(pubsub)
