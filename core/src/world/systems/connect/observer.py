@@ -14,9 +14,10 @@ from core.src.world.utils.world_types import Transport
 
 
 class ConnectionsObserver:
-    def __init__(self, transport):
+    def __init__(self, transport, loop=asyncio.get_event_loop()):
         self._commands = {}
         self.transport = transport
+        self.loop = loop
 
     def add_command(self, command: str, method: callable):
         self._commands[command] = method
@@ -50,11 +51,14 @@ class ConnectionsObserver:
         pos = world_repository.get_component_value_by_entity(entity.entity_id, PosComponent)
         if not pos:
             await cast_entity(entity, get_base_room_for_entity(entity))
-            await self.greet(entity)
+            self.loop.create_task(self.greet(entity))
         else:
             await cast_entity(entity, get_base_room_for_entity(entity), update=False)
-        await look(entity)
-        await getmap(entity)
+        self.loop.create_task(
+            asyncio.gather(
+                look(entity), getmap(entity)
+            )
+        )
 
     async def greet(self, entity: Entity):
         await entity.emit_msg(  # FIXME TEST - Remove

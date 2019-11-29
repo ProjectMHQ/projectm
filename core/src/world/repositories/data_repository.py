@@ -213,7 +213,7 @@ class RedisDataRepository:
         res = p.execute()
         bitmap, _ = res
         array = bitarray.bitarray()
-        array.frombytes(bitmap)
+        bitmap and array.frombytes(bitmap) or []
         return (i for i, v in enumerate(array) if v)
 
     def _get_components_values_from_components_storage(self, filtered_query: OrderedDict):
