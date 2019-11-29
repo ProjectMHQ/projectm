@@ -7,7 +7,7 @@ class TranslatorMovementsItalian:
         self.language = 'it'
 
     @staticmethod
-    def _speed_to_adjective(speed: int, context):
+    def _emitter_speed_to_adjective(speed: int, context: str):
         return {
             "1_begin": 'Inizi a muoverti di corsa',
             "2_begin": 'Inizi a muoverti, scattando',
@@ -25,7 +25,7 @@ class TranslatorMovementsItalian:
         }['{}_{}'.format(speed, context)]
 
     @staticmethod
-    def _direction_to_adjective(direction: str, context):
+    def _emitter_direction_to_adjective(direction: str, context: str):
         return {
             "n_begin": "verso nord",
             "s_begin": "verso sud",
@@ -46,13 +46,13 @@ class TranslatorMovementsItalian:
         assert payload['event'] == self.event
         if payload['status'] == 'begin':
             return "{} {}".format(
-                self._speed_to_adjective(payload['speed'], 'begin'),
-                self._direction_to_adjective(payload['direction'], 'begin')
+                self._emitter_speed_to_adjective(payload['speed'], 'begin'),
+                self._emitter_direction_to_adjective(payload['direction'], 'begin')
             )
         if payload['status'] == 'success':
             return '{} {}'.format(
-                self._speed_to_adjective(payload['speed'], 'success'),
-                self._direction_to_adjective(payload['direction'], 'success')
+                self._emitter_speed_to_adjective(payload['speed'], 'success'),
+                self._emitter_direction_to_adjective(payload['direction'], 'success')
             )
         if payload['status'] == 'error':
             return 'Non puoi andare in quella direzione'

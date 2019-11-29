@@ -27,8 +27,9 @@ class DirectionEnum(enum.Enum):
 def get_broadcast_msg_movement(status, direction):
     return {
         "a": "movement",
-        "s": status,
-        "d": direction.value
+        "st": status,
+        "d": direction.value,
+        "sp": 1
     }
 
 

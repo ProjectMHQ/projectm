@@ -13,4 +13,3 @@ async def cast_entity(entity: Entity, where: PosComponent, update=True):
     update and world_repository.update_entities(entity.set(where))
     loop.create_task(events_publisher_service.on_entity_join_room(entity, where))
     loop.create_task(events_subscriber_service.subscribe_area(entity, Area(where).make_coordinates()))
-

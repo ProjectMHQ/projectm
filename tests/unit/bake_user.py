@@ -2,7 +2,7 @@ import random
 from unittest.mock import Mock
 
 from core.src.world.run_websocket import app
-from core.src.world.services.websocket.websocket_namespace_main import sio
+from core.src.world.services.transport.websocket_namespace_main import sio
 from etc import settings
 from aiohttp.web import _run_app
 import hashlib

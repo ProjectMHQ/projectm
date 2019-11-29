@@ -8,7 +8,7 @@ from core.src.world.builder import async_redis_data
 from core.src.world.components import ComponentTypeEnum
 from core.src.world.repositories.data_repository import RedisDataRepository
 from core.src.world.run_worker import worker_queue_manager
-from core.src.world.services.websocket.websocket_channels_service import WebsocketChannelsService
+from core.src.world.services.transport.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 import binascii
 import os
