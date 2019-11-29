@@ -1,5 +1,5 @@
-from core.src.world.services.transport.messages_translators.movement_translator import TranslatorMovementsItalian
-from core.src.world.services.transport.messages_translators.translators_factory import MessagesTranslator
+from core.src.world.messages_translators.movement_translator import TranslatorMovementsItalian
+from core.src.world.messages_translators.translators_factory import MessagesTranslator
 
 TRANSLATORS = {
     'it': {

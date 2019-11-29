@@ -2,7 +2,7 @@ from core.src.world.repositories.descriptions_repository import RedisDescription
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 from core.src.world.services.redis_pubsub_publisher_service import RedisPubSubEventsPublisherService
 from core.src.world.services.redis_pubsub_subscriber_service import RedisPubSubEventsSubscriberService
-from core.src.world.services.transport.messages_translators.builder import get_messages_translator
+from core.src.world.messages_translators import get_messages_translator
 from core.src.world.services.transport.websocket_channels_service import WebsocketChannelsService
 from core.src.world.systems.pubsub.observer import PubSubObserver
 from etc import settings
