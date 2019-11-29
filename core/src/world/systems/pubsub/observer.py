@@ -53,17 +53,17 @@ class PubSubObserver:
         self.loop.create_task(self._publish_system_event(entity, message, room, interest_type, who_what, curr_pos))
 
     async def _publish_system_event(self, entity, message, room, interest_type, who_what, current_position):
-        topic, payload = self._pubsub_event_to_transport_event(message, room, interest_type, who_what, current_position)
-        (topic and payload) and await entity.emit_msg(payload, topic=topic)
+        payload = self._pubsub_event_to_transport_event(message, room, interest_type, who_what, current_position)
+        payload and await entity.emit_msg(payload, topic="map")
 
     async def _publish_message(self, entity, message, room, interest_type, who_what, current_position):
         pass
 
     @staticmethod
     def _pubsub_event_to_transport_event(message, room, interest_type, entity: EvaluatedEntity, current_position):
-        payload = {}
+        payload = {'data': {}}
         if interest_type == InterestType.LOCAL:
-            payload.update(
+            payload['data'].update(
                 {
                     'status': entity.status,
                     'excerpt': entity.excerpt,
@@ -75,10 +75,9 @@ class PubSubObserver:
             PubSubEventType.ENTITY_DISAPPEAR.value,
             PubSubEventType.ENTITY_CHANGE_POS.value
         ):
-            return None, None
+            return None
 
-        topic = 'map'
-        payload.update(
+        payload['data'].update(
             {
                 'e_id': message['en'],
                 'type': entity.type,
@@ -90,30 +89,15 @@ class PubSubObserver:
         prev_rel_pos = Area(current_position).get_relative_position(current_position)
         array_size = (rel_area.size ** 2) - 1
         if (0 < rel_pos < array_size) and (0 < prev_rel_pos < array_size):
-            payload.update(
-                {
-                    'event': 'entity_change_pos',
-                    'rel_pos': rel_pos,
-
-                }
-            )
+            payload['event'] = 'entity_change_pos'
+            payload['data']['rel_pos'] = rel_pos
         elif (0 < rel_pos < array_size) and not (0 < prev_rel_pos < array_size):
-            payload.update(
-                {
-                    'event': 'entity_add',
-                    'rel_pos': rel_pos,
-
-                }
-            )
+            payload['event'] = 'entity_add'
+            payload['data']['rel_pos'] = rel_pos
         elif not (0 < rel_pos < array_size) and (0 < prev_rel_pos < array_size):
-            payload.update(
-                {
-                    'event': 'entity_remove'
-
-                }
-            )
+            payload['event'] = 'entity_remove'
         else:
             raise ValueError(
                 'Doh, rel_pos: %s, prev_rel_pos: %s' % (rel_pos, prev_rel_pos)
             )
-        return topic, payload
+        return payload

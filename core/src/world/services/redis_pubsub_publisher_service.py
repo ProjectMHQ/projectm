@@ -32,10 +32,7 @@ class RedisPubSubEventsPublisherService:
         room_key = self.pos_to_key(room_position)
         prev_room_key = self.pos_to_key(previous_position)
         LOGGER.core.debug('Publishing Message %s on channels %s %s', msg, room_key, prev_room_key)
-        await asyncio.gather(
-            self.pubsub.publish(room_key, msg),
-            self.pubsub.publish(prev_room_key, msg)
-        )
+        await self.pubsub.publish(room_key, msg)
 
     async def on_entity_do_public_action(self, entity, room_position, action_public_payload: typing.Dict):
         msg = {
