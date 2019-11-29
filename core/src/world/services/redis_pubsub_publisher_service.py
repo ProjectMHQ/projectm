@@ -5,11 +5,10 @@ from core.src.world.services.redis_pubsub_interface import PubSubManager
 
 
 class PubSubEventType(Enum):
-    ENTITY_LEFT_ROOM = 1
-    ENTITY_JOIN_ROOM = 2
-    ENTITY_DISAPPEAR_FROM_ROOM = 3
-    ENTITY_APPEAR_IN_ROOM = 4
-    ENTITY_DO_PUBLIC_ACTION = 5
+    ENTITY_CHANGE_POS = 1
+    ENTITY_DISAPPEAR = 2
+    ENTITY_APPEAR = 3
+    ENTITY_DO_PUBLIC_ACTION = 4
 
 
 class RedisPubSubEventsPublisherService:
@@ -24,7 +23,7 @@ class RedisPubSubEventsPublisherService:
     async def on_entity_change_position(self, entity, room_position, previous_position):
         msg = {
             "en": entity.entity_id,
-            "ev": PubSubEventType.ENTITY_JOIN_ROOM.value,
+            "ev": PubSubEventType.ENTITY_CHANGE_POS.value,
             "curr": [room_position.x, room_position.y, room_position.z],
             "prev": [previous_position.x, previous_position.y, previous_position.z]
         }

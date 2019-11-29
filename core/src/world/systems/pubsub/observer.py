@@ -24,6 +24,8 @@ class PubSubObserver:
     async def _get_message_interest_type(room, curr_pos):
         if curr_pos.z != room.z and (curr_pos.x == room.x) and (curr_pos.y == room.y):
             distance = abs(curr_pos.z - room.z)
+        elif curr_pos.z != room.z:
+            return InterestType.NONE
         else:
             distance = int(Point(curr_pos.x, curr_pos.y).distance(Point(room.x, room.y)))
         if not distance:
@@ -48,35 +50,60 @@ class PubSubObserver:
 
     async def _publish_system_event(self, entity, message, room, interest_type, who_what, current_position):
         topic, payload = self._pubsub_event_to_transport_event(message, room, interest_type, who_what, current_position)
-        await entity.emit_msg(payload, topic=topic)
+        (topic and payload) and await entity.emit_msg(payload, topic=topic)
 
     async def _publish_message(self, entity, message, room, interest_type, who_what, current_position):
         pass
 
     @staticmethod
-    def _pubsub_event_to_transport_event(message, room, interest_type, who_what: EvaluatedEntity, current_position):
+    def _pubsub_event_to_transport_event(message, room, interest_type, entity: EvaluatedEntity, current_position):
         payload = {}
         if interest_type == InterestType.LOCAL:
             payload.update(
                 {
-                    'status': who_what.status,
-                    'description': who_what.description,
-                    'name': who_what.known and who_what.name
+                    'status': entity.status,
+                    'excerpt': entity.excerpt,
+                    'name': entity.known and entity.name
                 }
             )
-        if message['ev'] in (
-            PubSubEventType.ENTITY_APPEAR_IN_ROOM.value,
-            PubSubEventType.ENTITY_JOIN_ROOM.value
+        if message['ev'] not in (
+            PubSubEventType.ENTITY_APPEAR.value,
+            PubSubEventType.ENTITY_DISAPPEAR.value,
+            PubSubEventType.ENTITY_CHANGE_POS.value
         ):
-            topic = 'map'
+            return None, None
+
+        topic = 'map'
+        payload.update(
+            {
+                'e_id': message['en_id'],
+                'type': entity.type,
+            }
+
+        )
+        rel_pos = Area(current_position).get_relative_position(room)
+        prev_rel_pos = Area(current_position).get_relative_position(current_position)
+        if (0 < rel_pos < 81) and (0 < prev_rel_pos < 81):
             payload.update(
                 {
-                    'event': 'entity_new_pos',
-                    'e_id': message['en_id'],
-                    'rel_pos': Area(current_position).get_relative_position(room),
-                    'type': who_what.type,
+                    'event': 'entity_change_pos',
+                    'rel_pos': rel_pos,
+
                 }
             )
-        else:
-            raise ValueError
+        elif (0 < rel_pos < 81) and not (0 < prev_rel_pos < 81):
+            payload.update(
+                {
+                    'event': 'entity_add',
+                    'rel_pos': rel_pos,
+
+                }
+            )
+        elif not (0 < rel_pos < 81) and (0 < prev_rel_pos < 81):
+            payload.update(
+                {
+                    'event': 'entity_remove'
+
+                }
+            )
         return topic, payload

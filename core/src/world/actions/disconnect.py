@@ -14,6 +14,3 @@ async def disconnect_entity(entity: Entity, where: PosComponent, update=True):
     update and world_repository.update_entities()
     await events_subscriber_service.unsubscribe_all(entity)
     loop.create_task(events_publisher_service.on_entity_disappear_from_room(entity, where))
-
-
-
