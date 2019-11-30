@@ -1,6 +1,6 @@
 import typing
 
-from core.src.world.utils.world_types import TerrainEnum, is_terrain_walkable
+from core.src.world.utils.world_types import TerrainEnum, is_terrain_walkable, EvaluatedEntity
 
 RoomPosition = typing.NamedTuple(
     'RoomPosition', (
@@ -21,6 +21,7 @@ class Room:
         self._position = position
         self._terrain = terrain
         self._entity_ids = entity_ids
+        self._content: typing.Set[EvaluatedEntity] = set()
 
     @property
     def position(self) -> RoomPosition:
@@ -49,11 +50,11 @@ class Room:
         return "Room Title"  # FIXME TODO
 
     @property
-    def content(self) -> typing.List[str]:
-        if self.position.x == 1 and self.position.y == 1 and not self.position.z:
-            # FIXME REMOVE TODO
-            return ['A three-headed monkey']
-        return []
+    def content(self) -> typing.Set[EvaluatedEntity]:
+        return self._content
+
+    def add_evaluated_entity(self, evaluated_entity: EvaluatedEntity):
+        self._content.add(evaluated_entity)
 
     def __str__(self):
         return '''

@@ -1,7 +1,7 @@
 import typing
 
 from core.src.world.components import ComponentType
-from core.src.world.utils.world_types import Transport
+from core.src.world.utils.world_types import Transport, EvaluatedEntity
 
 EntityID = typing.NewType('EntityID', int)
 
@@ -33,3 +33,8 @@ class Entity:
     @property
     def pending_changes(self):
         return self._pending_changes
+
+    @staticmethod
+    def can_see_evaluated_entity(evaluated_entity: EvaluatedEntity):
+        # FIXME TODO
+        return bool(evaluated_entity)

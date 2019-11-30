@@ -6,11 +6,15 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
 from shapely.geometry.polygon import Polygon
 
+from core.src.world.domain.room import Room
+from core.src.world.entity import Entity
+
 
 class Area:
     def __init__(self, center: PosComponent, square_size=15):
         self.center = center
         self.size = square_size
+        self.rooms: typing.List[typing.Optional[Room]] = []
         self._rooms_coordinates = set()
         self._polygon = None
 
@@ -57,9 +61,42 @@ class Area:
         return self
 
     async def get_rooms(self):
-        from core.src.world.builder import map_repository
+        if not self.rooms:
+            await self.populate_rooms()
+        return self.rooms
 
-        res = []
+    async def get_map(self) -> typing.Dict:
+        start = time.time()
+        rooms = await self.get_rooms()
+        LOGGER.websocket_monitor.debug('Rooms fetched in in %s', '{:.4f}'.format(time.time() - start))
+        res = {'base': [], 'data': []}
+        center = int((self.size ** 2) / 2) + 1
+        for index, r in enumerate(rooms):
+            res['base'].append(r and r.terrain.value or 0)
+            if r and r.content:
+                for entry in r.content:
+                    payload = {
+                        'type': entry.type,
+                        'pos': index,
+                        'e_id': entry.entity_id
+                    }
+                    if index == center:
+                        payload['name'] = entry.known and entry.name or ""
+                        payload['excerpt'] = entry.excerpt
+                    res['data'].append(payload)
+        return res
+
+    def is_position_inside(self, pos: PosComponent):
+        if pos.z != self.center.z:
+            return False
+        from shapely.geometry import Point
+        return self.polygon.contains(Point(pos.x, pos.y))
+
+    def get_relative_position(self, position: PosComponent) -> int:
+        return (self.max_y - position.y) * (self.max_x - self.min_x) + position.x - self.min_x
+
+    async def populate_rooms(self):
+        from core.src.world.builder import map_repository
         from_x = max([self.min_x, map_repository.min_x])
         to_x = min([self.max_x, map_repository.max_x])
         for y in range(self.max_y, self.min_y, -1):
@@ -74,29 +111,18 @@ class Area:
                 if self.max_x >= map_repository.max_x:
                     data = data + ([None] * (self.size - len(data)))
 
-                res.extend(data)
+                self.rooms.extend(data)
                 assert len(data) == self.size, (len(data), from_x, to_x)
             else:
-                res.extend([None] * self.size)
-        return res
+                self.rooms.extend([None] * self.size)
+        return self
 
-    async def get_map(self) -> typing.Dict:
-        start = time.time()
-        rooms = await self.get_rooms()
-        LOGGER.websocket_monitor.debug('Rooms fetched in in %s', '{:.4f}'.format(time.time() - start))
-        res = {'base': [], 'data': []}
-        for index, r in enumerate(rooms):
-            res['base'].append(r and r.terrain.value or 0)
-            if r and r.content:
-                for entry in r.content:
-                    res['data'].append({'description': entry, 'pos': index})
-        return res
+    async def populate_rooms_content(self, entity: Entity):
+        from core.src.world.builder import world_repository
+        await world_repository.populate_area_content_for_entity(entity, self)
+        return self
 
-    def is_position_inside(self, pos: PosComponent):
-        if pos.z != self.center.z:
-            return False
-        from shapely.geometry import Point
-        return self.polygon.contains(Point(pos.x, pos.y))
-
-    def get_relative_position(self, position: PosComponent) -> int:
-        return (self.max_y - position.y) * (self.max_x - self.min_x) + position.x - self.min_x
+    async def get_map_for_entity(self, entity: Entity) -> typing.Dict:
+        await self.populate_rooms()
+        await self.populate_rooms_content(entity)
+        return await self.get_map()

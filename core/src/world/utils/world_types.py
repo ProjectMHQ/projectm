@@ -50,6 +50,7 @@ EvaluatedEntity = typing.NamedTuple(
         ('type', int),
         ('status', str),
         ('known', bool),
-        ('excerpt', str)
+        ('excerpt', str),
+        ('entity_id', int)
     )
 )

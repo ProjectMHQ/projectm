@@ -1,4 +1,5 @@
 import asyncio
+import struct
 import typing
 from collections import OrderedDict
 
@@ -9,6 +10,8 @@ from redis import StrictRedis
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.components.name import NameComponent
+from core.src.world.components.pos import PosComponent
+from core.src.world.domain.area import Area
 from core.src.world.entity import Entity, EntityID
 from core.src.world.utils.world_types import Bit, EvaluatedEntity
 
@@ -20,10 +23,17 @@ class RedisDataRepository:
         self._entity_prefix = 'e'
         self._component_prefix = 'c'
         self._map_suffix = 'm'
+        self._map_prefix = 'm'
         self._data_suffix = 'd'
+        self._room_content_suffix = 'c'
         redis.setbit('{}:{}'.format(self._entity_prefix, self._map_suffix), 0, 1)  # ensure the map is 1 based
         self.async_lock = asyncio.Lock()
         self._async_redis = None
+        self.room_content_key = '{}:{}:{}'.format(self._map_prefix, '{}', self._room_content_suffix)
+
+    @staticmethod
+    def _pack_coords(x: int, y: int, z: int) -> bytes:
+        return struct.pack('>hhh', x, y, z)
 
     async def async_redis(self) -> aioredis.Redis:
         await self.async_lock.acquire()
@@ -46,6 +56,24 @@ class RedisDataRepository:
         assert response
         return int(response)
 
+    def _update_map_position_for_entity(self, position: PosComponent, entity: Entity, pipeline):
+        assert position.has_previous_position()
+        prev_set_name = self.room_content_key.format(
+            self._pack_coords(
+                position.previous_position.x,
+                position.previous_position.y,
+                position.previous_position.z,
+            )
+        )
+        new_set_name = self.room_content_key.format(
+            self._pack_coords(
+                position.x, position.y, position.z,
+            )
+        )
+        # TODO FIXME - use smove in the future, with a clean bootstrap
+        pipeline.srem(prev_set_name, '{}'.format(entity.entity_id))
+        pipeline.sadd(new_set_name, '{}'.format(entity.entity_id))
+
     def save_entity(self, entity: Entity) -> Entity:
         assert not entity.entity_id, 'entity_id: %s, use update, not save.' % entity.entity_id
         entity_id = self._allocate_entity_id()
@@ -62,6 +90,8 @@ class RedisDataRepository:
         for entity in entities:
             assert entity.entity_id
             for c in entity.pending_changes.values():
+                if c.component_enum == ComponentTypeEnum.POS:
+                    self._update_map_position_for_entity(c, entity, pipeline)
                 pipeline.setbit(
                     '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
                     entity.entity_id, Bit.ON.value if c.is_active() else Bit.OFF.value
@@ -297,14 +327,43 @@ class RedisDataRepository:
                 NameComponent.key,
             )
         data = await pipeline.execute()
-        for el in data:
+        for i, el in enumerate(data):
             result.append(
                 EvaluatedEntity(
                     name=el[0].decode(),
                     type=0,
                     status=0,
                     known=True,
-                    excerpt="un brutto ceffo dall'aspetto elegante"
+                    excerpt="un brutto ceffo dall'aspetto elegante",
+                    entity_id=entity_ids[i]
                 )
             )
         return result
+
+    async def populate_area_content_for_entity(self, entity: Entity, area: Area) -> None:
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
+        for room in area.rooms:
+            if room:
+                for entity_id in room.entity_ids:
+                    print('querying entity {} on room {}'.format(entity_id, room))
+                    pipeline.hmget(
+                        '{}:{}'.format(self._entity_prefix, entity_id),
+                        NameComponent.key, b'a', b'b'
+                    )
+        result = await pipeline.execute()
+        i = 0
+        for _room in area.rooms:
+            if _room:
+                for _entity_id in _room.entity_ids:
+                    _evaluated_entity_response = result[i]
+                    evaluated_entity = EvaluatedEntity(
+                        name=_evaluated_entity_response[0].decode(),
+                        type=0,
+                        status=0,
+                        known=True,
+                        excerpt="un brutto ceffo dall'aspetto elegante",
+                        entity_id=_entity_id
+                    )
+                    entity.can_see_evaluated_entity(evaluated_entity) and _room.add_evaluated_entity(evaluated_entity)
+                    i += 1

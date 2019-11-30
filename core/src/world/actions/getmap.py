@@ -12,7 +12,7 @@ async def getmap(entity: Entity):
     pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     assert pos
     area = Area(pos)
-    area_map = await area.get_map()
+    area_map = await area.get_map_for_entity(entity)
     await entity.emit_msg(
         {
             "event": "map",

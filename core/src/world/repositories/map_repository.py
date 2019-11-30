@@ -9,6 +9,7 @@ from aioredis.commands import Pipeline
 from core.src.auth.logging_factory import LOGGER
 from core.src.world import exceptions
 from core.src.world.domain.room import Room, RoomPosition
+from core.src.world.entity import Entity
 from core.src.world.utils.world_types import TerrainEnum
 
 
@@ -124,7 +125,7 @@ class RedisMapRepository:
         await pipeline.execute()
         return response
 
-    async def get_rooms(self, *positions: RoomPosition):
+    async def get_rooms(self, *positions: RoomPosition, get_content=True):
         redis = await self.redis()
         pipeline = redis.pipeline()
         for position in positions:
@@ -135,7 +136,7 @@ class RedisMapRepository:
             else:
                 k = self._coords_to_int(position.x, position.y)
                 pipeline.getrange(self.terrains_bitmap_key, k, k)
-            self._get_room_content(
+            get_content and self._get_room_content(
                 pipeline, position.x, position.y, position.z
             )
         result = await pipeline.execute()
@@ -147,8 +148,11 @@ class RedisMapRepository:
             else:
                 terrain = int(struct.unpack('B', result[i])[0])
             i += 1
-            content = [int(x) for x in result[i]]
-            i += 1
+            if get_content:
+                content = [int(x) for x in result[i]]
+                i += 1
+            else:
+                content = []
             response.append(
                 Room(
                     position=position,
@@ -158,7 +162,7 @@ class RedisMapRepository:
             )
         return response
 
-    async def get_rooms_on_y(self, y: int, from_x: int, to_x: int, z: int):
+    async def get_rooms_on_y(self, y: int, from_x: int, to_x: int, z: int, get_content=True):
         assert to_x > from_x
         redis = await self.redis()
         pipeline = redis.pipeline()
@@ -168,7 +172,7 @@ class RedisMapRepository:
         else:
             k = self._coords_to_int(from_x, y)
             pipeline.getrange(self.terrains_bitmap_key, k, k + ((to_x - from_x) - 1))
-        _ = [self._get_room_content(pipeline, x, y, z) for x in range(from_x, to_x)]
+        get_content and [self._get_room_content(pipeline, x, y, z) for x in range(from_x, to_x)]
         response = []
         i = 0
         result = await pipeline.execute()
@@ -193,7 +197,7 @@ class RedisMapRepository:
                     Room(
                         position=RoomPosition(from_x + d, y, z),
                         terrain=TerrainEnum(terrains[d]),
-                        entity_ids=[int(x) for x in result[d+1]]
+                        entity_ids=get_content and [int(x) for x in result[d+1]] or []
                     )
                 )
         return response
