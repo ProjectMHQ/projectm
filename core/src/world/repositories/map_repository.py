@@ -34,6 +34,12 @@ class RedisMapRepository:
         self.min_y = 0
         self.async_lock = asyncio.Lock()
 
+    def get_room_key(self, x, y, z):
+        if z:
+            return self.room_content_key.format('{}.{}.{}'.format(x, y, z))
+        else:
+            return self.room_content_key.format('{}.{}'.format(x, y))
+
     async def redis(self) -> aioredis.Redis:
         await self.async_lock.acquire()
         try:
@@ -52,18 +58,15 @@ class RedisMapRepository:
         return struct.pack('>hhh', x, y, z)
 
     def _get_room_content(self, pipeline: Pipeline, x: int, y: int, z: int):
-        pipeline.smembers(self.room_content_key.format('{}.{}.{}'.format(x, y, z)))
+        pipeline.smembers(self.get_room_key(x, y, z))
 
     def _get_rooms_content(self, pipeline: Pipeline, x: int, from_y: int, to_y: int, z: int):
         pipeline.sunion(
-            *(self.room_content_key.format(c) for c in
-                ('{}.{}.{}'.format(x, y, z) for y in range(from_y, to_y)))
+            *(self.get_room_key(*c) for c in ((x, y, z) for y in range(from_y, to_y)))
         )
 
     def _set_room_content(self, pipeline: Pipeline, room: Room):
-        pipeline.sadd(self.room_content_key.format(
-            '{}.{}.{}'.format(room.position.x, room.position.y, room.position.z)
-        ), *room.entity_ids)
+        pipeline.sadd(self.get_room_key(room.position.x, room.position.y, room.position.z), *room.entity_ids)
 
     async def set_room(self, room: Room):
         return await self._set_room(room)

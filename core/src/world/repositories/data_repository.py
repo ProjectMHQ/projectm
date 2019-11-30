@@ -31,6 +31,12 @@ class RedisDataRepository:
         self._async_redis = None
         self.room_content_key = '{}:{}:{}'.format(self._map_prefix, '{}', self._room_content_suffix)
 
+    def get_room_key(self, x, y, z):
+        if z:
+            return self.room_content_key.format('{}.{}.{}'.format(x, y, z))
+        else:
+            return self.room_content_key.format('{}.{}'.format(x, y))
+
     async def async_redis(self) -> aioredis.Redis:
         await self.async_lock.acquire()
         try:
@@ -55,8 +61,8 @@ class RedisDataRepository:
     def _update_map_position_for_entity(self, position: PosComponent, entity: Entity, pipeline):
         assert position.has_previous_position()
         prev = position.previous_position
-        prev_set_name = self.room_content_key.format('{}.{}.{}'.format(prev.x, prev.y, prev.z))
-        new_set_name = self.room_content_key.format('{}.{}.{}'.format(position.x, position.y, position.z))
+        prev_set_name = self.get_room_key(prev.x, prev.y, prev.z)
+        new_set_name = self.get_room_key(position.x, position.y, position.z)
         # TODO FIXME - use smove in the future, with a clean bootstrap
         pipeline.srem(prev_set_name, '{}'.format(entity.entity_id))
         pipeline.sadd(new_set_name, '{}'.format(entity.entity_id))
