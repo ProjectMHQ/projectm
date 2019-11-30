@@ -31,10 +31,6 @@ class RedisDataRepository:
         self._async_redis = None
         self.room_content_key = '{}:{}:{}'.format(self._map_prefix, '{}', self._room_content_suffix)
 
-    @staticmethod
-    def _pack_coords(x: int, y: int, z: int) -> bytes:
-        return struct.pack('>hhh', x, y, z)
-
     async def async_redis(self) -> aioredis.Redis:
         await self.async_lock.acquire()
         try:
@@ -58,18 +54,9 @@ class RedisDataRepository:
 
     def _update_map_position_for_entity(self, position: PosComponent, entity: Entity, pipeline):
         assert position.has_previous_position()
-        prev_set_name = self.room_content_key.format(
-            self._pack_coords(
-                position.previous_position.x,
-                position.previous_position.y,
-                position.previous_position.z,
-            )
-        )
-        new_set_name = self.room_content_key.format(
-            self._pack_coords(
-                position.x, position.y, position.z,
-            )
-        )
+        prev = position.previous_position
+        prev_set_name = self.room_content_key.format('{}.{}.{}'.format(prev.x, prev.y, prev.z))
+        new_set_name = self.room_content_key.format('{}.{}.{}'.format(position.x, position.y, position.z))
         # TODO FIXME - use smove in the future, with a clean bootstrap
         pipeline.srem(prev_set_name, '{}'.format(entity.entity_id))
         pipeline.sadd(new_set_name, '{}'.format(entity.entity_id))

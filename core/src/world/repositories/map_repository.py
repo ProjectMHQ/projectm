@@ -52,17 +52,17 @@ class RedisMapRepository:
         return struct.pack('>hhh', x, y, z)
 
     def _get_room_content(self, pipeline: Pipeline, x: int, y: int, z: int):
-        pipeline.smembers(self.room_content_key.format(self._pack_coords(x, y, z)))
+        pipeline.smembers(self.room_content_key.format('{}.{}.{}'.format(x, y, z)))
 
     def _get_rooms_content(self, pipeline: Pipeline, x: int, from_y: int, to_y: int, z: int):
         pipeline.sunion(
             *(self.room_content_key.format(c) for c in
-            (self._pack_coords(x, y, z) for y in range(from_y, to_y)))
+                ('{}.{}.{}'.format(x, y, z) for y in range(from_y, to_y)))
         )
 
     def _set_room_content(self, pipeline: Pipeline, room: Room):
         pipeline.sadd(self.room_content_key.format(
-            self._pack_coords(room.position.x, room.position.y, room.position.z)
+            '{}.{}.{}'.format(room.position.x, room.position.y, room.position.z)
         ), *room.entity_ids)
 
     async def set_room(self, room: Room):
@@ -74,7 +74,7 @@ class RedisMapRepository:
         if room.position.z:
             pipeline.hset(
                 self.z_valued_rooms_data_key,
-                self._pack_coords(room.position.x, room.position.y, room.position.z),
+                '{}.{}.{}'.format(room.position.x, room.position.y, room.position.z),
                 '{}'.format(room.terrain.value)
             )
         else:
