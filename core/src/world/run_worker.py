@@ -28,12 +28,13 @@ worker_queue_manager.add_queue_observer('cmd', cmds_observer)
 
 
 async def main(entity_ids):
-    data = world_repository.get_components_values_by_components(
-        entity_ids, [PosComponent]
-    )[PosComponent.component_enum]
-    await events_subscriber_service.bootstrap_subscribes(data)
-    for entity_id in entity_ids:
-        events_subscriber_service.add_observer_for_entity_id(entity_id, pubsub_observer)
+    if entity_ids:
+        data = world_repository.get_components_values_by_components(
+            entity_ids, [PosComponent]
+        )[PosComponent.component_enum]
+        await events_subscriber_service.bootstrap_subscribes(data)
+        for entity_id in entity_ids:
+            events_subscriber_service.add_observer_for_entity_id(entity_id, pubsub_observer)
     await worker_queue_manager.run()
 
 
