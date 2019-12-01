@@ -17,6 +17,7 @@ class Area:
         self.rooms: typing.List[typing.Optional[Room]] = []
         self._rooms_coordinates = set()
         self._polygon = None
+        self._peripheral_coordinates = set()
 
     @property
     def polygon(self):
@@ -34,6 +35,10 @@ class Area:
     @property
     def rooms_coordinates(self) -> set:
         return self._rooms_coordinates
+
+    @property
+    def rooms_and_peripherals_coordinates(self) -> set:
+        return self._rooms_coordinates | self._peripheral_coordinates
 
     @property
     def min_x(self) -> int:
@@ -56,8 +61,17 @@ class Area:
         from_x = max([self.min_x, map_repository.min_x])
         to_x = min([self.max_x, map_repository.max_x])
         for y in range(self.max_y, self.min_y, -1):
+            if map_repository.min_y < y < map_repository.max_y:
+                if to_x < map_repository.max_x:
+                    self._peripheral_coordinates.add((to_x + 1, y, self.center.z))
+                if from_x > map_repository.min_x:
+                    self._peripheral_coordinates.add((from_x - 1, y, self.center.z))
             for x in range(from_x, to_x + 1):
                 self._rooms_coordinates.add((x, y, self.center.z))
+                if (y == self.min_y + 1) and y > map_repository.min_y:
+                    self._peripheral_coordinates.add((x, y - 1, self.center.z))
+                elif (y == self.max_y) and y < map_repository.max_y:
+                    self._peripheral_coordinates.add((x, y + 1, self.center.z))
         return self
 
     async def get_rooms(self):

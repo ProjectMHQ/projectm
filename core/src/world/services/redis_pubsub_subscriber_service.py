@@ -87,10 +87,13 @@ class RedisPubSubEventsSubscriberService:
 
     async def subscribe_area(self, entity: Entity, area: Area):
         self._transports_by_entity_id[entity.entity_id] = entity.transport.namespace
-        LOGGER.core.debug('Entity %s subscribed Area with center %s', entity.entity_id, area.center)
+        LOGGER.core.debug(
+            'Entity %s subscribed Area with center %s - Total %s subs',
+            entity.entity_id, area.center, len(area.rooms_and_peripherals_coordinates)
+        )
         current_rooms = self._get_current_rooms_by_entity_id(entity.entity_id)
-        rooms_to_unsubscribe = current_rooms - area.rooms_coordinates
-        rooms_to_subscribe = area.rooms_coordinates - current_rooms
+        rooms_to_unsubscribe = current_rooms - area.rooms_and_peripherals_coordinates
+        rooms_to_subscribe = area.rooms_and_peripherals_coordinates - current_rooms
         await asyncio.gather(
             self._subscribe_rooms(entity, rooms_to_subscribe),
             self._unsubscribe_rooms(entity, rooms_to_unsubscribe)
@@ -99,9 +102,14 @@ class RedisPubSubEventsSubscriberService:
     async def bootstrap_subscribes(self, data: typing.Dict[Entity, typing.List[int]]):
         for en, pos_val in data.items():
             LOGGER.core.debug('Entity %s subscribed Area with center %s', en, pos_val)
+            area = Area(PosComponent(pos_val)).make_coordinates()
+            LOGGER.core.debug(
+                'Entity %s subscribed Area with center %s - Total %s subs',
+                en, pos_val, len(area.rooms_and_peripherals_coordinates)
+            )
             pos_val and await self._subscribe_rooms(
                 Entity(en),
-                Area(PosComponent(pos_val)).make_coordinates().rooms_coordinates
+                area.rooms_and_peripherals_coordinates
             )
         print('Subscribed ', data.keys())
 
@@ -111,14 +119,11 @@ class RedisPubSubEventsSubscriberService:
         await self._unsubscribe_rooms(entity, current_rooms)
 
     def add_observer_for_entity_id(self, entity_id: int, observer):
-        if not self._observers_by_entity_id.get(entity_id):
-            self._observers_by_entity_id[entity_id] = [observer]
-        else:
-            self._observers_by_entity_id[entity_id].append(observer)
+        self._observers_by_entity_id[entity_id] = [observer]
             
     def add_observer_for_entity_data(self, entity_data: typing.Dict, observer):
         self._transports_by_entity_id[entity_data['entity_id']] = entity_data['transport']
-        self._observers_by_entity_id[entity_data['entity_id']] = [observer]
+        self.add_observer_for_entity_id(entity_data['entity_id'], observer)
 
     def remove_observer_for_entity_id(self, entity_id):
         self._observers_by_entity_id.pop(entity_id, None)
