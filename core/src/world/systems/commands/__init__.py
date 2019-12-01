@@ -1,3 +1,6 @@
+from core.src.world.actions.whoami import whoami
+
+
 def commands_observer_factory(transport):
     from core.src.world.services.transport.socketio_interface import TransportInterface
     from core.src.world.systems.commands.observer import CommandsObserver
@@ -12,5 +15,6 @@ def commands_observer_factory(transport):
 
     observer.add_command(look, 'look')
     observer.add_command(getmap, 'getmap')
+    observer.add_command(whoami, 'whoami')
     observer.add_command(move_entity, 'n', 's', 'w', 'e', 'd', 'u')
     return observer

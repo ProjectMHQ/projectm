@@ -1,5 +1,4 @@
 import asyncio
-import struct
 import typing
 from collections import OrderedDict
 

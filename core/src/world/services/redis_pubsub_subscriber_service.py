@@ -50,7 +50,11 @@ class RedisPubSubEventsSubscriberService:
                 for entity_id in self._current_subscriptions_by_room.get(room, {}).get('e', set()):
                     message['en'] != entity_id and self._on_new_message(entity_id, message, room)
         finally:
-            assert not self._current_subscriptions_by_room[room]['e']
+            try:
+                assert not self._current_subscriptions_by_room[room]['e']
+            except AssertionError:
+                LOGGER.core.exception('assertionerror subscribe pubsub topic')
+                raise
             self._current_subscriptions_by_room.pop(room, None)
             await self.pubsub.unsubscribe(self.pos_to_key(room))
 
@@ -97,11 +101,12 @@ class RedisPubSubEventsSubscriberService:
         self._transports_by_entity_id.pop(entity.entity_id, None)
         await self._unsubscribe_rooms(entity, current_rooms)
 
-    def add_observer_for_entity_id(self, entity_id, observer):
-        if not self._observers_by_entity_id.get(entity_id):
-            self._observers_by_entity_id[entity_id] = [observer]
+    def add_observer_for_entity_id(self, entity_data: typing.Dict, observer):
+        self._transports_by_entity_id[entity_data['entity_id']] = entity_data['transport']
+        if not self._observers_by_entity_id.get(entity_data['entity_id']):
+            self._observers_by_entity_id[entity_data['entity_id']] = [observer]
         else:
-            self._observers_by_entity_id[entity_id].append(observer)
+            self._observers_by_entity_id[entity_data['entity_id']].append(observer)
 
     def remove_observer_for_entity_id(self, entity_id):
         self._observers_by_entity_id.pop(entity_id, None)

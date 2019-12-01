@@ -27,14 +27,14 @@ worker_queue_manager.add_queue_observer('disconnected', connections_observer)
 worker_queue_manager.add_queue_observer('cmd', cmds_observer)
 
 
-async def main(entity_ids):
-    if entity_ids:
+async def main(entities):
+    if entities:
         data = world_repository.get_components_values_by_components(
-            entity_ids, [PosComponent]
+            [x['entity_id'] for x in entities], [PosComponent]
         )[PosComponent.component_enum]
         await events_subscriber_service.bootstrap_subscribes(data)
-        for entity_id in entity_ids:
-            events_subscriber_service.add_observer_for_entity_id(entity_id, pubsub_observer)
+        for entity_data in entities:
+            events_subscriber_service.add_observer_for_entity_id(entity_data, pubsub_observer)
     await worker_queue_manager.run()
 
 
@@ -58,7 +58,7 @@ def check_entities_connection_status():
         if not ch:
             to_update.append(Entity(connected_entity_ids[i]).set(ConnectionComponent("")))
         else:
-            online.append(connected_entity_ids[i])
+            online.append({'entity_id': connected_entity_ids[i], 'transport': ch})
     world_repository.update_entities(*to_update)
     return online
 
