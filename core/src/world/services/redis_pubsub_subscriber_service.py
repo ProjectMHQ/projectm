@@ -118,10 +118,7 @@ class RedisPubSubEventsSubscriberService:
             
     def add_observer_for_entity_data(self, entity_data: typing.Dict, observer):
         self._transports_by_entity_id[entity_data['entity_id']] = entity_data['transport']
-        if not self._observers_by_entity_id.get(entity_data['entity_id']):
-            self._observers_by_entity_id[entity_data['entity_id']] = [observer]
-        else:
-            self._observers_by_entity_id[entity_data['entity_id']].append(observer)
+        self._observers_by_entity_id[entity_data['entity_id']] = [observer]
 
     def remove_observer_for_entity_id(self, entity_id):
         self._observers_by_entity_id.pop(entity_id, None)

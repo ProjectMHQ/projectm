@@ -1,5 +1,4 @@
 import asyncio
-from core.src.world.services.redis_queue import RedisQueueConsumer
 
 
 class WorkerQueueService:

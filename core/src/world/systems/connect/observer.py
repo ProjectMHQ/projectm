@@ -51,7 +51,8 @@ class ConnectionsObserver:
             self.loop.create_task(self.greet(entity))
         else:
             await cast_entity(entity, get_base_room_for_entity(entity), update=False)
-        self.loop.create_task(asyncio.gather(look(entity), getmap(entity)))
+        self.loop.create_task(look(entity))
+        self.loop.create_task(getmap(entity))
 
     async def greet(self, entity: Entity):
         await entity.emit_msg(  # FIXME TEST - Remove
