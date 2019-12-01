@@ -22,15 +22,19 @@ class RedisPubSubEventsPublisherService:
     def pos_to_key(self, pos):
         return '{}:{}:{}:{}'.format(self._rooms_events_prefix, pos.x, pos.y, pos.z)
 
-    async def on_entity_change_position(self, entity, room_position, previous_position):
+    async def on_entity_change_position(self, entity, room_position):
         msg = {
             "en": entity.entity_id,
             "ev": PubSubEventType.ENTITY_CHANGE_POS.value,
             "curr": [room_position.x, room_position.y, room_position.z],
-            "prev": [previous_position.x, previous_position.y, previous_position.z]
+            "prev": [
+                room_position.previous_position.x,
+                room_position.previous_position.y,
+                room_position.previous_position.z
+            ]
         }
         room_key = self.pos_to_key(room_position)
-        prev_room_key = self.pos_to_key(previous_position)
+        prev_room_key = self.pos_to_key(room_position.previous_position)
         LOGGER.core.debug('Publishing Message %s on channels %s %s', msg, room_key, prev_room_key)
         await self.pubsub.publish(room_key, msg)
 

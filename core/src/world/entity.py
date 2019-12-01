@@ -12,6 +12,9 @@ class Entity:
         self._pending_changes = {}
         self.transport = transport
 
+    def get_view_size(self):
+        return 15
+
     async def emit_msg(self, payload: typing.Dict, topic=None):
         if topic is not None:
             return await self.transport.transport.send(self.transport.namespace, payload, topic=topic)

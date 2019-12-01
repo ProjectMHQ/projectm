@@ -339,7 +339,6 @@ class RedisDataRepository:
         for room in area.rooms:
             if room:
                 for entity_id in room.entity_ids:
-                    print('querying entity {} on room {}'.format(entity_id, room))
                     pipeline.hmget(
                         '{}:{}'.format(self._entity_prefix, entity_id),
                         NameComponent.key, b'a', b'b'

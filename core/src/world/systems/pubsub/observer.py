@@ -23,16 +23,14 @@ class PubSubObserver:
         self.transport = transport
 
     @staticmethod
-    async def _get_message_interest_type(room, curr_pos):
+    async def _get_message_interest_type(entity, room, curr_pos):
         if curr_pos.z != room.z and (curr_pos.x == room.x) and (curr_pos.y == room.y):
             distance = abs(curr_pos.z - room.z)
-        elif curr_pos.z != room.z:
-            return InterestType.NONE
         else:
             distance = int(Point(curr_pos.x, curr_pos.y).distance(Point(room.x, room.y)))
         if not distance:
             return InterestType.LOCAL
-        elif distance in (1, 2):
+        elif distance < entity.get_view_size():
             return InterestType.REMOTE
         else:
             return InterestType.NONE
@@ -42,7 +40,7 @@ class PubSubObserver:
         entity = Entity(entity_id)
         entity.transport = Transport(transport_id, self.transport)
         curr_pos = self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-        interest_type = await self._get_message_interest_type(room, curr_pos)
+        interest_type = await self._get_message_interest_type(entity, room, curr_pos)
         if not interest_type.value:
             return
         await self.publish_event(entity, message, room, interest_type, curr_pos)

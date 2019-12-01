@@ -46,12 +46,13 @@ class RedisPubSubEventsSubscriberService:
     async def _subscribe_pubsub_topic(self, room):
         try:
             async for message in self.pubsub.subscribe(self.pos_to_key(room)):
+                LOGGER.core.debug('RECEIVED MESSAGE %s', message)
                 for entity_id in self._current_subscriptions_by_room.get(room, {}).get('e', set()):
                     message['en'] != entity_id and self._on_new_message(entity_id, message, room)
-
         finally:
             assert not self._current_subscriptions_by_room[room]['e']
             self._current_subscriptions_by_room.pop(room, None)
+            await self.pubsub.unsubscribe(self.pos_to_key(room))
 
     async def _unsubscribe_rooms(self, entity: Entity, rooms: set):
         for room in rooms:

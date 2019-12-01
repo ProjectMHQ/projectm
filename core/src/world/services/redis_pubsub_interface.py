@@ -10,6 +10,8 @@ import async_generator
 import aioredis
 import typing
 
+from core.src.auth.logging_factory import LOGGER
+
 
 class PubSubManager:
     # pylint: disable=R0902, too-many-instance-attributes
@@ -130,3 +132,7 @@ class PubSubManager:
                     break
                 else:
                     yield value
+
+    async def unsubscribe(self, channel):
+        redis = await self.redis()
+        await redis.unsubscribe(channel)

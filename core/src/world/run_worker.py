@@ -45,7 +45,7 @@ def check_entities_connection_status():
 
     connected_entity_ids = [x for x in world_repository.get_entity_ids_with_components(ConnectionComponent)]
     if not connected_entity_ids:
-        return
+        return []
     # FIXME TODO multiprocess workers must discriminate and works only on their own entities
 
     components_values = world_repository.get_raw_component_value_by_entity_ids(
