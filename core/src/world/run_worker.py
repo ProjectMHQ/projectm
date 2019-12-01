@@ -34,7 +34,7 @@ async def main(entities):
         )[PosComponent.component_enum]
         await events_subscriber_service.bootstrap_subscribes(data)
         for entity_data in entities:
-            events_subscriber_service.add_observer_for_entity_id(entity_data, pubsub_observer)
+            events_subscriber_service.add_observer_for_entity_data(entity_data, pubsub_observer)
     await worker_queue_manager.run()
 
 

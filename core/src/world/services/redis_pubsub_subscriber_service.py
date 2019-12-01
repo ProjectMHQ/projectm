@@ -50,11 +50,20 @@ class RedisPubSubEventsSubscriberService:
                 for entity_id in self._current_subscriptions_by_room.get(room, {}).get('e', set()):
                     message['en'] != entity_id and self._on_new_message(entity_id, message, room)
         finally:
-            try:
-                assert not self._current_subscriptions_by_room[room]['e']
-            except AssertionError:
-                LOGGER.core.exception('assertionerror subscribe pubsub topic')
-                raise
+            await self._handle_subscribe_cancel(room)
+
+    async def _handle_subscribe_cancel(self, room):
+        stale_entities = set()
+        if self._current_subscriptions_by_room[room]['e']:
+            for e in self._current_subscriptions_by_room[room]['e']:
+                if room not in self._current_rooms_by_entity_id[e]:
+                    stale_entities.add(e)
+                    LOGGER.core.error('Stale entity, weird behaviour or race condition')
+            self._current_subscriptions_by_room[room] = {
+                't': self.loop.create_task(self._subscribe_pubsub_topic(room)),
+                'e': self._current_subscriptions_by_room[room]['e'] - stale_entities
+            }
+        else:
             self._current_subscriptions_by_room.pop(room, None)
             await self.pubsub.unsubscribe(self.pos_to_key(room))
 
@@ -101,7 +110,13 @@ class RedisPubSubEventsSubscriberService:
         self._transports_by_entity_id.pop(entity.entity_id, None)
         await self._unsubscribe_rooms(entity, current_rooms)
 
-    def add_observer_for_entity_id(self, entity_data: typing.Dict, observer):
+    def add_observer_for_entity_id(self, entity_id: int, observer):
+        if not self._observers_by_entity_id.get(entity_id):
+            self._observers_by_entity_id[entity_id] = [observer]
+        else:
+            self._observers_by_entity_id[entity_id].append(observer)
+            
+    def add_observer_for_entity_data(self, entity_data: typing.Dict, observer):
         self._transports_by_entity_id[entity_data['entity_id']] = entity_data['transport']
         if not self._observers_by_entity_id.get(entity_data['entity_id']):
             self._observers_by_entity_id[entity_data['entity_id']] = [observer]
