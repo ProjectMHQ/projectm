@@ -65,16 +65,18 @@ class Area:
             await self.populate_rooms()
         return self.rooms
 
-    async def get_map(self) -> typing.Dict:
+    async def get_map(self, pov: Entity=None) -> typing.Dict:
         start = time.time()
         rooms = await self.get_rooms()
         LOGGER.websocket_monitor.debug('Rooms fetched in in %s', '{:.4f}'.format(time.time() - start))
         res = {'base': [], 'data': []}
-        center = int((self.size ** 2) / 2) + 1
+        center = int((self.size ** 2) / 2)
         for index, r in enumerate(rooms):
             res['base'].append(r and r.terrain.value or 0)
             if r and r.content:
                 for entry in r.content:
+                    if pov and entry.entity_id == pov.entity_id:
+                        continue
                     payload = {
                         'type': entry.type,
                         'pos': index,
@@ -125,4 +127,4 @@ class Area:
     async def get_map_for_entity(self, entity: Entity) -> typing.Dict:
         await self.populate_rooms()
         await self.populate_rooms_content(entity)
-        return await self.get_map()
+        return await self.get_map(pov=entity)

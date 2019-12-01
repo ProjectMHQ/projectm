@@ -59,7 +59,7 @@ class RedisPubSubEventsSubscriberService:
             self._current_rooms_by_entity_id[entity.entity_id].remove(room)
             self._current_subscriptions_by_room[room]['e'].remove(entity.entity_id)
 
-            if not self._current_subscriptions_by_room.get(room, {}).get('e', set()):
+            if not self._current_subscriptions_by_room[room]['e']:
                 task = self._current_subscriptions_by_room.get(room, {}).get('t', None)
                 task and task.cancel()
         if not self._current_rooms_by_entity_id.get(entity.entity_id):
@@ -85,6 +85,7 @@ class RedisPubSubEventsSubscriberService:
 
     async def bootstrap_subscribes(self, data: typing.Dict[Entity, typing.List[int]]):
         for en, pos_val in data.items():
+            LOGGER.core.debug('Entity %s subscribed Area with center %s', en, pos_val)
             pos_val and await self._subscribe_rooms(
                 Entity(en),
                 Area(PosComponent(pos_val)).make_coordinates().rooms_coordinates

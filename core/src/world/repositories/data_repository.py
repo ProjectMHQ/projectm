@@ -341,7 +341,7 @@ class RedisDataRepository:
                 for entity_id in room.entity_ids:
                     pipeline.hmget(
                         '{}:{}'.format(self._entity_prefix, entity_id),
-                        NameComponent.key, b'a', b'b'
+                        NameComponent.key
                     )
         result = await pipeline.execute()
         i = 0
