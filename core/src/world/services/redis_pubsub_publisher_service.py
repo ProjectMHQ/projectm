@@ -1,4 +1,3 @@
-import asyncio
 from enum import Enum
 import typing
 
@@ -11,6 +10,7 @@ class PubSubEventType(Enum):
     ENTITY_DISAPPEAR = 2
     ENTITY_APPEAR = 3
     ENTITY_DO_PUBLIC_ACTION = 4
+    ENTITY_QUIT = 5
 
 
 class RedisPubSubEventsPublisherService:
@@ -34,8 +34,27 @@ class RedisPubSubEventsPublisherService:
             ]
         }
         room_key = self.pos_to_key(room_position)
-        prev_room_key = self.pos_to_key(room_position.previous_position)
-        LOGGER.core.debug('Publishing Message %s on channels %s %s', msg, room_key, prev_room_key)
+        LOGGER.core.debug('Publishing Message %s on channel %s', msg, room_key)
+        await self.pubsub.publish(room_key, msg)
+
+    async def on_entity_appear_position(self, entity, room_position):
+        msg = {
+            "en": entity.entity_id,
+            "ev": PubSubEventType.ENTITY_APPEAR.value,
+            "curr": [room_position.x, room_position.y, room_position.z],
+        }
+        room_key = self.pos_to_key(room_position)
+        LOGGER.core.debug('Publishing Message %s on channels %s', msg, room_key)
+        await self.pubsub.publish(room_key, msg)
+
+    async def on_entity_disappear_position(self, entity, room_position):
+        msg = {
+            "en": entity.entity_id,
+            "ev": PubSubEventType.ENTITY_DISAPPEAR.value,
+            "curr": [room_position.x, room_position.y, room_position.z],
+        }
+        room_key = self.pos_to_key(room_position)
+        LOGGER.core.debug('Publishing Message %s on channels %s', msg, room_key)
         await self.pubsub.publish(room_key, msg)
 
     async def on_entity_do_public_action(self, entity, room_position, action_public_payload: typing.Dict):
@@ -47,3 +66,11 @@ class RedisPubSubEventsPublisherService:
         room_key = self.pos_to_key(room_position)
         LOGGER.core.debug('Publishing Message %s on channel %s', msg, room_key)
         await self.pubsub.publish(room_key, msg)
+
+    async def on_entity_quit_world(self, entity):
+        msg = {
+            "en": entity.entity_id,
+            "ev": PubSubEventType.ENTITY_QUIT.value,
+        }
+        LOGGER.core.debug('Publishing Message %s on system queue', msg)
+        await self.pubsub.publish('system.transport', msg)

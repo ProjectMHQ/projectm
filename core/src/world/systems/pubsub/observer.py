@@ -61,7 +61,11 @@ class PubSubObserver:
     def _pubsub_event_to_transport_event(
             message, event_room, interest_type, entity: EvaluatedEntity, current_position
     ):
-        payload = {'data': {}}
+        area = Area(current_position)
+        payload = {'data': {
+            'e_id': message['en'],
+            'type': entity.type,
+        }}
         if interest_type == InterestType.LOCAL:
             payload['data'].update(
                 {
@@ -70,21 +74,6 @@ class PubSubObserver:
                     'name': entity.known and entity.name
                 }
             )
-        if message['ev'] not in (
-            PubSubEventType.ENTITY_APPEAR.value,
-            PubSubEventType.ENTITY_DISAPPEAR.value,
-            PubSubEventType.ENTITY_CHANGE_POS.value
-        ):
-            return None
-
-        payload['data'].update(
-            {
-                'e_id': message['en'],
-                'type': entity.type,
-            }
-
-        )
-        area = Area(current_position)
         if message['ev'] == PubSubEventType.ENTITY_APPEAR.value:
             payload['event'] = 'entity_add'
             payload['data']['rel_pos'] = area.get_relative_position(event_room)
@@ -108,6 +97,8 @@ class PubSubObserver:
             elif current_distance <= max_distance and previous_distance <= max_distance:
                 payload['event'] = 'entity_change_pos'
                 payload['data']['rel_pos'] = area.get_relative_position(event_room)
-            else:
+            elif previous_distance == max_distance < current_distance:
                 payload['event'] = 'entity_remove'
-            return payload
+        else:
+            raise ValueError('wut')
+        return payload

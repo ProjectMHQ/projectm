@@ -37,7 +37,7 @@ websocket_channels_service = WebsocketChannelsService(
     redis_queue=redis_queues_service
 )
 
-pubsub = PubSubManager(async_redis_data)
+pubsub = PubSubManager(async_redis_queue)
 messages_translator = get_messages_translator('it')
 
 events_subscriber_service = RedisPubSubEventsSubscriberService(pubsub)

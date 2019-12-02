@@ -8,6 +8,7 @@ from aioredis.commands import Pipeline
 
 from core.src.auth.logging_factory import LOGGER
 from core.src.world import exceptions
+from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import Room, RoomPosition
 from core.src.world.entity import Entity
 from core.src.world.utils.world_types import TerrainEnum
@@ -204,3 +205,7 @@ class RedisMapRepository:
                     )
                 )
         return response
+
+    async def remove_entity_from_map(self, entity_id: int, position: PosComponent):
+        redis = await self.redis()
+        return bool(await redis.srem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id)))

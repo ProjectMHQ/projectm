@@ -58,13 +58,17 @@ class RedisDataRepository:
         return int(response)
 
     def _update_map_position_for_entity(self, position: PosComponent, entity: Entity, pipeline):
-        assert position.has_previous_position()
-        prev = position.previous_position
-        prev_set_name = self.get_room_key(prev.x, prev.y, prev.z)
-        new_set_name = self.get_room_key(position.x, position.y, position.z)
         # TODO FIXME - use smove in the future, with a clean bootstrap
-        pipeline.srem(prev_set_name, '{}'.format(entity.entity_id))
-        pipeline.sadd(new_set_name, '{}'.format(entity.entity_id))
+        if position.previous_position:
+            prev_set_name = self.get_room_key(
+                position.previous_position.x,
+                position.previous_position.y,
+                position.previous_position.z
+            )
+            pipeline.srem(prev_set_name, '{}'.format(entity.entity_id))
+        if position.value:
+            new_set_name = self.get_room_key(position.x, position.y, position.z)
+            pipeline.sadd(new_set_name, '{}'.format(entity.entity_id))
 
     def save_entity(self, entity: Entity) -> Entity:
         assert not entity.entity_id, 'entity_id: %s, use update, not save.' % entity.entity_id

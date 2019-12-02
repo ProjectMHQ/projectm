@@ -2,6 +2,7 @@ import asyncio
 import typing
 
 from core.src.world.actions.cast import cast_entity
+from core.src.world.actions.disconnect import disconnect_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
 from core.src.world.builder import world_repository, events_subscriber_service, pubsub_observer
@@ -34,11 +35,12 @@ class ConnectionsObserver:
     async def on_disconnect(entity: Entity):
         current_connection = list(world_repository.get_raw_component_value_by_entity_ids(
             ConnectionComponent, entity.entity_id
-        ))[0]
-        if current_connection == entity.transport.namespace:
-            world_repository.update_entities(entity.set(ConnectionComponent("")))
-            events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
-            await events_subscriber_service.unsubscribe_all(entity)
+        ))
+        if current_connection and current_connection[0] != entity.transport.namespace:
+            return
+        await disconnect_entity(entity)
+        events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
+        await events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
         world_repository.update_entities(
@@ -47,10 +49,10 @@ class ConnectionsObserver:
         events_subscriber_service.add_observer_for_entity_id(entity.entity_id, pubsub_observer)
         pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         if not pos:
-            await cast_entity(entity, get_base_room_for_entity(entity))
+            await cast_entity(entity, get_base_room_for_entity(entity), on_connect=True)
             self.loop.create_task(self.greet(entity))
         else:
-            await cast_entity(entity, get_base_room_for_entity(entity), update=False)
+            await cast_entity(entity, pos, update=False, on_connect=True)
         self.loop.create_task(look(entity))
         self.loop.create_task(getmap(entity))
 

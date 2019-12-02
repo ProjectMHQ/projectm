@@ -50,8 +50,8 @@ class Room:
         return "Room Title"  # FIXME TODO
 
     @property
-    def content(self) -> typing.Set[EvaluatedEntity]:
-        return self._content
+    def content(self) -> typing.List[EvaluatedEntity]:
+        return list(self._content)
 
     def add_evaluated_entity(self, evaluated_entity: EvaluatedEntity):
         self._content.add(evaluated_entity)

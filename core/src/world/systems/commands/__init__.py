@@ -1,3 +1,4 @@
+from core.src.world.actions.disconnect import disconnect_entity
 from core.src.world.actions.whoami import whoami
 
 
@@ -17,4 +18,5 @@ def commands_observer_factory(transport):
     observer.add_command(getmap, 'getmap')
     observer.add_command(whoami, 'whoami')
     observer.add_command(move_entity, 'n', 's', 'w', 'e', 'd', 'u')
+    observer.add_command(disconnect_entity, 'quit')
     return observer

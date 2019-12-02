@@ -114,6 +114,14 @@ class PrivateNamespace(AsyncNamespace):
         await self.disconnect(self.sid)
         await self.observer.on_close(self.channel, reason="concurrency")
 
+    async def do_close(self, reason='quit'):
+        LOGGER.websocket_monitor.debug(
+            'Closing channel due concurrency. Channel %s (entity %s)', self.channel.id, self.channel.entity_id
+        )
+        await self.emit('msg', {"event": "disconnect", "reason": reason})
+        await self.disconnect(self.sid)
+        await self.observer.on_close(self.channel, reason=reason)
+
     async def monitor(self):
         LOGGER.websocket_monitor.debug(
             'Monitoring channel %s (entity %s)', self.channel.id, self.channel.entity_id

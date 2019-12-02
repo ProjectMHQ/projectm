@@ -15,10 +15,16 @@ class Entity:
     def get_view_size(self):
         return 15
 
+    async def disconnect_transport(self):
+        await self.transport.transport.disconnect(namespace=self.transport.namespace)
+
     async def emit_msg(self, payload: typing.Dict, topic=None):
         if topic is not None:
             return await self.transport.transport.send(self.transport.namespace, payload, topic=topic)
         return await self.transport.transport.send(self.transport.namespace, payload)
+
+    async def emit_system_event(self, payload: typing.Dict):
+        return await self.transport.transport.send(self.transport.namespace, payload, topic="system")
 
     def set(self, component: ComponentType):
         self._pending_changes[component.key] = component

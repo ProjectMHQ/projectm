@@ -103,6 +103,13 @@ class WebsocketChannelsService:
             ]
             await namespace.do_concurrency_close()
 
+    async def close_namespace_for_entity_id(self, entity_id):
+        if entity_id in self.channels_by_entity_id:
+            namespace = self.socketio.namespace_handlers[
+                '/{}'.format(self.channels_by_entity_id[entity_id])
+            ]
+            await namespace.do_close()
+
     async def activate_namespace(self, channel):
         namespace = private_namespace_factory(
             self.redis_queues_manager,
@@ -119,7 +126,7 @@ class WebsocketChannelsService:
         self.socketio.namespace_handlers.pop('/{}'.format(channel.id), None)
         self.channels_repository.delete(channel.id)
 
-        if channel.id == self.channels_by_entity_id[channel.entity_id]:
+        if channel.id == self.channels_by_entity_id.get(channel.entity_id):
             self.channels_by_entity_id.pop(channel.entity_id, None)
 
         for observer in self._on_delete_channel_observers:
