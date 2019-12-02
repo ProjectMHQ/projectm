@@ -10,9 +10,7 @@ from core.src.world.entity import Entity
 @singleton_action
 async def cast_entity(entity: Entity, where: PosComponent, update=True):
     loop = asyncio.get_event_loop()
-    where.add_previous_position(
-        world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-    )
+    where.add_previous_position(world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent))
     if update:
         world_repository.update_entities(entity.set(where))
     loop.create_task(events_publisher_service.on_entity_change_position(entity, where))

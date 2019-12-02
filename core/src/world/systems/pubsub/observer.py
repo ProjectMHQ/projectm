@@ -58,7 +58,9 @@ class PubSubObserver:
         pass
 
     @staticmethod
-    def _pubsub_event_to_transport_event(message, room, interest_type, entity: EvaluatedEntity, current_position):
+    def _pubsub_event_to_transport_event(
+            message, event_room, interest_type, entity: EvaluatedEntity, current_position
+    ):
         payload = {'data': {}}
         if interest_type == InterestType.LOCAL:
             payload['data'].update(
@@ -82,20 +84,30 @@ class PubSubObserver:
             }
 
         )
-        rel_area = Area(current_position)
-        rel_pos = rel_area.get_relative_position(room)
-        prev_rel_pos = Area(current_position).get_relative_position(current_position)
-        array_size = (rel_area.size ** 2) - 1
-        if (0 < rel_pos < array_size) and (0 < prev_rel_pos < array_size):
-            payload['event'] = 'entity_change_pos'
-            payload['data']['rel_pos'] = rel_pos
-        elif (0 < rel_pos < array_size) and not (0 < prev_rel_pos < array_size):
+        area = Area(current_position)
+        if message['ev'] == PubSubEventType.ENTITY_APPEAR.value:
             payload['event'] = 'entity_add'
-            payload['data']['rel_pos'] = rel_pos
-        elif not (0 < rel_pos < array_size) and (0 < prev_rel_pos < array_size):
+            payload['data']['rel_pos'] = area.get_relative_position(event_room)
+
+        elif message['ev'] == PubSubEventType.ENTITY_DISAPPEAR.value:
             payload['event'] = 'entity_remove'
-        else:
-            raise ValueError(
-                'Doh, rel_pos: %s, prev_rel_pos: %s' % (rel_pos, prev_rel_pos)
+
+        elif message['ev'] == PubSubEventType.ENTITY_CHANGE_POS.value:
+            area = Area(current_position)
+            center_point = Point(area.center.x, area.center.y, area.center.z)
+            max_distance = int(area.size / 2)
+            current_distance = int(
+                center_point.distance(Point(event_room.x, event_room.y, event_room.z))
             )
-        return payload
+            previous_distance = int(
+                center_point.distance(Point(message['prev'][0], message['prev'][1], message['prev'][2]))
+            )
+            if current_distance <= max_distance < previous_distance:
+                payload['event'] = 'entity_add'
+                payload['data']['rel_pos'] = area.get_relative_position(event_room)
+            elif current_distance <= max_distance and previous_distance <= max_distance:
+                payload['event'] = 'entity_change_pos'
+                payload['data']['rel_pos'] = area.get_relative_position(event_room)
+            else:
+                payload['event'] = 'entity_remove'
+            return payload
