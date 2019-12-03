@@ -15,7 +15,7 @@
 
 #### Events:
 
-#####- map_event
+##### - map_event
 
 The first event to render the map is the same as the `getmap` response.
 This event is triggered everytime a user join a new room (on connect, after teleport \ movement, etc.)
@@ -86,7 +86,7 @@ Three are the main events relative to entities and map, which are the following:
 
 ```json
 {
-  "type": "entity_add",
+  "event": "entity_add",
   "data": {
     "pos": 42,
     "e_id": 8,
@@ -101,7 +101,7 @@ The event, as the entries of `map_event.data`, could be enriched by name, status
 
 ```json
 {
-  "type": "entity_remove",
+  "event": "entity_remove",
   "data": {
     "e_id": 8
   }
@@ -115,7 +115,7 @@ An entity may change position in the receiver FOV for less reasons than others e
 
 ```json
 {
-  "type": "entity_change_pos",
+  "event": "entity_change_pos",
   "data": {
     "e_id": 8,
     "pos": 42
