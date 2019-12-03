@@ -63,8 +63,7 @@ class PubSubObserver:
     ):
         area = Area(current_position)
         payload = {'data': {
-            'e_id': message['en'],
-            'type': entity.type,
+            'e_id': message['en']
         }}
         if interest_type == InterestType.LOCAL:
             payload['data'].update(
@@ -76,7 +75,8 @@ class PubSubObserver:
             )
         if message['ev'] == PubSubEventType.ENTITY_APPEAR.value:
             payload['event'] = 'entity_add'
-            payload['data']['rel_pos'] = area.get_relative_position(event_room)
+            payload['data']['type'] = entity.type,
+            payload['data']['pos'] = area.get_relative_position(event_room)
 
         elif message['ev'] == PubSubEventType.ENTITY_DISAPPEAR.value:
             payload['event'] = 'entity_remove'
@@ -93,10 +93,10 @@ class PubSubObserver:
             )
             if current_distance <= max_distance < previous_distance:
                 payload['event'] = 'entity_add'
-                payload['data']['rel_pos'] = area.get_relative_position(event_room)
+                payload['data']['pos'] = area.get_relative_position(event_room)
             elif current_distance <= max_distance and previous_distance <= max_distance:
                 payload['event'] = 'entity_change_pos'
-                payload['data']['rel_pos'] = area.get_relative_position(event_room)
+                payload['data']['pos'] = area.get_relative_position(event_room)
             elif previous_distance == max_distance < current_distance:
                 payload['event'] = 'entity_remove'
         else:

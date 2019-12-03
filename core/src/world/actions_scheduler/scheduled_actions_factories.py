@@ -54,7 +54,7 @@ class ScheduledAction:
     async def start(self, scheduler):
         run_at = time.time() + self.wait_for
         while time.time() < run_at:
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0)
             if self.must_be_stopped:
                 break
 

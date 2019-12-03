@@ -100,7 +100,7 @@ async def move_entity(entity: Entity, direction: str):
         cancellable_scheduled_action_factory(
             entity,
             ScheduledMovement(entity, direction, where),
-            wait_for=speed_component_to_movement_waiting_time(0.1)
+            wait_for=speed_component_to_movement_waiting_time(0.01)
         )
     )
 move_entity.get_self = True
