@@ -16,13 +16,9 @@ async def cast_entity(entity: Entity, where: PosComponent, update=True, on_conne
     if update:
         await world_repository.update_entities(entity.set(where))
     if on_connect:
-        loop.create_task(
-            events_publisher_service.on_entity_appear_position(entity, where)
-        )
+        await events_publisher_service.on_entity_appear_position(entity, where)
     else:
-        loop.create_task(
-            events_publisher_service.on_entity_change_position(entity, where)
-        )
+        await events_publisher_service.on_entity_change_position(entity, where)
     loop.create_task(
         events_subscriber_service.subscribe_area(entity, Area(where).make_coordinates())
     )

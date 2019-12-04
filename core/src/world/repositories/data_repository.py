@@ -5,7 +5,6 @@ from collections import OrderedDict
 import aioredis
 import bitarray
 import os
-from redis import StrictRedis
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.components.name import NameComponent
@@ -16,16 +15,14 @@ from core.src.world.utils.world_types import Bit, EvaluatedEntity
 
 
 class RedisDataRepository:
-    def __init__(self, redis: StrictRedis, async_redis_factory):
+    def __init__(self, async_redis_factory):
         self._async_redis_factory = async_redis_factory
-        self.redis = redis
         self._entity_prefix = 'e'
         self._component_prefix = 'c'
         self._map_suffix = 'm'
         self._map_prefix = 'm'
         self._data_suffix = 'd'
         self._room_content_suffix = 'c'
-        redis.setbit('{}:{}'.format(self._entity_prefix, self._map_suffix), 0, 1)  # ensure the map is 1 based
         self.async_lock = asyncio.Lock()
         self._async_redis = None
         self.room_content_key = '{}:{}:{}'.format(self._map_prefix, '{}', self._room_content_suffix)
@@ -41,6 +38,11 @@ class RedisDataRepository:
         try:
             if not self._async_redis:
                 self._async_redis = await self._async_redis_factory()
+                await (await self._async_redis).setbit('{}:{}'.format(
+                    self._entity_prefix,
+                    self._map_suffix
+                ), 0, 1
+                )  # ensure the map is 1 based
         finally:
             self.async_lock.release()
         return self._async_redis
@@ -248,12 +250,11 @@ class RedisDataRepository:
 
     async def get_entity_ids_with_components(self, *components: ComponentType) -> typing.Iterator[int]:
         _key = os.urandom(8)
-        self.redis.bitop(
-            'AND',
+        redis = await self.async_redis()
+        await redis.bitop_and(
             _key,
             *('{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix) for c in components)
         )
-        redis = await self.async_redis()
         p = redis.pipeline()
         p.get(_key)
         p.delete(_key)

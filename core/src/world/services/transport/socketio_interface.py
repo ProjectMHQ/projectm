@@ -15,5 +15,4 @@ class SocketioTransportInterface(TransportInterface):
     async def send(self, namespace, payload, topic='msg'):
         if self.translator:
             payload = self.translator.payload_msg_to_string(payload, topic)
-        print('sending on namespace %s, topic %s, payload %s' % (namespace, topic, payload))
         return await self.transport.emit(topic, payload, namespace='/{}'.format(namespace))

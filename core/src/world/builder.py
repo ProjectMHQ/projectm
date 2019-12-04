@@ -28,7 +28,7 @@ else:
 
 map_repository = RedisMapRepository(async_redis_data)
 descriptions_repository = RedisDescriptionsRepository(async_redis_data)
-world_repository = RedisDataRepository(strict_redis, async_redis_data)
+world_repository = RedisDataRepository(async_redis_data)
 channels_repository = WebsocketChannelsRepository(strict_redis)
 redis_queues_service = RedisMultipleQueuesPublisher(async_redis_queue, num_queues=settings.WORKERS)
 websocket_channels_service = WebsocketChannelsService(

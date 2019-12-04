@@ -88,11 +88,11 @@ async def move_entity(entity: Entity, direction: str):
     if not await room.walkable_by(entity):
         await entity.emit_msg(get_msg_no_walkable(direction))
         return
-    #await events_publisher_service.on_entity_do_public_action(
-    #    entity,
-    #    pos,
-    #    get_broadcast_msg_movement("begin", direction)
-    #)
+    await events_publisher_service.on_entity_do_public_action(
+        entity,
+        pos,
+        get_broadcast_msg_movement("begin", direction)
+    )
     await entity.emit_msg(get_msg_movement(direction, "begin"))
 
     from core.src.world.run_worker import singleton_actions_scheduler
@@ -138,6 +138,7 @@ class ScheduledMovement:
             getmap(self.entity),
             look(self.entity)
         )
+
 
     async def stop(self):
         #await events_publisher_service.on_entity_do_public_action(
