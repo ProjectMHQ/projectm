@@ -39,7 +39,7 @@ class PubSubObserver:
         room = PosComponent(room)
         entity = Entity(entity_id)
         entity.transport = Transport(transport_id, self.transport)
-        curr_pos = self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
+        curr_pos = await self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         interest_type = await self._get_message_interest_type(entity, room, curr_pos)
         if not interest_type.value:
             return
@@ -100,5 +100,5 @@ class PubSubObserver:
             elif previous_distance == max_distance < current_distance:
                 payload['event'] = 'entity_remove'
         else:
-            raise ValueError('wut')
+            raise ValueError('wut is %s' % message)
         return payload

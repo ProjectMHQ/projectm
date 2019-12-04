@@ -12,7 +12,7 @@ import binascii
 import os
 import socketio
 from tests.unit.test_websocket_character_create_auth import BaseWSFlowTestCase
-from core.src.world.builder import websocket_channels_service
+from core.src.world.builder import websocket_channels_service, async_redis_data
 
 
 class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
@@ -37,7 +37,8 @@ class TestWebsocketPingPongFailed(BaseWSFlowTestCase):
         self._expected_pings = 1
         self.loop = asyncio.get_event_loop()
         self.channels_factory = WebsocketChannelsRepository(self.redis)
-        self.data_repository = RedisDataRepository(self.redis)
+        self.async_redis_data = async_redis_data
+        self.data_repository = RedisDataRepository(self.redis, self.async_redis_data)
         self.redis_queue = asyncio.Queue()
         self.channels_monitor = WebsocketChannelsService(
             channels_repository=self.channels_factory,

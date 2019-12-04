@@ -24,10 +24,10 @@ class PosComponent(ComponentType):
         return self._value
 
     @classmethod
-    def get(cls, entity_id: int, repo=None) -> typing.Optional['PosComponent']:
+    async def get(cls, entity_id: int, repo=None) -> typing.Optional['PosComponent']:
         if not repo:
             from core.src.world.builder import world_repository as repo
-        return repo.get_entity_position(entity_id)
+        return await repo.get_entity_position(entity_id)
 
     @property
     def serialized(self):

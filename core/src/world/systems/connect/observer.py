@@ -33,7 +33,7 @@ class ConnectionsObserver:
 
     @staticmethod
     async def on_disconnect(entity: Entity):
-        current_connection = list(world_repository.get_raw_component_value_by_entity_ids(
+        current_connection = list(await world_repository.get_raw_component_value_by_entity_ids(
             ConnectionComponent, entity.entity_id
         ))
         if current_connection and current_connection[0] != entity.transport.namespace:
@@ -43,11 +43,11 @@ class ConnectionsObserver:
         await events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
-        world_repository.update_entities(
+        await world_repository.update_entities(
             entity.set(ConnectionComponent(entity.transport.namespace))
         )
         events_subscriber_service.add_observer_for_entity_id(entity.entity_id, pubsub_observer)
-        pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
+        pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         if not pos:
             await cast_entity(entity, get_base_room_for_entity(entity), on_connect=True)
             self.loop.create_task(self.greet(entity))

@@ -39,7 +39,7 @@ async def create_character(sid, payload):
         .set(CreatedAtComponent(int(time.time()))) \
         .set(NameComponent(payload["name"]))
 
-    entity = world_repository.save_entity(entity)
+    entity = await world_repository.save_entity(entity)
     """
     patchwork starts here
     """

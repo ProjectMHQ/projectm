@@ -45,14 +45,15 @@ class RedisDataRepository:
             self.async_lock.release()
         return self._async_redis
 
-    def _allocate_entity_id(self) -> int:
+    async def _allocate_entity_id(self) -> int:
         script = """
             local val = redis.call('bitpos', '{0}:{1}', 0)
             redis.call('setbit', '{0}:{1}', val, 1)
             return val
             """\
             .format(self._entity_prefix, self._map_suffix)
-        response = self.redis.eval(script, 0)
+        redis = await self.async_redis()
+        response = await redis.eval(script, 0)
         LOGGER.core.debug('EntityRepository.create_entity, response: %s', response)
         assert response
         return int(response)
@@ -70,15 +71,16 @@ class RedisDataRepository:
             new_set_name = self.get_room_key(position.x, position.y, position.z)
             pipeline.sadd(new_set_name, '{}'.format(entity.entity_id))
 
-    def save_entity(self, entity: Entity) -> Entity:
+    async def save_entity(self, entity: Entity) -> Entity:
         assert not entity.entity_id, 'entity_id: %s, use update, not save.' % entity.entity_id
-        entity_id = self._allocate_entity_id()
+        entity_id = await self._allocate_entity_id()
         entity.entity_id = EntityID(entity_id)
-        self.update_entities(entity)
+        await self.update_entities(entity)
         return entity
 
-    def update_entities(self, *entities: Entity) -> Entity:
-        pipeline = self.redis.pipeline()
+    async def update_entities(self, *entities: Entity) -> Entity:
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
         entities_updates = {}
         components_updates = {}
         deletions_by_component = {}
@@ -132,10 +134,10 @@ class RedisDataRepository:
                     entity.entity_id, entities_updates.get(entity.entity_id), deletions_by_entity.get(entity.entity_id)
                 )
         for up_en_id, _up_values_by_en in entities_updates.items():
-            pipeline.hmset('{}:{}'.format(self._entity_prefix, up_en_id), _up_values_by_en)
+            pipeline.hmset_dict('{}:{}'.format(self._entity_prefix, up_en_id), _up_values_by_en)
 
         for up_c_key, _up_values_by_comp in components_updates.items():
-            pipeline.hmset(
+            pipeline.hmset_dict(
                 '{}:{}:{}'.format(self._component_prefix, up_c_key, self._data_suffix),
                 _up_values_by_comp
             )
@@ -146,67 +148,70 @@ class RedisDataRepository:
         for _del_en_id, _del_components in deletions_by_entity.items():
             pipeline.hdel('{}:{}'.format(self._entity_prefix, _del_en_id), *_del_components)
 
-        response = pipeline.execute()
+        response = await pipeline.execute()
         for entity in entities:
             entity.pending_changes.clear()
 
         LOGGER.core.debug('EntityRepository.update_entity_components, response: %s', response)
         return response
 
-    def get_component_value_by_entity_id(self, entity_id: int, component: typing.Type[ComponentType]):
-        res = self.redis.hget(
+    async def get_component_value_by_entity_id(self, entity_id: int, component: typing.Type[ComponentType]):
+        redis = await self.async_redis()
+        res = await redis.hget(
             '{}:{}'.format(self._entity_prefix, entity_id),
             component.key
         )
         return res and component(component.cast_type(res))
 
-    def get_components_values_by_entities(
+    async def get_components_values_by_entities(
             self,
             entities: typing.List[Entity],
             components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[EntityID, typing.Dict[ComponentTypeEnum, bytes]]:
-        _bits_statuses = self._get_components_statuses_by_entities(entities, components)
-        _filtered = self._get_components_values_from_entities_storage(_bits_statuses)
+        _bits_statuses = await self._get_components_statuses_by_entities(entities, components)
+        _filtered = await self._get_components_values_from_entities_storage(_bits_statuses)
         return {
             e.entity_id: {
                 c.component_enum: c.cast_type(_filtered.get(e.entity_id, {}).get(c.key)) for c in components
             } for e in entities
         }
 
-    def get_raw_component_value_by_entity_ids(
+    async def get_raw_component_value_by_entity_ids(
             self, component, *entity_ids: int):
-        pipeline = self.redis.pipeline()
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
         for entity_id in entity_ids:
             key = '{}:{}'.format(self._entity_prefix, entity_id)
             pipeline.hget(key, component.key)
-        results = pipeline.execute()
+        results = await pipeline.execute()
         return (x.decode() for x in results if x)
 
-    def get_components_values_by_components(
+    async def get_components_values_by_components(
             self,
             entity_ids: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[ComponentTypeEnum, typing.Dict[EntityID, bytes]]:
-        _bits_statuses = self._get_components_statuses_by_components(entity_ids, components)
-        _filtered = self._get_components_values_from_components_storage(_bits_statuses)
+        _bits_statuses = await self._get_components_statuses_by_components(entity_ids, components)
+        _filtered = await self._get_components_values_from_components_storage(_bits_statuses)
         s = {
             ComponentTypeEnum(c.key): {
                 entity_id: c.cast_type(_filtered.get(c.key, {}).get(entity_id)) for entity_id in entity_ids
             } for c in components}
         return s
 
-    def _get_components_statuses_by_entities(
+    async def _get_components_statuses_by_entities(
             self,
             entities: typing.List[Entity],
             components: typing.List[typing.Type[ComponentType]]
     ) -> OrderedDict:
-        pipeline = self.redis.pipeline()
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
         bits_by_entity = OrderedDict()
         for _e in entities:
             for _c in components:
                 key = '{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix)
                 pipeline.getbit(key, _e.entity_id)
-        data = pipeline.execute()
+        data = await pipeline.execute()
         i = 0
         for ent in entities:
             for comp in components:
@@ -218,17 +223,18 @@ class RedisDataRepository:
                 i += 1
         return bits_by_entity
 
-    def _get_components_statuses_by_components(
+    async def _get_components_statuses_by_components(
             self,
             entities: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
     ) -> OrderedDict:
-        pipeline = self.redis.pipeline()
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
         bits_by_component = OrderedDict()
         for _c in components:
             for _e in entities:
                 pipeline.getbit('{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix), _e)
-        data = pipeline.execute()
+        data = await pipeline.execute()
         i = 0
         for comp in components:
             for ent in entities:
@@ -240,24 +246,26 @@ class RedisDataRepository:
                 i += 1
         return bits_by_component
 
-    def get_entity_ids_with_components(self, *components: ComponentType) -> typing.Iterator[int]:
+    async def get_entity_ids_with_components(self, *components: ComponentType) -> typing.Iterator[int]:
         _key = os.urandom(8)
         self.redis.bitop(
             'AND',
             _key,
             *('{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix) for c in components)
         )
-        p = self.redis.pipeline()
+        redis = await self.async_redis()
+        p = redis.pipeline()
         p.get(_key)
         p.delete(_key)
-        res = p.execute()
+        res = await p.execute()
         bitmap, _ = res
         array = bitarray.bitarray()
         bitmap and array.frombytes(bitmap) or []
         return (i for i, v in enumerate(array) if v)
 
-    def _get_components_values_from_components_storage(self, filtered_query: OrderedDict):
-        pipeline = self.redis.pipeline()
+    async def _get_components_values_from_components_storage(self, filtered_query: OrderedDict):
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
         for c_key in filtered_query:
             keys = [
                 ent_id for ent_id, status_and_querable in filtered_query[c_key].items()
@@ -265,7 +273,7 @@ class RedisDataRepository:
             ]
             if keys:
                 pipeline.hmget('{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix), *keys)
-        response = pipeline.execute()
+        response = await pipeline.execute()
         data = {}
         i = 0
         for c_key, value in filtered_query.items():
@@ -287,13 +295,14 @@ class RedisDataRepository:
             i += 1
         return data
 
-    def _get_components_values_from_entities_storage(self, filtered_query: OrderedDict):
-        pipeline = self.redis.pipeline()
+    async def _get_components_values_from_entities_storage(self, filtered_query: OrderedDict):
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
         for entity_id, value in filtered_query.items():
             keys = [comp_key for comp_key, status_and_querable in value.items() if all(status_and_querable)]
             if keys:
                 pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
-        response = pipeline.execute()
+        response = await pipeline.execute()
         data = {}
         i = 0
         for entity_id, value in filtered_query.items():

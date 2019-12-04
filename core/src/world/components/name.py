@@ -17,5 +17,5 @@ class NameComponent(ComponentType):
         return self._value
 
     @classmethod
-    def get(cls, entity_id: int, repo=None) -> typing.Optional['NameComponent']:
-        return super().get(entity_id, repo)
+    async def get(cls, entity_id: int, repo=None) -> typing.Optional['NameComponent']:
+        return await super().get(entity_id, repo)

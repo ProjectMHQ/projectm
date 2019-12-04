@@ -35,7 +35,8 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
         self._pings = []
         self.loop = asyncio.get_event_loop()
         self.channels_factory = WebsocketChannelsRepository(self.redis)
-        self.data_repository = RedisDataRepository(self.redis)
+        self.async_redis_data = async_redis_data
+        self.data_repository = RedisDataRepository(self.redis, self.async_redis_data)
         self.cmd_queue = asyncio.Queue()
         self.channels_monitor = WebsocketChannelsService(
             channels_repository=self.channels_factory,
@@ -46,7 +47,7 @@ class TestWebsocketCmd(BaseWSFlowTestCase):
             redis_queue=self.cmd_queue
         )
         self._on_cmd_answer = None
-        self.async_redis_data = async_redis_data
+
         self.ping_timeout = False
 
     async def do_ping_pong(self):

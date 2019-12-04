@@ -17,5 +17,5 @@ class CharacterComponent(ComponentType):
         return self._value
 
     @classmethod
-    def get(cls, entity_id: bool, repo=None) -> typing.Optional['CharacterComponent']:
-        return super().get(entity_id, repo)
+    async def get(cls, entity_id: bool, repo=None) -> typing.Optional['CharacterComponent']:
+        return await super().get(entity_id, repo)

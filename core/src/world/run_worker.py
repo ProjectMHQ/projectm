@@ -29,42 +29,45 @@ worker_queue_manager.add_queue_observer('cmd', cmds_observer)
 
 async def main(entities):
     if entities:
-        data = world_repository.get_components_values_by_components(
+        data = (await world_repository.get_components_values_by_components(
             [x['entity_id'] for x in entities], [PosComponent]
-        )[PosComponent.component_enum]
+        ))[PosComponent.component_enum]
         await events_subscriber_service.bootstrap_subscribes(data)
         for entity_data in entities:
             events_subscriber_service.add_observer_for_entity_data(entity_data, pubsub_observer)
     await worker_queue_manager.run()
 
 
-def check_entities_connection_status():
+async def check_entities_connection_status():
     from core.src.world.builder import world_repository
     from core.src.world.components.connection import ConnectionComponent
     from core.src.world.entity import Entity
 
-    connected_entity_ids = [x for x in world_repository.get_entity_ids_with_components(ConnectionComponent)]
+    connected_entity_ids = [x for x in (await world_repository.get_entity_ids_with_components(ConnectionComponent))]
     if not connected_entity_ids:
         return []
     # FIXME TODO multiprocess workers must discriminate and works only on their own entities
 
-    components_values = world_repository.get_raw_component_value_by_entity_ids(
-        ConnectionComponent, *connected_entity_ids
+    components_values = list(
+        await world_repository.get_raw_component_value_by_entity_ids(
+            ConnectionComponent, *connected_entity_ids
+        )
     )
-    channels = channels_repository.get_many(*components_values)
     to_update = []
     online = []
-    for i, ch in enumerate(channels.values()):
-        if not ch:
-            to_update.append(Entity(connected_entity_ids[i]).set(ConnectionComponent("")))
-        else:
-            online.append({'entity_id': connected_entity_ids[i], 'transport': ch})
-    world_repository.update_entities(*to_update)
+    if components_values:
+        channels = channels_repository.get_many(*components_values)
+        for i, ch in enumerate(channels.values()):
+            if not ch:
+                to_update.append(Entity(connected_entity_ids[i]).set(ConnectionComponent("")))
+            else:
+                online.append({'entity_id': connected_entity_ids[i], 'transport': ch})
+    await world_repository.update_entities(*to_update)
     return online
 
 
 if __name__ == '__main__':
     LOGGER.core.debug('Starting Worker')
-    online_entities = check_entities_connection_status()
+    online_entities = loop.run_until_complete(check_entities_connection_status())
     loop.create_task(pubsub.start())
     loop.run_until_complete(main(online_entities))

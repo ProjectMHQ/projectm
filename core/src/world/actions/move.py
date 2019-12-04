@@ -73,7 +73,7 @@ def apply_delta_to_room_position(room_position: RoomPosition, delta: typing.Tupl
 @singleton_action
 async def move_entity(entity: Entity, direction: str):
     direction = DirectionEnum(direction.lower())
-    pos = world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
+    pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     delta = direction_to_coords_delta(direction)
     where = apply_delta_to_room_position(RoomPosition(pos.x, pos.y, pos.z), delta)
     try:
@@ -88,11 +88,11 @@ async def move_entity(entity: Entity, direction: str):
     if not await room.walkable_by(entity):
         await entity.emit_msg(get_msg_no_walkable(direction))
         return
-    await events_publisher_service.on_entity_do_public_action(
-        entity,
-        pos,
-        get_broadcast_msg_movement("begin", direction)
-    )
+    #await events_publisher_service.on_entity_do_public_action(
+    #    entity,
+    #    pos,
+    #    get_broadcast_msg_movement("begin", direction)
+    #)
     await entity.emit_msg(get_msg_movement(direction, "begin"))
 
     from core.src.world.run_worker import singleton_actions_scheduler
@@ -120,19 +120,19 @@ class ScheduledMovement:
 
         if not await room.walkable_by(self.entity):
             await self.entity.emit_msg(get_msg_no_walkable(self.direction))
-            await events_publisher_service.on_entity_do_public_action(
-                self.entity,
-                room.position,
-                get_broadcast_msg_movement("canceled", self.direction)
-            )
+            #await events_publisher_service.on_entity_do_public_action(
+            #    self.entity,
+            #    room.position,
+            #    get_broadcast_msg_movement("canceled", self.direction)
+            #)
             return
 
         await self.entity.emit_msg(get_msg_movement(self.direction, "success"))
-        await events_publisher_service.on_entity_do_public_action(
-            self.entity,
-            room.position,
-            get_broadcast_msg_movement("success", self.direction)
-        )
+        #await events_publisher_service.on_entity_do_public_action(
+        #    self.entity,
+        #    room.position,
+        #    get_broadcast_msg_movement("success", self.direction)
+        #)
         await cast_entity(self.entity, PosComponent([self.where.x, self.where.y, self.where.z]))
         await asyncio.gather(
             getmap(self.entity),
@@ -140,11 +140,12 @@ class ScheduledMovement:
         )
 
     async def stop(self):
-        await events_publisher_service.on_entity_do_public_action(
-            self.entity,
-            world_repository.get_component_value_by_entity_id(self.entity.entity_id, PosComponent),
-            get_broadcast_msg_movement("canceled", self.direction)
-        )
+        #await events_publisher_service.on_entity_do_public_action(
+        #    self.entity,
+        #    await world_repository.get_component_value_by_entity_id(self.entity.entity_id, PosComponent),
+        #    get_broadcast_msg_movement("canceled", self.direction)
+        #)
+        pass
 
     async def impossible(self):
         pass
