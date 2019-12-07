@@ -4,7 +4,7 @@ import enum
 import typing
 
 from core.src.world import exceptions
-from core.src.world.actions import singleton_action
+from core.src.world.actions_scheduler.tools import singleton_action
 from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
@@ -107,7 +107,7 @@ move_entity.get_self = True
 
 
 class ScheduledMovement:
-    def __init__(self, entity: Entity, direction: DirectionEnum, where: RoomPosition):
+    def __init__(self, entity: Entity, direction: DirectionEnum, where: RoomPosition, ):
         self.entity = entity
         self.direction = direction
         self.where = where

@@ -1,6 +1,6 @@
 import asyncio
 
-from core.src.world.actions import singleton_action
+from core.src.world.actions_scheduler.tools import singleton_action
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.entity import Entity
