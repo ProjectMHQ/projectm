@@ -44,7 +44,7 @@ class ScheduledAction:
         self.must_be_stopped = True
         timeout = int(time.time()) + timeout
         while int(time.time()) < timeout:
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0)
             if self.stopped:
                 break
         if not self.stopped:

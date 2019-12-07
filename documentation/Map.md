@@ -108,7 +108,7 @@ The event, as the entries of `map_event.data`, could be enriched by name, status
 }
 ```
 
-This event is slightly different from the others, as it lacks of some values, and carry only the entity_id, which is enough for a client to drop an entity from its inventory and render.
+This event is slightly different from the others, as it lacks of some values, and carry only the entity_id, which is enough for a client to drop an entity from its storage and render.
 
 `entity_change_pos` which is triggered everytime an entity change the position in the receiver FOV.
 An entity may change position in the receiver FOV for less reasons than others events: movement, teleport. Any different behaviour should be handled by other events.
@@ -127,4 +127,4 @@ The position returned is the new position of the entity.
 
 #### Notes
 
- - Since the relative position of the updates events is related to the current position of the user, is also related to the last map the user got, as it changes everytime the events receiver changes position. This behaviour should lead the clients developers to cleanup any reference to the map and relative positions, as any relative position previously received become stale once the event receiver moves.
+ - Since the relative position of the updates events is related to the current position of the user, is also related to the last map the user got, as it changes everytime the events receiver changes position. This behaviour should lead clients developers to cleanup any reference to the map and relative positions, as any relative position previously received become stale once the event receiver moves.

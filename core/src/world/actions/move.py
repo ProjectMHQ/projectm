@@ -9,7 +9,8 @@ from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
 from core.src.world.actions_scheduler.scheduled_actions_factories import cancellable_scheduled_action_factory
-from core.src.world.builder import world_repository, map_repository, events_publisher_service
+from core.src.world.builder import world_repository, map_repository, events_publisher_service, \
+    singleton_actions_scheduler
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
 from core.src.world.entity import Entity
@@ -95,7 +96,6 @@ async def move_entity(entity: Entity, direction: str):
     )
     await entity.emit_msg(get_msg_movement(direction, "begin"))
 
-    from core.src.world.run_worker import singleton_actions_scheduler
     await singleton_actions_scheduler.schedule(
         cancellable_scheduled_action_factory(
             entity,

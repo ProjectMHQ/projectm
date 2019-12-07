@@ -1,18 +1,23 @@
 import socketio
 
+from core.src.world.actions_scheduler.singleton_actions_scheduler import SingletonActionsScheduler
 from core.src.world.messages_translators.builder import get_messages_translator
 from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
+from core.src.world.run_worker import loop
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 from core.src.world.services.redis_pubsub_publisher_service import RedisPubSubEventsPublisherService
 from core.src.world.services.redis_pubsub_subscriber_service import RedisPubSubEventsSubscriberService
 from core.src.world.services.transport.socketio_interface import SocketioTransportInterface
 from core.src.world.services.transport.websocket_channels_service import WebsocketChannelsService
+from core.src.world.services.worker_queue_service import WorkerQueueService
+from core.src.world.systems.commands import commands_observer_factory
+from core.src.world.systems.connect.observer import ConnectionsObserver
 from core.src.world.systems.pubsub.observer import PubSubObserver
 from etc import settings
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 from core.src.world.repositories.map_repository import RedisMapRepository
-from core.src.world.services.redis_queue import RedisMultipleQueuesPublisher
+from core.src.world.services.redis_queue import RedisMultipleQueuesPublisher, RedisQueueConsumer
 from core.src.world.services.system_utils import get_redis_factory, RedisType
 from core.src.auth.builder import strict_redis
 from core.src.world.repositories.data_repository import RedisDataRepository
@@ -51,3 +56,9 @@ transport = SocketioTransportInterface(
     messages_translator_strategy=messages_translator
 )
 pubsub_observer = PubSubObserver(world_repository, transport)
+async_redis_queues = get_redis_factory(RedisType.QUEUES)
+queue = RedisQueueConsumer(async_redis_queues, 0)
+worker_queue_manager = WorkerQueueService(loop, queue)
+cmds_observer = commands_observer_factory(transport)
+connections_observer = ConnectionsObserver(transport)
+singleton_actions_scheduler = SingletonActionsScheduler()

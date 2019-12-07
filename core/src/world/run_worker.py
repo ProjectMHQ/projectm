@@ -1,26 +1,11 @@
 import asyncio
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.actions_scheduler.singleton_actions_scheduler import SingletonActionsScheduler
 from core.src.world.builder import pubsub, events_subscriber_service, channels_repository, \
-    world_repository, pubsub_observer, transport
+    world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer
 from core.src.world.components.pos import PosComponent
-from core.src.world.services.redis_queue import RedisQueueConsumer
-from core.src.world.services.system_utils import RedisType, get_redis_factory
-from core.src.world.services.worker_queue_service import WorkerQueueService
-from core.src.world.systems.commands import commands_observer_factory
-from core.src.world.systems.connect.observer import ConnectionsObserver
-
 
 loop = asyncio.get_event_loop()
-async_redis_queues = get_redis_factory(RedisType.QUEUES)
-queue = RedisQueueConsumer(async_redis_queues, 0)
-worker_queue_manager = WorkerQueueService(loop, queue)
-
-
-cmds_observer = commands_observer_factory(transport)
-connections_observer = ConnectionsObserver(transport)
-singleton_actions_scheduler = SingletonActionsScheduler()
 
 worker_queue_manager.add_queue_observer('connected', connections_observer)
 worker_queue_manager.add_queue_observer('disconnected', connections_observer)
