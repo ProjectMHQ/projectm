@@ -1,9 +1,11 @@
 import asyncio
 
-from core.src.auth.logging_factory import LOGGER
-from core.src.world.builder import pubsub, events_subscriber_service, channels_repository, \
-    world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer
+
+from core.src.world.builder import events_subscriber_service, channels_repository, \
+    world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub
 from core.src.world.components.pos import PosComponent
+from core.src.world.components.connection import ConnectionComponent
+from core.src.world.entity import Entity
 
 loop = asyncio.get_event_loop()
 
@@ -24,10 +26,6 @@ async def main(entities):
 
 
 async def check_entities_connection_status():
-    from core.src.world.builder import world_repository
-    from core.src.world.components.connection import ConnectionComponent
-    from core.src.world.entity import Entity
-
     connected_entity_ids = [x for x in (await world_repository.get_entity_ids_with_components(ConnectionComponent))]
     if not connected_entity_ids:
         return []
@@ -52,6 +50,7 @@ async def check_entities_connection_status():
 
 
 if __name__ == '__main__':
+    from core.src.auth.logging_factory import LOGGER
     LOGGER.core.debug('Starting Worker')
     online_entities = loop.run_until_complete(check_entities_connection_status())
     loop.create_task(pubsub.start())

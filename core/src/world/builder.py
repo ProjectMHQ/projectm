@@ -3,7 +3,6 @@ import socketio
 from core.src.world.actions_scheduler.singleton_actions_scheduler import SingletonActionsScheduler
 from core.src.world.messages_translators.builder import get_messages_translator
 from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
-from core.src.world.run_worker import loop
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 from core.src.world.services.redis_pubsub_publisher_service import RedisPubSubEventsPublisherService
 from core.src.world.services.redis_pubsub_subscriber_service import RedisPubSubEventsSubscriberService
@@ -58,7 +57,14 @@ transport = SocketioTransportInterface(
 pubsub_observer = PubSubObserver(world_repository, transport)
 async_redis_queues = get_redis_factory(RedisType.QUEUES)
 queue = RedisQueueConsumer(async_redis_queues, 0)
-worker_queue_manager = WorkerQueueService(loop, queue)
+worker_queue_manager = WorkerQueueService(queue)
 cmds_observer = commands_observer_factory(transport)
-connections_observer = ConnectionsObserver(transport)
+
+connections_observer = ConnectionsObserver(
+    transport,
+    pubsub_observer,
+    world_repository,
+    events_subscriber_service
+)
+
 singleton_actions_scheduler = SingletonActionsScheduler()

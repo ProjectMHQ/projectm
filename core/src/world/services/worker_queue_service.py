@@ -5,7 +5,7 @@ class WorkerQueueService:
     """
     This ensure messages from the same "entity_id" are processed in order.
     """
-    def __init__(self, loop, consumer):
+    def __init__(self, consumer, loop=asyncio.get_event_loop()):
         self.consumer = consumer
         self._queues = {}
         self.loop = loop

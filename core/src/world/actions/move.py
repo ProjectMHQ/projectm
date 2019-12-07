@@ -9,8 +9,6 @@ from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
 from core.src.world.actions_scheduler.scheduled_actions_factories import cancellable_scheduled_action_factory
-from core.src.world.builder import world_repository, map_repository, events_publisher_service, \
-    singleton_actions_scheduler
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
 from core.src.world.entity import Entity
@@ -73,6 +71,8 @@ def apply_delta_to_room_position(room_position: RoomPosition, delta: typing.Tupl
 
 @singleton_action
 async def move_entity(entity: Entity, direction: str):
+    from core.src.world.builder import world_repository, map_repository, events_publisher_service, \
+        singleton_actions_scheduler
     direction = DirectionEnum(direction.lower())
     pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     delta = direction_to_coords_delta(direction)
@@ -113,6 +113,7 @@ class ScheduledMovement:
         self.where = where
 
     async def do(self):
+        from core.src.world.builder import map_repository
         try:
             room = await map_repository.get_room(self.where)
         except exceptions.RoomError:

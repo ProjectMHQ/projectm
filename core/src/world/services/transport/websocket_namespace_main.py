@@ -1,7 +1,6 @@
 import socketio
 import time
 
-from core.src.world.builder import world_repository, websocket_channels_service
 from core.src.auth.business.character import exceptions
 from core.src.auth.builder import auth_service, redis_characters_index_repository, ws_channels_repository, \
     psql_character_repository
@@ -32,6 +31,7 @@ async def connect(sid, environ):
 
 @sio.on('create')
 async def create_character(sid, payload):
+    from core.src.world.builder import world_repository
     token = auth_service.decode_session_token(payload['token'])
     assert token['context'] == 'world:create'
     entity = Entity() \
@@ -62,6 +62,7 @@ async def create_character(sid, payload):
 
 @sio.on('auth')
 async def authenticate_character(sid, payload):
+    from core.src.world.builder import websocket_channels_service
     token = auth_service.decode_session_token(payload['token'])
     assert token['context'] == 'world:auth'
     entity_id = redis_characters_index_repository.get_entity_id(token['data']['character_id'])

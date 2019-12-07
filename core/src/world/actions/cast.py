@@ -1,7 +1,6 @@
 import asyncio
 
 from core.src.world.actions import singleton_action
-from core.src.world.builder import world_repository, events_subscriber_service, events_publisher_service
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.entity import Entity
@@ -9,6 +8,7 @@ from core.src.world.entity import Entity
 
 @singleton_action
 async def cast_entity(entity: Entity, where: PosComponent, update=True, on_connect=False):
+    from core.src.world.builder import world_repository, events_subscriber_service, events_publisher_service
     loop = asyncio.get_event_loop()
     where.add_previous_position(
         await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)

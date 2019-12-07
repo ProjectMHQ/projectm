@@ -5,7 +5,6 @@ from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.disconnect import disconnect_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
-from core.src.world.builder import world_repository, events_subscriber_service, pubsub_observer
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.entity import Entity, EntityID
@@ -14,10 +13,20 @@ from core.src.world.utils.world_types import Transport
 
 
 class ConnectionsObserver:
-    def __init__(self, transport, loop=asyncio.get_event_loop()):
+    def __init__(
+            self,
+            transport,
+            pubsub_observer,
+            world_repository,
+            events_subscriber_service,
+            loop=asyncio.get_event_loop()
+    ):
         self._commands = {}
         self.transport = transport
         self.loop = loop
+        self.pubsub_observer = pubsub_observer
+        self.world_repository = world_repository
+        self.events_subscriber_service = events_subscriber_service
 
     def add_command(self, command: str, method: callable):
         self._commands[command] = method
@@ -31,23 +40,22 @@ class ConnectionsObserver:
         else:
             raise ValueError('wtf?!')
 
-    @staticmethod
-    async def on_disconnect(entity: Entity):
-        current_connection = list(await world_repository.get_raw_component_value_by_entity_ids(
+    async def on_disconnect(self, entity: Entity):
+        current_connection = list(await self.world_repository.get_raw_component_value_by_entity_ids(
             ConnectionComponent, entity.entity_id
         ))
         if current_connection and current_connection[0] != entity.transport.namespace:
             return
         await disconnect_entity(entity)
-        events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
-        await events_subscriber_service.unsubscribe_all(entity)
+        self.events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
+        await self.events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
-        await world_repository.update_entities(
+        await self.world_repository.update_entities(
             entity.set(ConnectionComponent(entity.transport.namespace))
         )
-        events_subscriber_service.add_observer_for_entity_id(entity.entity_id, pubsub_observer)
-        pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
+        self.events_subscriber_service.add_observer_for_entity_id(entity.entity_id, self.pubsub_observer)
+        pos = await self.world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         if not pos:
             await cast_entity(entity, get_base_room_for_entity(entity), on_connect=True)
             self.loop.create_task(self.greet(entity))

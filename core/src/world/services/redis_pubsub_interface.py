@@ -10,8 +10,6 @@ import async_generator
 import aioredis
 import typing
 
-from core.src.auth.logging_factory import LOGGER
-
 
 class PubSubManager:
     # pylint: disable=R0902, too-many-instance-attributes

@@ -3,8 +3,6 @@ import time
 import hashlib
 import hmac
 import typing
-
-import itertools
 from redis import StrictRedis
 from core.src.auth.logging_factory import LOGGER
 
