@@ -17,7 +17,7 @@ def build_public_namespace(sio, world_repository, websocket_channels_service):
     @sio.event
     async def connect(sid, environ):
         LOGGER.core.debug('Sending MOTD')
-        await sio.emit('msg', {'data': WS_MOTD}, to=sid)
+        await sio.emit('system', {'data': WS_MOTD}, to=sid)
 
     @sio.on('create')
     async def create_character(sid, payload):

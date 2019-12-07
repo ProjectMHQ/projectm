@@ -1,5 +1,5 @@
 from core.src.world.builder import events_subscriber_service, channels_repository, \
-    world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub
+    world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub_manager
 from core.src.world.components.pos import PosComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.entity import Entity
@@ -51,5 +51,5 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     LOGGER.core.debug('Starting Worker')
     online_entities = loop.run_until_complete(check_entities_connection_status())
-    loop.create_task(pubsub.start())
+    loop.create_task(pubsub_manager.start())
     loop.run_until_complete(main(online_entities))

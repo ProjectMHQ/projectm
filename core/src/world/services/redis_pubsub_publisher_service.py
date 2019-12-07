@@ -22,9 +22,14 @@ class RedisPubSubEventsPublisherService:
     def pos_to_key(self, pos):
         return '{}:{}:{}:{}'.format(self._rooms_events_prefix, pos.x, pos.y, pos.z)
 
-    async def on_entity_change_position(self, entity, room_position):
+    async def on_entity_change_position(self, entity, room_position, reason):
+        """
+        MUST be fired AFTER the the entity position is changed.
+        """
         msg = {
             "en": entity.entity_id,
+            "entity_type": 0,
+            "reason": reason,
             "ev": PubSubEventType.ENTITY_CHANGE_POS.value,
             "curr": [room_position.x, room_position.y, room_position.z],
             "prev": [
@@ -37,9 +42,11 @@ class RedisPubSubEventsPublisherService:
         LOGGER.core.debug('Publishing Message %s on channel %s', msg, room_key)
         await self.pubsub.publish(room_key, msg)
 
-    async def on_entity_appear_position(self, entity, room_position):
+    async def on_entity_appear_position(self, entity, room_position, reason):
         msg = {
             "en": entity.entity_id,
+            "entity_type": 0,
+            "reason": reason,
             "ev": PubSubEventType.ENTITY_APPEAR.value,
             "curr": [room_position.x, room_position.y, room_position.z],
         }
@@ -47,9 +54,11 @@ class RedisPubSubEventsPublisherService:
         LOGGER.core.debug('Publishing Message %s on channels %s', msg, room_key)
         await self.pubsub.publish(room_key, msg)
 
-    async def on_entity_disappear_position(self, entity, room_position):
+    async def on_entity_disappear_position(self, entity, room_position, reason):
         msg = {
             "en": entity.entity_id,
+            "entity_type": 0,
+            "reason": reason,
             "ev": PubSubEventType.ENTITY_DISAPPEAR.value,
             "curr": [room_position.x, room_position.y, room_position.z],
         }

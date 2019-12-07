@@ -41,20 +41,23 @@ websocket_channels_service = WebsocketChannelsService(
     redis_queue=redis_queues_service
 )
 
-pubsub = PubSubManager(async_redis_queue)
+pubsub_manager = PubSubManager(async_redis_queue)
 messages_translator = get_messages_translator('it')
 
-events_subscriber_service = RedisPubSubEventsSubscriberService(pubsub)
-events_publisher_service = RedisPubSubEventsPublisherService(pubsub)
+events_subscriber_service = RedisPubSubEventsSubscriberService(pubsub_manager)
+events_publisher_service = RedisPubSubEventsPublisherService(pubsub_manager)
 
 mgr = socketio.AsyncRedisManager(
     'redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT)
 )
-transport = SocketioTransportInterface(
-    socketio.AsyncServer(client_manager=mgr),
-    messages_translator_strategy=messages_translator
+transport = SocketioTransportInterface(socketio.AsyncServer(client_manager=mgr))
+
+pubsub_observer = PubSubObserver(
+    world_repository,
+    transport,
+    messages_translator
 )
-pubsub_observer = PubSubObserver(world_repository, transport)
+
 async_redis_queues = get_redis_factory(RedisType.QUEUES)
 queue = RedisQueueConsumer(async_redis_queues, 0)
 worker_queue_manager = WorkerQueueService(queue)

@@ -74,7 +74,7 @@ class PrivateNamespace(AsyncNamespace):
                 self.flood_rate += 1
                 if self.flood_rate == 5:
                     await self.emit('presence', 'EXCESS FLOOD')
-                    await self.emit('msg', {"event": "disconnect", "reason": "excess_flood"})
+                    await self.emit('system', {"event": "disconnect", "reason": "excess_flood"})
                     await self.disconnect(self.sid)
                     await self.observer.on_close(self.channel, reason="flood")
                     await self.redis_queue.put(
@@ -110,7 +110,7 @@ class PrivateNamespace(AsyncNamespace):
         LOGGER.websocket_monitor.debug(
             'Closing channel due concurrency. Channel %s (entity %s)', self.channel.id, self.channel.entity_id
         )
-        await self.emit('msg', {"event": "disconnect", "reason": "concurrency"})
+        await self.emit('system', {"event": "disconnect", "reason": "concurrency"})
         await self.disconnect(self.sid)
         await self.observer.on_close(self.channel, reason="concurrency")
 
@@ -118,7 +118,7 @@ class PrivateNamespace(AsyncNamespace):
         LOGGER.websocket_monitor.debug(
             'Closing channel due concurrency. Channel %s (entity %s)', self.channel.id, self.channel.entity_id
         )
-        await self.emit('msg', {"event": "disconnect", "reason": reason})
+        await self.emit('system', {"event": "disconnect", "reason": reason})
         await self.disconnect(self.sid)
         await self.observer.on_close(self.channel, reason=reason)
 
@@ -144,7 +144,7 @@ class PrivateNamespace(AsyncNamespace):
                 'PING TIMEOUT on channel %s (entity %s)', self.channel.id, self.channel.entity_id
             )
             await self.emit('presence', 'PING TIMEOUT')
-            await self.emit('msg', {"event": "disconnect", "reason": "ping_timeout"})
+            await self.emit('system', {"event": "disconnect", "reason": "ping_timeout"})
             await self.disconnect(self.sid)
             await self.observer.on_close(self.channel, reason="timeout")
             await self.redis_queue.put(

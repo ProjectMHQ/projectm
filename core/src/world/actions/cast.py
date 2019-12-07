@@ -7,7 +7,13 @@ from core.src.world.entity import Entity
 
 
 @singleton_action
-async def cast_entity(entity: Entity, where: PosComponent, update=True, on_connect=False):
+async def cast_entity(
+        entity: Entity,
+        where: PosComponent,
+        update=True,
+        on_connect=False,
+        reason=None
+):
     from core.src.world.builder import world_repository, events_subscriber_service, events_publisher_service
     loop = asyncio.get_event_loop()
     where.add_previous_position(
@@ -16,9 +22,9 @@ async def cast_entity(entity: Entity, where: PosComponent, update=True, on_conne
     if update:
         await world_repository.update_entities(entity.set(where))
     if on_connect:
-        await events_publisher_service.on_entity_appear_position(entity, where)
+        await events_publisher_service.on_entity_appear_position(entity, where, reason)
     else:
-        await events_publisher_service.on_entity_change_position(entity, where)
+        await events_publisher_service.on_entity_change_position(entity, where, reason)
     loop.create_task(
         events_subscriber_service.subscribe_area(entity, Area(where).make_coordinates())
     )

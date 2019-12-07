@@ -1,5 +1,7 @@
 import typing
 
+from core.src.world.utils.world_types import EvaluatedEntity
+
 
 class TranslatorMovementsItalian:
     def __init__(self):
@@ -57,5 +59,7 @@ class TranslatorMovementsItalian:
         if payload['status'] == 'error':
             return 'Non puoi andare in quella direzione'
 
-    def translate_for_receivers(self, event: typing.Dict):
-        pass
+    def translate_for_receivers(self, payload: typing.Dict) -> str:
+        assert payload['event'] == self.event
+        return 'dafuq'
+

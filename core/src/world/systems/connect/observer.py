@@ -57,10 +57,10 @@ class ConnectionsObserver:
         self.events_subscriber_service.add_observer_for_entity_id(entity.entity_id, self.pubsub_observer)
         pos = await self.world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         if not pos:
-            await cast_entity(entity, get_base_room_for_entity(entity), on_connect=True)
+            await cast_entity(entity, get_base_room_for_entity(entity), on_connect=True, reason="connect")
             self.loop.create_task(self.greet(entity))
         else:
-            await cast_entity(entity, pos, update=False, on_connect=True)
+            await cast_entity(entity, pos, update=False, on_connect=True, reason="connect")
         self.loop.create_task(look(entity))
         self.loop.create_task(getmap(entity))
 

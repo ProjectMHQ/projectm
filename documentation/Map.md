@@ -17,6 +17,8 @@
 
 ##### - map_event
 
+Topic: `system`
+
 The first event to render the map is the same as the `getmap` response.
 This event is triggered everytime a user join a new room (on connect, after teleport \ movement, etc.)
 
@@ -77,6 +79,9 @@ no details about it are returned.
 ---
 
 ##### - updates events 
+  
+Topic: `system`
+ 
   
 Once the map is returned, updates events are triggered. As for the values of the data array, relative positions are used to push updates.
 

@@ -4,11 +4,10 @@ import enum
 import typing
 
 from core.src.world import exceptions
-from core.src.world.actions_scheduler.tools import singleton_action
+from core.src.world.actions_scheduler.tools import singleton_action, cancellable_scheduled_action_factory
 from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
-from core.src.world.actions_scheduler.scheduled_actions_factories import cancellable_scheduled_action_factory
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
 from core.src.world.entity import Entity
@@ -32,22 +31,30 @@ def get_broadcast_msg_movement(status, direction):
     }
 
 
-def get_msg_no_walkable(d):
-    return {
-        "event": "move",
-        "status": "error",
-        "direction": "{}".format(d.value),
-        "code": "terrain"
-    }
+def get_movement_message_no_walkable_direction(d) -> str:
+    from core.src.world.builder import messages_translator
+    return messages_translator.payload_msg_to_string(
+        {
+            "event": "move",
+            "status": "error",
+            "direction": "{}".format(d.value),
+            "code": "terrain"
+        },
+        'msg'
+    )
 
 
-def get_msg_movement(d, status):
-    return {
-        "event": "move",
-        "status": status,
-        "direction": "{}".format(d.value),
-        "speed": 1
-    }
+def get_movement_message_payload(d, status) -> str:
+    from core.src.world.builder import messages_translator
+    return messages_translator.payload_msg_to_string(
+        {
+            "event": "move",
+            "status": status,
+            "direction": "{}".format(d.value),
+            "speed": 1
+        },
+        'msg'
+    )
 
 
 def direction_to_coords_delta(direction: DirectionEnum) -> typing.Tuple:
@@ -83,18 +90,18 @@ async def move_entity(entity: Entity, direction: str):
         room = None
 
     if not room:
-        await entity.emit_msg(get_msg_no_walkable(direction))
+        await entity.emit_msg(get_movement_message_no_walkable_direction(direction))
         return
 
     if not await room.walkable_by(entity):
-        await entity.emit_msg(get_msg_no_walkable(direction))
+        await entity.emit_msg(get_movement_message_no_walkable_direction(direction))
         return
     await events_publisher_service.on_entity_do_public_action(
         entity,
         pos,
         get_broadcast_msg_movement("begin", direction)
     )
-    await entity.emit_msg(get_msg_movement(direction, "begin"))
+    await entity.emit_msg(get_movement_message_payload(direction, "begin"))
 
     await singleton_actions_scheduler.schedule(
         cancellable_scheduled_action_factory(
@@ -120,33 +127,17 @@ class ScheduledMovement:
             room = None
 
         if not await room.walkable_by(self.entity):
-            await self.entity.emit_msg(get_msg_no_walkable(self.direction))
-            #await events_publisher_service.on_entity_do_public_action(
-            #    self.entity,
-            #    room.position,
-            #    get_broadcast_msg_movement("canceled", self.direction)
-            #)
+            await self.entity.emit_msg(get_movement_message_no_walkable_direction(self.direction))
             return
 
-        await self.entity.emit_msg(get_msg_movement(self.direction, "success"))
-        #await events_publisher_service.on_entity_do_public_action(
-        #    self.entity,
-        #    room.position,
-        #    get_broadcast_msg_movement("success", self.direction)
-        #)
-        await cast_entity(self.entity, PosComponent([self.where.x, self.where.y, self.where.z]))
+        await self.entity.emit_msg(get_movement_message_payload(self.direction, "success"))
+        await cast_entity(self.entity, PosComponent([self.where.x, self.where.y, self.where.z]), reason="movement")
         await asyncio.gather(
             getmap(self.entity),
             look(self.entity)
         )
 
-
     async def stop(self):
-        #await events_publisher_service.on_entity_do_public_action(
-        #    self.entity,
-        #    await world_repository.get_component_value_by_entity_id(self.entity.entity_id, PosComponent),
-        #    get_broadcast_msg_movement("canceled", self.direction)
-        #)
         pass
 
     async def impossible(self):

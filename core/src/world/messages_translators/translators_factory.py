@@ -19,5 +19,11 @@ class MessagesTranslator:
         except KeyError:
             return payload
 
-    def event_msg_to_string(self, event) -> typing.Dict:
-        raise NotImplementedError
+    def event_msg_to_string(self, event, topic) -> typing.Dict:
+        if topic not in self._strategies_by_topic:
+            return event
+        try:
+            translator_strategy = self._strategies_by_topic[topic][event['event']]
+            return translator_strategy.translate_for_receivers(event)
+        except KeyError:
+            return event

@@ -1,19 +1,7 @@
 import asyncio
-from asyncio import coroutine
 from enum import Enum
 
 import time
-
-from core.src.world.entity import Entity
-
-
-def cancellable_scheduled_action_factory(entity: Entity, action: coroutine, wait_for=0):
-    return ScheduledAction(
-        entity,
-        action,
-        ActionType.CANCELLABLE,
-        wait_for
-    )
 
 
 class ActionType(Enum):
