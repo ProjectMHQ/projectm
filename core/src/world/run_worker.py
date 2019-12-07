@@ -1,13 +1,8 @@
-import asyncio
-
-
 from core.src.world.builder import events_subscriber_service, channels_repository, \
     world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub
 from core.src.world.components.pos import PosComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.entity import Entity
-
-loop = asyncio.get_event_loop()
 
 worker_queue_manager.add_queue_observer('connected', connections_observer)
 worker_queue_manager.add_queue_observer('disconnected', connections_observer)
@@ -51,6 +46,9 @@ async def check_entities_connection_status():
 
 if __name__ == '__main__':
     from core.src.auth.logging_factory import LOGGER
+    import asyncio
+
+    loop = asyncio.get_event_loop()
     LOGGER.core.debug('Starting Worker')
     online_entities = loop.run_until_complete(check_entities_connection_status())
     loop.create_task(pubsub.start())

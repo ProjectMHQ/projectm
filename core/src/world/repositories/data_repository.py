@@ -55,7 +55,7 @@ class RedisDataRepository:
             """\
             .format(self._entity_prefix, self._map_suffix)
         redis = await self.async_redis()
-        response = await redis.eval(script, 0)
+        response = await redis.eval(script, ['{}:{}'.format(self._entity_prefix, self._map_prefix)])
         LOGGER.core.debug('EntityRepository.create_entity, response: %s', response)
         assert response
         return int(response)

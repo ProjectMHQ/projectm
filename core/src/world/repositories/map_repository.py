@@ -10,7 +10,6 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world import exceptions
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import Room, RoomPosition
-from core.src.world.entity import Entity
 from core.src.world.utils.world_types import TerrainEnum
 
 
@@ -99,9 +98,10 @@ class RedisMapRepository:
         redis = await self.redis()
         pipeline = redis.pipeline()
         if position.z:
-            pipeline.hget(self.z_valued_rooms_data_key, self._pack_coords(
-                position.x, position.y, position.z
-            ))
+            pipeline.hget(
+                self.z_valued_rooms_data_key,
+                '{}.{}.{}'.format(position.x, position.y, position.z),
+            )
         else:
             k = self._coords_to_int(position.x, position.y)
             pipeline.getrange(self.terrains_bitmap_key, k, k)
@@ -134,9 +134,10 @@ class RedisMapRepository:
         pipeline = redis.pipeline()
         for position in positions:
             if position.z:
-                pipeline.hget(self.z_valued_rooms_data_key, self._pack_coords(
-                    position.x, position.y, position.z
-                ))
+                pipeline.hget(
+                    self.z_valued_rooms_data_key,
+                    '{}.{}.{}'.format(position.x, position.y, position.z)
+                )
             else:
                 k = self._coords_to_int(position.x, position.y)
                 pipeline.getrange(self.terrains_bitmap_key, k, k)

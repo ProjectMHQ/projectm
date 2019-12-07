@@ -1,8 +1,6 @@
 import random
-from unittest.mock import Mock
-
+import socketio
 from core.src.world.run_websocket import app
-from core.src.world.services.transport.websocket_namespace_main import sio
 from etc import settings
 from aiohttp.web import _run_app
 import hashlib
@@ -11,17 +9,13 @@ import binascii
 import os
 import uuid
 from flask_testing import TestCase
-from core.src.auth.builder import strict_redis
 
 
 class BakeUserTestCase(TestCase):
     first_exec = True
 
     def create_app(self):
-        self.redis = strict_redis
         assert not settings.INTEGRATION_TESTS
-        assert isinstance(self.redis, Mock)
-        self.first_exec or self.redis.reset_mock()
         BakeUserTestCase.first_exec = False
         self.socketio = None
         self.socketioport = random.randint(10000, 50000)
@@ -56,7 +50,12 @@ class BakeUserTestCase(TestCase):
         self.loop.run_until_complete(self.async_test())
 
     async def _run_websocket_server(self):
-        self.sio_server = sio
+        mgr = socketio.AsyncRedisManager('redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
+        sio_settings = dict(client_manager=mgr, async_mode='aiohttp')
+        if settings.ENABLE_CORS:
+            sio_settings['cors_allowed_origins'] = '*'
+
+        self.sio_server = socketio.AsyncServer(**sio_settings)
         self.loop.create_task(_run_app(app, host='127.0.0.1', port=self.socketioport))
 
     def _get_websocket_token(self, context, character_id=None):

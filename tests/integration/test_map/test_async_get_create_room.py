@@ -45,14 +45,13 @@ class TestSetGetRooms(TestCase):
         for x in range(0, max_x):
             for y in range(0, max_y):
                 for z in range(0, max_z):
-                    room = await sut.get_room(
-                        RoomPosition(x, y, z)
-                    )
+                    room = await sut.get_room(RoomPosition(x, y, z))
                     self.assertEqual(
                         [room.position.x, room.position.y, room.position.z],
                         [x, y, z]
                     )
         print('\n', i, ' rooms tested NO pipeline in {:.10f}'.format(time.time() - start))
+
         await (await sut.redis()).flushdb()
         _start = time.time()
         roomz = OrderedDict()
