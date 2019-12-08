@@ -26,4 +26,4 @@ class MessagesTranslator:
             translator_strategy = self._strategies_by_topic[topic][event['event']]
             return translator_strategy.translate_for_receivers(event)
         except KeyError:
-            return event
+            raise
