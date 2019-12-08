@@ -96,11 +96,7 @@ async def move_entity(entity: Entity, direction: str):
     if not await room.walkable_by(entity):
         await entity.emit_msg(get_movement_message_no_walkable_direction(direction))
         return
-    await events_publisher_service.on_entity_do_public_action(
-        entity,
-        pos,
-        get_broadcast_msg_movement("begin", direction)
-    )
+
     await entity.emit_msg(get_movement_message_payload(direction, "begin"))
 
     await singleton_actions_scheduler.schedule(

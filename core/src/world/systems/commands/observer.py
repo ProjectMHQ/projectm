@@ -36,4 +36,4 @@ class CommandsObserver:
             await self._on_error(message, "Command error: %s" % str(exc))
 
     def _on_error(self, message, error):
-        return self.transport.send(namespace=message['n'], payload={"event": "cmd", "error": error})
+        return self.transport.send_system_event(namespace=message['n'], payload={"event": "cmd", "error": error})

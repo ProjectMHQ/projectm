@@ -63,10 +63,11 @@ class PubSubObserver:
 
     @staticmethod
     def _entity_sees_it(message: typing.Dict, current_position: PosComponent):
+        _pos = [current_position.x, current_position.y, current_position.z]
         return bool(
-            message['curr'] == current_position
+            message['curr'] == _pos
         ) or bool(
-            message['prev'] == current_position
+            message['prev'] == _pos
         )
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
@@ -85,28 +86,29 @@ class PubSubObserver:
         # FIXME TODO \\ Remove Evaluated Entity Concept, use character_memory map and embed emitter info
         # FIXME TODO \\ into the event itself.
 
-        evaluated_emitter_entity = interest_type == InterestType.LOCAL and (
+        evaluated_emitter_entity = (
             await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
         )[0]
 
-        event = self._get_system_event(message, room, curr_pos, evaluated_emitter_entity)
+        event = self._get_system_event(message, room, curr_pos, evaluated_emitter_entity, interest_type)
         self.loop.create_task(entity.emit_system_event(event))
 
-        if self._is_movement_message(message) and self._entity_sees_it(message, curr_pos):
+        if self._is_movement_message(message):
             if self._is_a_character_movement(message):
-                payload = self._get_character_movement_message(
-                    message, interest_type, curr_pos, evaluated_emitter_entity
-                )
-                message = self.messages_translator.event_msg_to_string(payload, 'msg')
-                self.loop.create_task(entity.emit_msg(message))
+                if self._entity_sees_it(message, curr_pos):
+                    payload = self._get_character_movement_message(
+                        message, interest_type, curr_pos, evaluated_emitter_entity
+                    )
+                    message = self.messages_translator.event_msg_to_string(payload, 'msg')
+                    self.loop.create_task(entity.emit_msg(message))
 
     @staticmethod
-    def _get_system_event(message, event_room, current_position, evaluated_emitter_entity):
+    def _get_system_event(message, event_room, current_position, evaluated_emitter_entity, interest_type):
         area = Area(current_position)
         payload = {'data': {
             'e_id': message['en']
         }}
-        if evaluated_emitter_entity:
+        if interest_type == InterestType.LOCAL:
             payload['data'].update(
                 {
                     'status': evaluated_emitter_entity.status,
@@ -149,6 +151,7 @@ class PubSubObserver:
     ) -> typing.Dict:
         assert interest_type
         payload = {
+                "event": "move",
                 "entity": {
                     "excerpt": evaluated_emitter_entity.excerpt,
                     "name": evaluated_emitter_entity.known and evaluated_emitter_entity.name,
@@ -159,11 +162,11 @@ class PubSubObserver:
             assert message['prev'] != curr_pos
             assert interest_type == InterestType.LOCAL
             payload['action'] = "join"
-        elif message['prev'] != curr_pos.value:
-            assert message['cur'] != curr_pos
+        elif message['prev'] == curr_pos.value:
+            assert message['curr'] != curr_pos
             assert interest_type == InterestType.LOCAL
             payload['action'] = "leave"
         else:
-            raise ValueError('This should not be here: %s' % message)
+            raise ValueError('This should not be here: %s (%s)' % (message, curr_pos.value))
         payload['direction'] = self._gather_movement_direction(message)
         return payload

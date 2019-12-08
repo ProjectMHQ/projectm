@@ -82,11 +82,13 @@ class RedisPubSubEventsSubscriberService:
         for observer in self._observers_by_entity_id.get(entity_id, []):
             LOGGER.core.debug('MESSAGE for entity_id %s: %s', entity_id, message)
             self.loop.create_task(
-                observer.on_event(entity_id, message, room, self._transports_by_entity_id[entity_id])
+                observer.on_event(
+                    entity_id, message, room, self._transports_by_entity_id[entity_id].id
+                )
             )
 
     async def subscribe_area(self, entity: Entity, area: Area):
-        self._transports_by_entity_id[entity.entity_id] = entity.transport.namespace
+        self._transports_by_entity_id[entity.entity_id] = entity.transport
         LOGGER.core.debug(
             'Entity %s subscribed Area with center %s - Total %s subs',
             entity.entity_id, area.center, len(area.rooms_and_peripherals_coordinates)
