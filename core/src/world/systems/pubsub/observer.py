@@ -25,19 +25,20 @@ class PubSubObserver:
         self.messages_translator = translator
 
     @staticmethod
-    def _gather_movement_direction(message: typing.Dict):
+    def _gather_movement_direction(message: typing.Dict, action):
+        join = bool(action == 'join')
         if message['curr'][0] > message['prev'][0]:
-            return 'w'
+            return join and 'w' or 'e'
         elif message['curr'][0] < message['prev'][0]:
-            return 'e'
+            return join and 'e' or 'w'
         elif message['curr'][1] > message['prev'][1]:
-            return 'n'
+            return join and 'n' or 's'
         elif message['curr'][1] < message['prev'][1]:
-            return 's'
+            return join and 's' or 'n'
         elif message['curr'][2] > message['prev'][2]:
-            return 'u'
+            return join and 'u' or 'd'
         elif message['curr'][2] < message['prev'][2]:
-            return 'd'
+            return join and 'd' or 'u'
         else:
             raise ValueError('Unable to gather movement direction for message: %s' % message)
 
@@ -164,11 +165,12 @@ class PubSubObserver:
             assert message['prev'] != curr_pos
             assert interest_type == InterestType.LOCAL
             payload['action'] = "join"
+            payload['direction'] = self._gather_movement_direction(message, "join")
         elif message['prev'] == curr_pos.value:
             assert message['curr'] != curr_pos
             assert interest_type != InterestType.LOCAL
             payload['action'] = "leave"
+            payload['direction'] = self._gather_movement_direction(message, "leave")
         else:
             raise ValueError('This should not be here: %s (%s)' % (message, curr_pos.value))
-        payload['direction'] = self._gather_movement_direction(message)
         return payload
