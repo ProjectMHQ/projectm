@@ -1,4 +1,5 @@
 import asyncio
+import json
 from enum import Enum
 
 import typing
@@ -99,7 +100,8 @@ class PubSubObserver:
                     payload = self._get_character_movement_message(
                         message, interest_type, curr_pos, evaluated_emitter_entity
                     )
-                    message = self.messages_translator.event_msg_to_string(payload, 'msg')
+                    message = json.dumps(payload)
+                    #message = self.messages_translator.event_msg_to_string(payload, 'msg')
                     self.loop.create_task(entity.emit_msg(message))
 
     @staticmethod
@@ -164,7 +166,7 @@ class PubSubObserver:
             payload['action'] = "join"
         elif message['prev'] == curr_pos.value:
             assert message['curr'] != curr_pos
-            assert interest_type == InterestType.LOCAL
+            assert interest_type != InterestType.LOCAL
             payload['action'] = "leave"
         else:
             raise ValueError('This should not be here: %s (%s)' % (message, curr_pos.value))
