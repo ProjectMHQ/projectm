@@ -1,8 +1,10 @@
 from core.src.world.builder import events_subscriber_service, channels_repository, \
-    world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub_manager
+    world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub_manager, \
+    transport
 from core.src.world.components.pos import PosComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.entity import Entity
+from core.src.world.utils.world_types import Transport
 
 worker_queue_manager.add_queue_observer('connected', connections_observer)
 worker_queue_manager.add_queue_observer('disconnected', connections_observer)
@@ -39,7 +41,12 @@ async def check_entities_connection_status():
             if not ch:
                 to_update.append(Entity(connected_entity_ids[i]).set(ConnectionComponent("")))
             else:
-                online.append({'entity_id': connected_entity_ids[i], 'transport': ch})
+                online.append(
+                    {
+                        'entity_id': connected_entity_ids[i],
+                        'transport': Transport(ch.id, transport)
+                    }
+                )
     await world_repository.update_entities(*to_update)
     return online
 

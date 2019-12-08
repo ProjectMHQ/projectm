@@ -7,7 +7,7 @@ from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.entity import Entity
 from core.src.world.services.redis_pubsub_interface import PubSubManager
-
+from core.src.world.utils.world_types import Transport
 
 class RedisPubSubEventsSubscriberService:
     def __init__(self, pubsub: PubSubManager, loop=asyncio.get_event_loop()):
@@ -83,7 +83,7 @@ class RedisPubSubEventsSubscriberService:
             LOGGER.core.debug('MESSAGE for entity_id %s: %s', entity_id, message)
             self.loop.create_task(
                 observer.on_event(
-                    entity_id, message, room, self._transports_by_entity_id[entity_id].id
+                    entity_id, message, room, self._transports_by_entity_id[entity_id].namespace
                 )
             )
 
