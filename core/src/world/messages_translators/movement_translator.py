@@ -1,7 +1,5 @@
 import typing
 
-from core.src.world.utils.world_types import EvaluatedEntity
-
 
 class TranslatorMovementsItalian:
     def __init__(self):
