@@ -109,7 +109,7 @@ class Area:
         return self.polygon.contains(Point(pos.x, pos.y))
 
     def get_relative_position(self, position: PosComponent) -> int:
-        return (self.max_y - position.y) * (self.max_x - self.min_x) + position.x - self.min_x
+        return (self.max_y - position.y) * (self.max_x - self.min_x + 1) + position.x - self.min_x
 
     async def populate_rooms(self):
         from core.src.world.builder import map_repository
