@@ -1,5 +1,6 @@
 import typing
 
+from core.src.world.entity import Entity
 from core.src.world.utils.world_types import TerrainEnum, is_terrain_walkable, EvaluatedEntity
 
 RoomPosition = typing.NamedTuple(
@@ -53,6 +54,21 @@ class Room:
     def content(self) -> typing.List[EvaluatedEntity]:
         return list(self._content)
 
+    @property
+    def json_content(self) -> typing.List[typing.Dict]:
+        res = []
+        for e in self.content:
+            data = {
+                'type': e.type,
+                'status': e.status,
+                'excerpt': e.excerpt,
+                'e_id': e.entity_id
+            }
+            if e.known:
+                data['name'] = e.name
+            res.append(data)
+        return res
+
     def add_evaluated_entity(self, evaluated_entity: EvaluatedEntity):
         self._content.add(evaluated_entity)
 
@@ -75,3 +91,8 @@ class Room:
 
     async def walkable_by(self, entity):
         return is_terrain_walkable(self.terrain)
+
+    async def populate_room_content_for_look(self, entity: Entity):
+        from core.src.world.builder import world_repository
+        await world_repository.populate_room_content_for_look(entity, self)
+        return self

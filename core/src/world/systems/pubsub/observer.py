@@ -79,41 +79,24 @@ class PubSubObserver:
         await self.publish_event(entity, message, room, interest_type, curr_pos)
 
     async def publish_event(self, entity: Entity, message, room, interest_type, curr_pos):
-
-        # FIXME TODO \\ NOT EFFICIENT
-        # FIXME TODO \\ Remove Evaluated Entity Concept, use character_memory map and embed emitter info
-        # FIXME TODO \\ into the event itself.
-
-        evaluated_emitter_entity = (
-            await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
-        )[0]
-
-        event = self._get_system_event(message, room, curr_pos, evaluated_emitter_entity, interest_type)
+        event = self._get_system_event(message, room, curr_pos)
         self.loop.create_task(entity.emit_system_event(event))
 
         if self._is_movement_message(message):
             if self._is_a_character_movement(message):
                 if self._entity_sees_it(message, curr_pos):
-                    payload = self._get_character_movement_message(
-                        message, interest_type, curr_pos, evaluated_emitter_entity
+                    payload = await self._get_character_movement_message(
+                        entity, message, interest_type, curr_pos
                     )
                     message = self.messages_translator.event_msg_to_string(payload, 'msg')
                     self.loop.create_task(entity.emit_msg(message))
 
     @staticmethod
-    def _get_system_event(message, event_room, current_position, evaluated_emitter_entity, interest_type):
+    def _get_system_event(message, event_room, current_position):
         area = Area(current_position)
         payload = {'data': {
             'e_id': message['en']
         }}
-        if interest_type == InterestType.LOCAL:
-            payload['data'].update(
-                {
-                    'status': evaluated_emitter_entity.status,
-                    'excerpt': evaluated_emitter_entity.excerpt,
-                    'name': evaluated_emitter_entity.known and evaluated_emitter_entity.name
-                }
-            )
         if message['ev'] == PubSubEventType.ENTITY_APPEAR.value:
             payload['event'] = 'entity_add'
             payload['data']['type'] = message['entity_type']
@@ -143,10 +126,11 @@ class PubSubObserver:
             raise ValueError('wut is %s' % message)
         return payload
 
-    def _get_character_movement_message(
-            self, message, interest_type, curr_pos, evaluated_emitter_entity
-    ) -> typing.Dict:
+    async def _get_character_movement_message(self, entity, message, interest_type, curr_pos) -> typing.Dict:
         assert interest_type
+        evaluated_emitter_entity = (
+            await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
+        )[0]
         payload = {
                 "event": "move",
                 "entity": {

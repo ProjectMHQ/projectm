@@ -10,6 +10,7 @@ from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.components.name import NameComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
+from core.src.world.domain.room import Room
 from core.src.world.entity import Entity, EntityID
 from core.src.world.utils.world_types import Bit, EvaluatedEntity
 
@@ -340,35 +341,48 @@ class RedisDataRepository:
                     type=0,
                     status=0,
                     known=True,
-                    excerpt="un brutto ceffo dall'aspetto elegante",
+                    excerpt="<placeholder for short description>",
                     entity_id=entity_ids[i]
                 )
             )
         return result
 
-    async def populate_area_content_for_entity(self, entity: Entity, area: Area) -> None:
-        redis = await self.async_redis()
-        pipeline = redis.pipeline()
-        for room in area.rooms:
-            if room:
-                for entity_id in room.entity_ids:
-                    pipeline.hmget(
-                        '{}:{}'.format(self._entity_prefix, entity_id),
-                        NameComponent.key
-                    )
-        result = await pipeline.execute()
-        i = 0
+    async def populate_area_content_for_area(self, entity: Entity, area: Area) -> None:
         for _room in area.rooms:
             if _room:
                 for _entity_id in _room.entity_ids:
-                    _evaluated_entity_response = result[i]
                     evaluated_entity = EvaluatedEntity(
-                        name=_evaluated_entity_response[0].decode(),
                         type=0,
                         status=0,
-                        known=True,
-                        excerpt="un brutto ceffo dall'aspetto elegante",
-                        entity_id=_entity_id
+                        entity_id=_entity_id,
+                        name='',
+                        excerpt='',
+                        known=False
                     )
                     entity.can_see_evaluated_entity(evaluated_entity) and _room.add_evaluated_entity(evaluated_entity)
-                    i += 1
+
+    async def populate_room_content_for_look(self, entity: Entity, room: Room):
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
+        _exp_res = []
+        for entity_id in room.entity_ids:
+            if entity_id == entity.entity_id:
+                continue
+            pipeline.hmget(
+                '{}:{}'.format(self._entity_prefix, entity_id),
+                NameComponent.key
+            )
+            _exp_res.append(entity_id)
+        result = await pipeline.execute()
+        for i, _entity_id in enumerate(_exp_res):
+            _evaluated_entity_response = result[i]
+            evaluated_entity = EvaluatedEntity(
+                name=_evaluated_entity_response[0].decode(),
+                type=0,
+                status=0,
+                entity_id=_entity_id,
+                known=True,
+                excerpt="<placeholder for short description>"
+            )
+            entity.can_see_evaluated_entity(evaluated_entity) and room.add_evaluated_entity(evaluated_entity)
+
