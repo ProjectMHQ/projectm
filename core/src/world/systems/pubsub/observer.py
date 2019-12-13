@@ -32,9 +32,9 @@ class PubSubObserver:
         elif message['curr'][0] < message['prev'][0]:
             return join and 'e' or 'w'
         elif message['curr'][1] > message['prev'][1]:
-            return join and 'n' or 's'
-        elif message['curr'][1] < message['prev'][1]:
             return join and 's' or 'n'
+        elif message['curr'][1] < message['prev'][1]:
+            return join and 'n' or 's'
         elif message['curr'][2] > message['prev'][2]:
             return join and 'u' or 'd'
         elif message['curr'][2] < message['prev'][2]:
@@ -66,11 +66,7 @@ class PubSubObserver:
     @staticmethod
     def _entity_sees_it(message: typing.Dict, current_position: PosComponent):
         _pos = [current_position.x, current_position.y, current_position.z]
-        return bool(
-            message['curr'] == _pos
-        ) or bool(
-            message['prev'] == _pos
-        )
+        return bool(message['curr'] == _pos) or bool(message['prev'] == _pos)
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
         room = PosComponent(room)
@@ -130,11 +126,11 @@ class PubSubObserver:
             area = Area(current_position)
             center_point = Point(area.center.x, area.center.y, area.center.z)
             max_distance = int(area.size / 2)
-            current_distance = int(
-                center_point.distance(Point(event_room.x, event_room.y, event_room.z))
+            current_distance = max(
+                [abs(center_point.x - message['curr'][0]), abs(center_point.y - message['curr'][1])]
             )
-            previous_distance = int(
-                center_point.distance(Point(message['prev'][0], message['prev'][1], message['prev'][2]))
+            previous_distance = max(
+                [abs(center_point.x - message['prev'][0]), abs(center_point.y - message['prev'][1])]
             )
             if current_distance <= max_distance < previous_distance:
                 payload['event'] = 'entity_add'
