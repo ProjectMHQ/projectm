@@ -386,3 +386,15 @@ class RedisDataRepository:
             )
             entity.can_see_evaluated_entity(evaluated_entity) and room.add_evaluated_entity(evaluated_entity)
 
+    async def get_raw_content_for_room_interaction(self, entity_id: int, room: Room):
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
+        _exp_res = []
+        for _entity_id in room.entity_ids:
+            if _entity_id == entity_id:
+                continue
+            pipeline.hmget(
+                '{}:{}'.format(self._entity_prefix, _entity_id),
+                NameComponent.key
+            )
+            _exp_res.append(entity_id)

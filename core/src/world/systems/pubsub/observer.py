@@ -79,6 +79,7 @@ class PubSubObserver:
         await self.publish_event(entity, message, room, interest_type, curr_pos)
 
     async def publish_event(self, entity: Entity, message, room, interest_type, curr_pos):
+
         event = self._get_system_event(message, room, curr_pos)
         self.loop.create_task(entity.emit_system_event(event))
 

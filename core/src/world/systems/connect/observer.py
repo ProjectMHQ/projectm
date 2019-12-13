@@ -65,23 +65,18 @@ class ConnectionsObserver:
         self.loop.create_task(getmap(entity))
 
     async def greet(self, entity: Entity):
-        await entity.emit_msg(  # FIXME TEST - Remove
-            {
-                "event": "greet",
-                "message": "Welcome to a new place!"
-            }
+        await entity.emit_msg(
+            "Welcome to a new place..."
         )
         await asyncio.sleep(3)
         await entity.emit_msg(
-            {
-                "event": "greet",
-                "message": "Look around..."
-            }
+            "Look around..."
         )
         await asyncio.sleep(3)
         await entity.emit_msg(
-            {
-                "event": "greet",
-                "message": "...but be careful!"
-            }
+            "..but be careful... "
+        )
+        await asyncio.sleep(3)
+        await entity.emit_msg(
+            "..Antani is on fire."
         )
