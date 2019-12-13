@@ -32,7 +32,7 @@ This event is triggered everytime a user join a new room (on connect, after tele
 ```
 
 The `base` array contain the tiles id, is a 1d row-major array representing the entire area.  
-The `data` array contains entities on the map in two forms: Local and Remote.
+The `data` array contains entities on the map.
 The `shape` array contains the map size and shape.
 
 ##### - map_event.data
@@ -50,20 +50,7 @@ With a 3x3 map the array would represent:
 And an entity with value pos=4 would go in the center. 
 
 
-If the entity is in the same room of the event receiver (as in this case with 4, since the character is always in the map center), data array is populated with:
-
-```
-{
-    "e_id": int,
-    "type": int,
-    "pos": int, 
-    "name" null \ string,
-    "excerpt": string,
-    "status": int
-}
-``` 
-
-Otherwise, if the entity is in another room of the area:
+Every entity on the map is represented by the following entry in the 'data' array:
 
 ```
 {
@@ -72,10 +59,6 @@ Otherwise, if the entity is in another room of the area:
     "pos": int 
 }
 ```
-
-no details about it are returned.
-
-
 ---
 
 ##### - updates events 
