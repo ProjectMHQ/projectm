@@ -10,7 +10,9 @@ Almost any event may come asynchronously, at any time, on the same topic, if it 
 #### - look
 
 - request topic: `cmd`
-- request payload: `look [id]`
+- request payload: `look <abbrev>` [ TODO - WIP ]
+- request payload: `look <abbrev> <abbrev>` [ TODO - WIP]
+- request payload: `look <dir: n\s\w\e\u\d>`
 - response topic: `system`
 - response body: 
 ```
@@ -19,7 +21,14 @@ Almost any event may come asynchronously, at any time, on the same topic, if it 
     "title": str,
     "description": str,
     "content": [
-        {"id": integer, "descr": str}, ...
+        {
+        "e_id": int,
+        "excerpt": str,
+        "name": optional[str],
+        "status": int,
+        "type": int
+        },
+        ...
     ]
 }
 ```
