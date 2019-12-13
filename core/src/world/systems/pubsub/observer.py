@@ -1,9 +1,7 @@
 import asyncio
-import json
 from enum import Enum
 
 import typing
-from shapely.geometry import Point
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.entity import Entity
@@ -47,7 +45,9 @@ class PubSubObserver:
         if curr_pos.z != room.z and (curr_pos.x == room.x) and (curr_pos.y == room.y):
             distance = abs(curr_pos.z - room.z)
         else:
-            distance = int(Point(curr_pos.x, curr_pos.y).distance(Point(room.x, room.y)))
+            distance = int(
+                max([abs(curr_pos.x - room.x), abs(curr_pos.y - room.y)])
+            )
         if not distance:
             return InterestType.LOCAL
         elif distance < entity.get_view_size():
@@ -124,14 +124,13 @@ class PubSubObserver:
 
         elif message['ev'] == PubSubEventType.ENTITY_CHANGE_POS.value:
             area = Area(current_position)
-            center_point = Point(area.center.x, area.center.y, area.center.z)
             max_distance = int(area.size / 2)
-            current_distance = max(
-                [abs(center_point.x - message['curr'][0]), abs(center_point.y - message['curr'][1])]
-            )
-            previous_distance = max(
-                [abs(center_point.x - message['prev'][0]), abs(center_point.y - message['prev'][1])]
-            )
+            current_distance = int(max(
+                [abs(area.center.x - message['curr'][0]), abs(area.center.y - message['curr'][1])]
+            ))
+            previous_distance = int(max(
+                [abs(area.center.x - message['prev'][0]), abs(area.center.y - message['prev'][1])]
+            ))
             if current_distance <= max_distance < previous_distance:
                 payload['event'] = 'entity_add'
                 payload['data']['pos'] = area.get_relative_position(event_room)

@@ -4,7 +4,6 @@ import time
 
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
-from shapely.geometry.polygon import Polygon
 
 from core.src.world.domain.room import Room
 from core.src.world.entity import Entity
@@ -16,21 +15,7 @@ class Area:
         self.size = square_size
         self.rooms: typing.List[typing.Optional[Room]] = []
         self._rooms_coordinates = set()
-        self._polygon = None
         self._peripheral_coordinates = set()
-
-    @property
-    def polygon(self):
-        if not self._polygon:
-            self._polygon = Polygon(
-                [
-                    (self.min_x, self.min_y),
-                    (self.min_x, self.max_y),
-                    (self.max_x, self.max_y),
-                    (self.max_x, self.min_y),
-                ]
-            )
-        return self._polygon
 
     @property
     def rooms_coordinates(self) -> set:
@@ -105,8 +90,11 @@ class Area:
     def is_position_inside(self, pos: PosComponent):
         if pos.z != self.center.z:
             return False
-        from shapely.geometry import Point
-        return self.polygon.contains(Point(pos.x, pos.y))
+        max_distance = self.size // 2
+        distance = int(
+            max([abs(self.center.x - pos.x), abs(self.center.y - pos.y)])
+        )
+        return bool(distance <= max_distance)
 
     def get_relative_position(self, position: PosComponent) -> int:
         return (self.max_y - position.y) * (self.max_x - self.min_x + 1) + position.x - self.min_x
