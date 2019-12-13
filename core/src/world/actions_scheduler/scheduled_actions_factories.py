@@ -1,19 +1,7 @@
 import asyncio
-from asyncio import coroutine
 from enum import Enum
 
 import time
-
-from core.src.world.entity import Entity
-
-
-def cancellable_scheduled_action_factory(entity: Entity, action: coroutine, wait_for=0):
-    return ScheduledAction(
-        entity,
-        action,
-        ActionType.CANCELLABLE,
-        wait_for
-    )
 
 
 class ActionType(Enum):
@@ -44,7 +32,7 @@ class ScheduledAction:
         self.must_be_stopped = True
         timeout = int(time.time()) + timeout
         while int(time.time()) < timeout:
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0)
             if self.stopped:
                 break
         if not self.stopped:
@@ -54,7 +42,7 @@ class ScheduledAction:
     async def start(self, scheduler):
         run_at = time.time() + self.wait_for
         while time.time() < run_at:
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0)
             if self.must_be_stopped:
                 break
 

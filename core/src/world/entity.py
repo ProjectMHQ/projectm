@@ -1,7 +1,7 @@
 import typing
 
 from core.src.world.components import ComponentType
-from core.src.world.utils.world_types import Transport
+from core.src.world.utils.world_types import Transport, EvaluatedEntity
 
 EntityID = typing.NewType('EntityID', int)
 
@@ -12,10 +12,17 @@ class Entity:
         self._pending_changes = {}
         self.transport = transport
 
-    async def emit_msg(self, payload: typing.Dict, topic=None):
-        if topic is not None:
-            return await self.transport.transport.send(self.transport.namespace, payload, topic=topic)
-        return await self.transport.transport.send(self.transport.namespace, payload)
+    def get_view_size(self):
+        return 15
+
+    async def disconnect_transport(self):
+        await self.transport.transport.disconnect(namespace=self.transport.namespace)
+
+    async def emit_msg(self, message: str):
+        return await self.transport.transport.send_message(self.transport.namespace, message)
+
+    async def emit_system_event(self, payload: typing.Dict):
+        return await self.transport.transport.send_system_event(self.transport.namespace, payload)
 
     def set(self, component: ComponentType):
         self._pending_changes[component.key] = component
@@ -33,3 +40,8 @@ class Entity:
     @property
     def pending_changes(self):
         return self._pending_changes
+
+    @staticmethod
+    def can_see_evaluated_entity(evaluated_entity: EvaluatedEntity):
+        # FIXME TODO
+        return bool(evaluated_entity)

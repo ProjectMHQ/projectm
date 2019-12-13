@@ -1,7 +1,5 @@
 import random
-from unittest.mock import call, ANY, Mock
 import time
-from core.src.world.components import ComponentTypeEnum
 from etc import settings
 import asyncio
 import binascii
@@ -95,64 +93,15 @@ class TestWebsocketCharacterAuthentication(BaseWSFlowTestCase):
         self._private_channel_id = None
         self.max_execution_time = 54
         self.loop = asyncio.get_event_loop()
+        self.loop.set_debug(True)
 
     def _base_flow(self, entity_id=1):
         self.current_entity_id = entity_id
-        redis_eid = '{}'.format(entity_id).encode()
-        self.redis.eval.side_effect = [redis_eid]
-        self.redis.hget.side_effect = [None, redis_eid]
-        self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
-        self.redis.hscan_iter.side_effect = lambda *a, **kw: []
-        self.redis.pipeline().hmset.side_effect = self._checktype
         self._bake_user()
         self._on_create.append(self._check_on_create)
         self._run_test()
         self.assertTrue(self.typeschecked)
 
     def test(self):
-        self.redis.reset_mock()
-
         self._on_auth.append(lambda *a, **kw: self.done())
         self._base_flow()
-        Mock.assert_called_with(self.redis.eval,
-                                "\n            local val = redis.call('bitpos', 'e:m', 0)"
-                                "\n            redis.call('setbit', 'e:m', val, 1)"
-                                "\n            return val\n            ",
-                                0)
-        Mock.assert_called(self.redis.pipeline)
-
-        Mock.assert_has_calls(
-            self.redis.pipeline().setbit,
-            any_order=True,
-            calls=[
-                call('c:2:m', self.current_entity_id, 1),
-                call('c:1:m', self.current_entity_id, 1),
-                call('c:5:m', self.current_entity_id, 1),
-            ]
-        )
-        Mock.assert_has_calls(
-            self.redis.pipeline().hmset,
-            any_order=True,
-            calls=[
-                call('c:1:d', {self.current_entity_id: ANY}),
-                call('c:2:d', {self.current_entity_id: 'Hero {}'.format(self.randstuff)}),
-                call('e:{}'.format(self.current_entity_id), {
-                    ComponentTypeEnum.CREATED_AT.value: ANY,
-                    ComponentTypeEnum.NAME.value: 'Hero {}'.format(self.randstuff)
-                })
-            ]
-        )
-        Mock.assert_has_calls(
-            self.redis.hget,
-            calls=[
-                call('char:e', self._returned_character_id),
-                call('char:e', self._returned_character_id)
-            ]
-        )
-        Mock.assert_has_calls(
-            self.redis.hset,
-            calls=[
-                call('char:e', self._returned_character_id, self.current_entity_id),
-                call('wschans', 'c:{}'.format(self._private_channel_id), ANY)
-            ]
-        )

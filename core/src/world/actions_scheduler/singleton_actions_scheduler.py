@@ -1,6 +1,6 @@
 import asyncio
 
-from core.src.world.actions.scheduled_actions_factories import ScheduledAction
+from core.src.world.actions_scheduler.scheduled_actions_factories import ScheduledAction
 
 
 class SingletonActionsScheduler:

@@ -1,12 +1,10 @@
 import asyncio
 import random
 import time
-from unittest.mock import call, ANY, Mock
-
+from unittest import mock
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
-from core.src.world.components import ComponentTypeEnum
 from core.src.world.repositories.data_repository import RedisDataRepository
-from core.src.world.services.websocket.websocket_channels_service import WebsocketChannelsService
+from core.src.world.services.transport.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 import binascii
 import os
@@ -99,9 +97,10 @@ class TestWebsocketPingPong(BakeUserTestCase):
         self.max_execution_time = 55
         self._pings = []
         self.loop = asyncio.get_event_loop()
-        self.channels_factory = WebsocketChannelsRepository(self.redis)
-        self.data_repository = RedisDataRepository(self.redis)
+        self.channels_factory = mock.create_autospec(WebsocketChannelsRepository)
+        self.data_repository = mock.create_autospec(RedisDataRepository)
         self.redis_queue = asyncio.Queue()
+        self.loop.set_debug(True)
         self.channels_monitor = WebsocketChannelsService(
             channels_repository=self.channels_factory,
             loop=self.loop,
@@ -113,12 +112,6 @@ class TestWebsocketPingPong(BakeUserTestCase):
 
     def _base_flow(self, entity_id=1):
         self.current_entity_id = entity_id
-        redis_eid = '{}'.format(entity_id).encode()
-        self.redis.eval.side_effect = [redis_eid]
-        self.redis.hget.side_effect = [None, redis_eid]
-        self.redis.hmget.side_effect = ['Hero {}'.format(self.randstuff).encode()]
-        self.redis.hscan_iter.side_effect = lambda *a, **kw: []
-        self.redis.pipeline().hmset.side_effect = self._checktype
         self._bake_user()
         self._on_create.append(self._check_on_create)
         self._run_test()
@@ -148,7 +141,6 @@ class TestWebsocketPingPong(BakeUserTestCase):
         self._private_channel_id = None
 
     def _prepare_ping_pong(self, close_on_ping_pong_success=True):
-        self.redis.hscan_iter.side_effect = self._hscan_iter_side_effect
         self.ping_pong_starts_at = int(time.time())
         self.channels_monitor.set_socketio_instance(self.sio_server)
         self.loop.create_task(self.channels_monitor.start())
@@ -173,7 +165,6 @@ class TestWebsocketPingPong(BakeUserTestCase):
 
     def test(self):
         self._private_channel_id = None
-        self.redis.reset_mock()
 
         def _on_auth(*a, **kw):
             data = a[0]['data']
@@ -183,46 +174,3 @@ class TestWebsocketPingPong(BakeUserTestCase):
 
         self._on_auth = [_on_auth]
         self._base_flow(entity_id=random.randint(1, 9999))
-        Mock.assert_called_with(self.redis.eval,
-                                "\n            local val = redis.call('bitpos', 'e:m', 0)"
-                                "\n            redis.call('setbit', 'e:m', val, 1)"
-                                "\n            return val\n            ",
-                                0)
-        Mock.assert_called(self.redis.pipeline)
-        Mock.assert_called(self.redis.pipeline().execute)
-        Mock.assert_has_calls(
-            self.redis.pipeline().setbit,
-            any_order=True,
-            calls=[
-                call('c:2:m', self.current_entity_id, 1),
-                call('c:1:m', self.current_entity_id, 1),
-                call('c:5:m', self.current_entity_id, 1),
-            ]
-        )
-        Mock.assert_has_calls(
-            self.redis.pipeline().hmset,
-            any_order=True,
-            calls=[
-                call('c:1:d', {self.current_entity_id: ANY}),
-                call('c:2:d', {self.current_entity_id: 'Hero {}'.format(self.randstuff)}),
-                call('e:{}'.format(self.current_entity_id), {
-                    ComponentTypeEnum.CREATED_AT.value: ANY,
-                    ComponentTypeEnum.NAME.value: 'Hero {}'.format(self.randstuff)
-                })
-            ]
-        )
-        Mock.assert_has_calls(
-            self.redis.hget,
-            calls=[
-                call('char:e', self._returned_character_id),
-                call('char:e', self._returned_character_id)
-            ]
-        )
-        Mock.assert_has_calls(
-            self.redis.hset,
-            calls=[
-                call('char:e', self._returned_character_id, self.current_entity_id),
-                call('wschans', 'c:{}'.format(self._private_channel_id), ANY)
-            ]
-        )
-        Mock.assert_called_with(self.redis.hscan_iter, 'wschans')

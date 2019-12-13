@@ -18,10 +18,10 @@ class ComponentType(metaclass=abc.ABCMeta):
         pass  # pragma: no cover
 
     @classmethod
-    def get(cls, entity_id: int, repo=None) -> typing.Optional['ComponentType']:
+    async def get(cls, entity_id: int, repo=None) -> typing.Optional['ComponentType']:
         if not repo:
             from core.src.world.builder import world_repository as repo
-        data = repo.get_components_values_per_entity(entity_id, cls)
+        data = await repo.get_components_values_per_entity(entity_id, cls)
         return data and cls(cls.cast_type(data))
 
     def is_active(self):

@@ -1,5 +1,9 @@
+from core.src.world.actions.disconnect import disconnect_entity
+from core.src.world.actions.whoami import whoami
+
+
 def commands_observer_factory(transport):
-    from core.src.world.services.socketio_interface import TransportInterface
+    from core.src.world.services.transport.socketio_interface import TransportInterface
     from core.src.world.systems.commands.observer import CommandsObserver
     from core.src.world.actions.getmap import getmap
     from core.src.world.actions.look import look
@@ -12,5 +16,7 @@ def commands_observer_factory(transport):
 
     observer.add_command(look, 'look')
     observer.add_command(getmap, 'getmap')
+    observer.add_command(whoami, 'whoami')
     observer.add_command(move_entity, 'n', 's', 'w', 'e', 'd', 'u')
+    observer.add_command(disconnect_entity, 'quit')
     return observer

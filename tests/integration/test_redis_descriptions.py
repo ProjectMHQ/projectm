@@ -3,14 +3,12 @@ import asyncio
 from core.src.world.builder import descriptions_repository
 from etc import settings
 from unittest import TestCase
-from core.src.auth.builder import strict_redis
 
 
 class TestRedisDescriptionsRepository(TestCase):
     def setUp(self):
         assert settings.INTEGRATION_TESTS
         assert settings.RUNNING_TESTS
-        strict_redis.flushdb()
         self.sut = descriptions_repository
 
     async def async_test_descriptions(self):

@@ -74,9 +74,18 @@ class PrivateNamespace(AsyncNamespace):
                 self.flood_rate += 1
                 if self.flood_rate == 5:
                     await self.emit('presence', 'EXCESS FLOOD')
-                    await self.emit('msg', {"event": "disconnect", "reason": "excess_flood"})
+                    await self.emit('system', {"event": "disconnect", "reason": "excess_flood"})
                     await self.disconnect(self.sid)
                     await self.observer.on_close(self.channel, reason="flood")
+                    await self.redis_queue.put(
+                        {
+                            'n': self.channel.id,
+                            'e_id': self.channel.entity_id,
+                            't': int(time.time()),
+                            'c': 'disconnected',
+                            'r': 'flood'
+                        }
+                    )
 
             self.last_ping_received = int(time.time())
             await self.emit('presence', 'PONG')
@@ -101,9 +110,17 @@ class PrivateNamespace(AsyncNamespace):
         LOGGER.websocket_monitor.debug(
             'Closing channel due concurrency. Channel %s (entity %s)', self.channel.id, self.channel.entity_id
         )
-        await self.emit('msg', {"event": "disconnect", "reason": "concurrency"})
+        await self.emit('system', {"event": "disconnect", "reason": "concurrency"})
         await self.disconnect(self.sid)
         await self.observer.on_close(self.channel, reason="concurrency")
+
+    async def do_close(self, reason='quit'):
+        LOGGER.websocket_monitor.debug(
+            'Closing channel due concurrency. Channel %s (entity %s)', self.channel.id, self.channel.entity_id
+        )
+        await self.emit('system', {"event": "disconnect", "reason": reason})
+        await self.disconnect(self.sid)
+        await self.observer.on_close(self.channel, reason=reason)
 
     async def monitor(self):
         LOGGER.websocket_monitor.debug(
@@ -127,9 +144,18 @@ class PrivateNamespace(AsyncNamespace):
                 'PING TIMEOUT on channel %s (entity %s)', self.channel.id, self.channel.entity_id
             )
             await self.emit('presence', 'PING TIMEOUT')
-            await self.emit('msg', {"event": "disconnect", "reason": "ping_timeout"})
+            await self.emit('system', {"event": "disconnect", "reason": "ping_timeout"})
             await self.disconnect(self.sid)
             await self.observer.on_close(self.channel, reason="timeout")
+            await self.redis_queue.put(
+                {
+                    'n': self.channel.id,
+                    'e_id': self.channel.entity_id,
+                    't': int(time.time()),
+                    'c': 'disconnected',
+                    'r': 'timeout'
+                }
+            )
         else:
             await asyncio.sleep(self.ping_interval)
             asyncio.ensure_future(self.monitor())
