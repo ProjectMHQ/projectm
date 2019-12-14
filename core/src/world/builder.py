@@ -11,7 +11,7 @@ from core.src.world.services.transport.websocket_channels_service import Websock
 from core.src.world.services.worker_queue_service import WorkerQueueService
 from core.src.world.systems.commands import commands_observer_factory
 from core.src.world.systems.connect.observer import ConnectionsObserver
-from core.src.world.systems.pubsub.observer import PubSubObserver
+from core.src.world.services.redis_pubsub_events_observer import PubSubObserver
 from etc import settings
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
