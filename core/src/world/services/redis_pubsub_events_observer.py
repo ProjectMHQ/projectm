@@ -21,6 +21,13 @@ class PubSubObserver:
         self.repository = repository
         self.transport = transport
         self.messages_translator = translator
+        self.postprocessed_events_observers = {}
+
+    def add_observer_for_pov_event(self, event_type: str, observer):
+        if not self.postprocessed_events_observers.get(event_type):
+            self.postprocessed_events_observers[event_type] = [observer]
+        else:
+            self.postprocessed_events_observers[event_type].append(observer)
 
     @staticmethod
     def _gather_movement_direction(message: typing.Dict, action):
@@ -113,6 +120,9 @@ class PubSubObserver:
                     )
                     message = self.messages_translator.event_msg_to_string(payload, 'msg')
                     self.loop.create_task(entity.emit_msg(message))
+                    if payload['action'] == 'left':
+                        for observer in self.postprocessed_events_observers.get('follow', []):
+                            self.loop.create_task(observer.on_event(payload))
 
     @staticmethod
     def _get_system_event(message, event_room, current_position):

@@ -12,6 +12,7 @@ from core.src.world.services.worker_queue_service import WorkerQueueService
 from core.src.world.systems.commands import commands_observer_factory
 from core.src.world.systems.connect.observer import ConnectionsObserver
 from core.src.world.services.redis_pubsub_events_observer import PubSubObserver
+from core.src.world.systems.follow.manager import FollowSystemManager
 from etc import settings
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
@@ -71,3 +72,6 @@ connections_observer = ConnectionsObserver(
 )
 
 singleton_actions_scheduler = SingletonActionsScheduler()
+
+follow_system_manager = FollowSystemManager()
+pubsub_observer.add_observer_for_pov_event('follow', follow_system_manager)
