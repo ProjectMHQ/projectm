@@ -139,7 +139,7 @@ async def _handle_targeted_look(entity, *targets):
         [PosComponent, NameComponent]
     )
     pos = PosComponent(data[entity.entity_id][PosComponent.component_enum])
-    name = NameComponent(data[entity.entity_id][NameComponent.component_enum])
+    name_value = data[entity.entity_id][NameComponent.component_enum]
     room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
     if not room.has_entities:
         await entity.emit_msg(get_look_at_no_target_to_msg())
@@ -150,7 +150,7 @@ async def _handle_targeted_look(entity, *targets):
         raw_room_content = itertools.chain(
             raw_room_content,
             (x for x in [
-                {'entity_id': entity.entity_id, 'data': [name.value, *('' for _ in range(1, totals))]}]
+                {'entity_id': entity.entity_id, 'data': [name_value, *('' for _ in range(1, totals))]}]
              )
 
         )
