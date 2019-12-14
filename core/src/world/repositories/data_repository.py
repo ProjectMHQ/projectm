@@ -175,7 +175,7 @@ class RedisDataRepository:
         _filtered = await self._get_components_values_from_entities_storage(_bits_statuses)
         return {
             e.entity_id: {
-                c.component_enum: c(c.cast_type(_filtered.get(e.entity_id, {}).get(c.key))) for c in components
+                c.component_enum: c.cast_type(_filtered.get(e.entity_id, {}).get(c.key)) for c in components
             } for e in entities
         }
 
