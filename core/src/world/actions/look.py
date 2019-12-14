@@ -116,7 +116,7 @@ async def _handle_direction_look(entity, targets):
         await entity.emit_system_event(
             {
                 "event": "look",
-                "target": "room",
+                "target": "direction",
                 "details": {
                     "title": room.title,
                     "description": room.description,
