@@ -66,11 +66,13 @@ class RedisPubSubEventsPublisherService:
         LOGGER.core.debug('Publishing Message %s on channels %s', msg, room_key)
         await self.pubsub.publish(room_key, msg)
 
-    async def on_entity_do_public_action(self, entity, room_position, action_public_payload: typing.Dict):
+    async def on_entity_do_public_action(self, entity, room_position, action_public_payload: typing.Dict, target: int):
         msg = {
             "p": action_public_payload,
+            "entity_type": 0,
             "en": entity.entity_id,
             "ev": PubSubEventType.ENTITY_DO_PUBLIC_ACTION.value,
+            "target": target
         }
         room_key = self.pos_to_key(room_position)
         LOGGER.core.debug('Publishing Message %s on channel %s', msg, room_key)

@@ -1,3 +1,4 @@
+import json
 import typing
 
 from core.src.world.actions.utils.utils import DirectionEnum
@@ -42,4 +43,10 @@ class TranslatorLookItalian:
             return self._handle_entity_for_emitter(payload)
 
     def translate_for_receivers(self, payload: typing.Dict) -> str:
-        raise NotImplementedError
+        assert payload["event"] == self.event
+        origin_alias = payload['origin']['name'] if payload['origin']['known'] else payload['origin']['excerpt']
+        if payload['target'] == 'self':
+            return '{} ti guarda'.format(origin_alias)
+        else:
+            target_alias = payload['target']['name'] if payload['target']['known'] else payload['target']['excerpt']
+            return '{} guarda {}'.format(origin_alias, target_alias)

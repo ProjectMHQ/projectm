@@ -95,6 +95,9 @@ async def look(entity: Entity, *targets):
 
 async def _handle_direction_look(entity, targets):
     if targets[0] in ('u, d'):
+        """
+        evaluate sight
+        """
         return  # FIXME - TODO
 
     from core.src.world.builder import map_repository, world_repository
@@ -156,7 +159,16 @@ async def _handle_targeted_look(entity, *targets):
             await entity.emit_msg(get_look_at_no_target_to_msg())
             return
         response = await world_repository.get_look_components_for_entity_id(entity_id)
-        await entity.emit_msg(get_look_at_target_to_msg(response, entity_id == entity.entity_id))
+        is_self = True
+        if entity.entity_id != entity_id:
+            print(entity_id, entity.entity_id)
+            is_self = False
+            if response['type'] == 0:
+                from core.src.world.builder import events_publisher_service
+                action = {'action': 'look'}
+                await events_publisher_service.on_entity_do_public_action(entity, pos, action, entity_id)
+
+        await entity.emit_msg(get_look_at_target_to_msg(response, is_self=is_self))
         await entity.emit_system_event(
             {
                 "event": "look",
