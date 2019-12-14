@@ -55,6 +55,10 @@ class Room:
         return list(self._content)
 
     @property
+    def has_content(self):
+        return bool(self._content)
+
+    @property
     def json_content(self) -> typing.List[typing.Dict]:
         res = []
         for e in self.content:

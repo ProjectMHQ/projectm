@@ -386,10 +386,11 @@ class RedisDataRepository:
             )
             entity.can_see_evaluated_entity(evaluated_entity) and room.add_evaluated_entity(evaluated_entity)
 
-    async def get_raw_content_for_room_interaction(self, entity_id: int, room: Room):
+    async def get_raw_content_for_room_interaction(self, entity_id: int, room: Room) -> (int, typing.Generator):
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         _exp_res = []
+        total_values = 1  # NameComponent
         for _entity_id in room.entity_ids:
             if _entity_id == entity_id:
                 continue
@@ -398,3 +399,19 @@ class RedisDataRepository:
                 NameComponent.key
             )
             _exp_res.append(entity_id)
+        result = await pipeline.execute()
+
+        def _parse_data(res_entry):
+            return [
+                res_entry[0] and res_entry[0].decode() or ''
+            ]
+        return total_values, (
+            {'entity_id': entity_id, 'data': _parse_data(result[i])} for i, entity_id in enumerate(_exp_res)
+        )
+
+    async def get_look_components_for_entity_id(self, entity_id):
+        redis = await self.async_redis()
+        components = await redis.hmget(
+            '{}:{}'.format(self._entity_prefix, entity_id),
+            NameComponent.key,
+        )
