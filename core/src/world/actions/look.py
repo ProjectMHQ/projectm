@@ -87,20 +87,16 @@ async def look(entity: Entity, *targets):
                 }
             }
         )
-        return
-    if len(targets) == 1 and len(targets[0]) == 1:
-        return await _handle_direction_look(entity, targets)
+    elif len(targets) == 1 and len(targets[0]) == 1:
+        await _handle_direction_look(entity, targets)
     elif len(targets) <= 2 and len(targets[0]) >= 3:
-        return await _handle_targeted_look(entity, *targets)
-    await entity.emit_system_event(
-        {
-            "event": "look",
-            "error": "Command error"
-        }
-    )
+        await _handle_targeted_look(entity, *targets)
 
 
 async def _handle_direction_look(entity, targets):
+    if targets[0] in ('u, d'):
+        return  # FIXME - TODO
+
     from core.src.world.builder import map_repository, world_repository
     try:
         direction_enum = DirectionEnum(targets[0])
@@ -131,13 +127,9 @@ async def _handle_direction_look(entity, targets):
 
 
 async def _handle_targeted_look(entity, *targets):
-    if len(*targets) > 1:
-        await entity.emit_system_event(
-            {
-                "event": "look",
-                "error": "Command error - Multi targets not implemented yet"
-            }
-        )
+    if len(targets) > 1:
+        await entity.emit_msg('Command error - Multi targets not implemented yet')
+        return
     from core.src.world.builder import world_repository, map_repository
     data = await world_repository.get_components_values_by_entities(
         [entity],
