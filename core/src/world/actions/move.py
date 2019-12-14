@@ -1,9 +1,7 @@
 import asyncio
-import enum
-
-import typing
 
 from core.src.world import exceptions
+from core.src.world.actions.utils.utils import DirectionEnum, direction_to_coords_delta, apply_delta_to_position
 from core.src.world.actions_scheduler.tools import singleton_action, cancellable_scheduled_action_factory
 from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
@@ -11,15 +9,6 @@ from core.src.world.actions.look import look
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
 from core.src.world.entity import Entity
-
-
-class DirectionEnum(enum.Enum):
-    NORTH = 'n'
-    SOUTH = 's'
-    EAST = 'e'
-    WEST = 'w'
-    UP = 'u'
-    DOWN = 'd'
 
 
 def get_broadcast_msg_movement(status, direction):
@@ -57,33 +46,13 @@ def get_movement_message_payload(d, status) -> str:
     )
 
 
-def direction_to_coords_delta(direction: DirectionEnum) -> typing.Tuple:
-    return {
-        DirectionEnum.NORTH: (0, 1, 0),
-        DirectionEnum.SOUTH: (0, -1, 0),
-        DirectionEnum.EAST: (1, 0, 0),
-        DirectionEnum.WEST: (-1, 0, 0),
-        DirectionEnum.UP: (0, 0, 1),
-        DirectionEnum.DOWN: (0, 0, -1),
-    }[direction]
-
-
-def apply_delta_to_room_position(room_position: RoomPosition, delta: typing.Tuple[int, int, int]):
-    return RoomPosition(
-        x=room_position.x + delta[0],
-        y=room_position.y + delta[1],
-        z=room_position.z + delta[2],
-    )
-
-
 @singleton_action
 async def move_entity(entity: Entity, direction: str):
-    from core.src.world.builder import world_repository, map_repository, events_publisher_service, \
-        singleton_actions_scheduler
+    from core.src.world.builder import world_repository, map_repository, singleton_actions_scheduler
     direction = DirectionEnum(direction.lower())
     pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     delta = direction_to_coords_delta(direction)
-    where = apply_delta_to_room_position(RoomPosition(pos.x, pos.y, pos.z), delta)
+    where = apply_delta_to_position(RoomPosition(pos.x, pos.y, pos.z), delta)
     try:
         room = await map_repository.get_room(where)
     except exceptions.RoomError:
@@ -141,5 +110,4 @@ class ScheduledMovement:
 
 
 def speed_component_to_movement_waiting_time(entity):
-    # FIXME TODO
     return entity

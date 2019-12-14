@@ -7,24 +7,7 @@ def get_base_room_for_entity(entity: Entity):
     return PosComponent([19, 1, 0])  # TODO FIXME
 
 
-def data_inventory_to_string(data: typing.List) -> typing.Tuple[str, int]:
-    tot = 0
-    basestr = "|"
-    aggs_len = []
-    for z in data:
-        if z.get('name'):
-            basestr += '{}:{}|'.format(z['name'], z['e_id'])
-            tot += 1
-        aggs_len.append(len(z['aggs']))
-    for _x in range(0, max(aggs_len)):
-        for i, y in enumerate(data):
-            if _x < aggs_len[i]:
-                basestr += '{}:{}|'.format(y['aggs'][_x], y['e_id'])
-                tot += 1
-    return basestr, tot
-
-
-def get_entity_id_from_string_inventory(text, data) -> typing.Optional[int]:
+def get_entity_id_from_raw_data_input(text: str, totals: int, data: typing.Iterable) -> typing.Optional[int]:
     if not data:
         return
     if '.' in text:
@@ -35,44 +18,47 @@ def get_entity_id_from_string_inventory(text, data) -> typing.Optional[int]:
         text = _split[1]
     else:
         index = 0
-    p = 0
-    for _ in range(0, index+1):
-        _p = data.find(text, p if not p else (p + 1))
-        if _p == p or _p <= 0:
-            return
-        p = _p
-    return int(data[p:data.find('|', p)].split(':')[1])
+    i = 0
+    entity_id = None
+    for x in range(0, totals):
+        for entry in data:
+            if entry['data'][x].startswith(text):
+                if i == index:
+                    entity_id = entry['entity_id']
+                    break
+                i += 1
+    return entity_id
 
 
 if __name__ == '__main__':
     room_data = [
-        {'e_id': 3, 'name': 'pippo', 'aggs': ['biondo', 'medio', 'elfo', 'sinoriano']},
-        {'e_id': 6, 'name': 'pluto', 'aggs': ['biondo', 'medio', 'elfo', 'alwenion']},
-        {'e_id': 213, 'name': 'paperino', 'aggs': ['calvo', 'alto', 'umano']},
-        {'e_id': 1235, 'name': 'paperina', 'aggs': ['guardia elfica']},
-        {'e_id': 12, 'name': '', 'aggs': ['umano']}
+        {'entity_id': 3, 'data': ['nome1']},
+        {'entity_id': 4, 'data': ['nome2']},
+        {'entity_id': 6, 'data': ['nome3']},
+        {'entity_id': 213, 'data': ['nome4']},
+        {'entity_id': 1235, 'data': ['nome5']},
+        {'entity_id': 12, 'data': ['']}
     ]
     equipment_data = [
-        {'e_id': 3664, 'name': '', 'aggs': ['jacket', 'cotton', 'green']},
-        {'e_id': 345, 'name': '', 'aggs': ['vest', 'cotton', 'black']},
-        {'e_id': 2136, 'name': '', 'aggs': ['pants', 'cotton', 'black']},
-        {'e_id': 3337, 'name': '', 'aggs': ['shoes', 'leather', 'black', 'weird', 'elven']}
+        {'entity_id': 3664, 'data': ['nomaz1']},
+        {'entity_id': 345,  'data': ['']},
+        {'entity_id': 2136, 'data': ['']},
+        {'entity_id': 3337, 'data': ['']}
     ]
     inventory_data = [
-        {'e_id': 3623, 'name': '', 'aggs': ['sword', 'steel', 'long', 'big', 'uncut', 'green', 'painted', 'whatever']},
+        {'entity_id': 3623, 'data': ['']},
     ]
 
-    for ___x in range(0, 1000):
-        room_data.append({'e_id': 10 + ___x, 'name': '', 'aggs': ['sword', 'steel', 'long', 'big', 'uncut']})
+    for ___x in range(0, 20100):
+        room_data.append({'entity_id': 10 + ___x, 'data': ['nome{}'.format(100 + ___x)]})
 
     DATA = [*equipment_data, *inventory_data, *room_data]
 
     import time
     s = time.time()
-    _data, t = data_inventory_to_string(DATA)
-    key_to_search = '1000.swo'
+    key_to_search = '11111.nom'
     print('Key to search:', key_to_search)
-    print('Entries to search:', t)
-    print('Entity id:', get_entity_id_from_string_inventory(key_to_search, _data))
+    print('Entries to search:', len(DATA) * len(DATA[0]['data']))
+    print('Entity id:', get_entity_id_from_raw_data_input(key_to_search, DATA))
     e = time.time()
     print('Execution time: {:.10f}'.format(e-s))

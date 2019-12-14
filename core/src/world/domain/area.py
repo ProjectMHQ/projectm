@@ -69,7 +69,6 @@ class Area:
         rooms = await self.get_rooms()
         LOGGER.websocket_monitor.debug('Rooms fetched in in %s', '{:.4f}'.format(time.time() - start))
         res = {'base': [], 'data': []}
-        center = int((self.size ** 2) / 2)
         for index, r in enumerate(rooms):
             res['base'].append(r and r.terrain.value or 0)
             if r and r.content:
@@ -81,9 +80,6 @@ class Area:
                         'pos': index,
                         'e_id': entry.entity_id
                     }
-                    if index == center:
-                        payload['name'] = entry.known and entry.name or ""
-                        payload['excerpt'] = entry.excerpt
                     res['data'].append(payload)
         return res
 
@@ -123,7 +119,7 @@ class Area:
 
     async def populate_rooms_content(self, entity: Entity):
         from core.src.world.builder import world_repository
-        await world_repository.populate_area_content_for_entity(entity, self)
+        await world_repository.populate_area_content_for_area(entity, self)
         return self
 
     async def get_map_for_entity(self, entity: Entity) -> typing.Dict:
