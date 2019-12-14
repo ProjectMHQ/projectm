@@ -55,8 +55,8 @@ class Room:
         return list(self._content)
 
     @property
-    def has_content(self):
-        return bool(self._content)
+    def has_entities(self):
+        return bool(self._entity_ids)
 
     @property
     def json_content(self) -> typing.List[typing.Dict]:

@@ -7,7 +7,7 @@ def get_base_room_for_entity(entity: Entity):
     return PosComponent([19, 1, 0])  # TODO FIXME
 
 
-def get_entity_id_from_raw_data_input(text: str, totals: int, data: typing.List[typing.Dict]) -> typing.Optional[int]:
+def get_entity_id_from_raw_data_input(text: str, totals: int, data: typing.Iterable) -> typing.Optional[int]:
     if not data:
         return
     if '.' in text:

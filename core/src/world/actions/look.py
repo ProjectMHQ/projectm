@@ -1,3 +1,8 @@
+import typing
+
+import itertools
+
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.actions.utils.utils import DirectionEnum, direction_to_coords_delta, apply_delta_to_position
 from core.src.world.components.name import NameComponent
 from core.src.world.components.pos import PosComponent
@@ -19,7 +24,7 @@ def get_look_at_direction_to_msg(d: DirectionEnum):
     )
 
 
-def get_look_at_no_direction_to_msg(d: DirectionEnum):
+def get_look_at_no_direction_to_msg(d: str):
     from core.src.world.builder import messages_translator
     return messages_translator.payload_msg_to_string(
         {
@@ -46,14 +51,19 @@ def get_look_at_no_target_to_msg():
     )
 
 
-def get_look_at_target_to_msg(target_alias: str):
+def get_look_at_target_to_msg(response: typing.Dict, is_self=False):
     from core.src.world.builder import messages_translator
+    if response['known']:
+        target_alias = response['name']
+    else:
+        target_alias = response['excerpt']
     return messages_translator.payload_msg_to_string(
         {
             "event": "look",
             "target": "entity",
             "status": "success",
-            "what": target_alias
+            "alias": target_alias,
+            "is_self": is_self
         },
         'msg'
     )
@@ -68,10 +78,13 @@ async def look(entity: Entity, *targets):
         await entity.emit_system_event(
             {
                 "event": "look",
-                "title": room.title,
-                "description": room.description,
-                "content": room.json_content,
-                "pos": [room.position.x, room.position.y, room.position.z]
+                "target": "room",
+                "details": {
+                    "title": room.title,
+                    "description": room.description,
+                    "content": room.json_content,
+                    "pos": [room.position.x, room.position.y, room.position.z]
+                }
             }
         )
         return
@@ -114,7 +127,7 @@ async def _handle_direction_look(entity, targets):
         )
         return
     else:
-        await entity.emit_msg(get_look_at_no_direction_to_msg(direction_enum))
+        await entity.emit_msg(get_look_at_no_direction_to_msg(targets[0]))
 
 
 async def _handle_targeted_look(entity, *targets):
@@ -126,38 +139,45 @@ async def _handle_targeted_look(entity, *targets):
             }
         )
     from core.src.world.builder import world_repository, map_repository
-    pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-    room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
-    if not room.has_content:
-        await entity.emit_msg(get_look_at_no_target_to_msg())
-        return
-
-    totals, raw_room_content = await world_repository.get_raw_content_for_room_interaction(entity.entity_id, room)
-    entity_id = get_entity_id_from_raw_data_input(targets[0], totals, raw_room_content)
-    if not entity_id:
-        await entity.emit_msg(get_look_at_no_target_to_msg())
-        return
-
-    response = await world_repository.get_look_components_for_entity_id(entity_id)
-    await entity.emit_msg(get_look_at_target_to_msg(response))
-    await entity.emit_system_event(
-        {
-            "event": "look",
-            "target": "entity",
-            "details": {
-                "title": response[NameComponent],
-                "known": True,
-                "description": "<character full description placeholder>",
-                "type": 0,
-                "status": 0
-            }
-        }
+    data = await world_repository.get_components_values_by_entities(
+        [entity],
+        [PosComponent, NameComponent]
     )
+    pos = data[entity.entity_id][PosComponent.component_enum]
+    name = data[entity.entity_id][NameComponent.component_enum]
+    room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
+    if not room.has_entities:
+        await entity.emit_msg(get_look_at_no_target_to_msg())
+        return
+    try:
+        await room.populate_room_content_for_look(entity)
+        totals, raw_room_content = await world_repository.get_raw_content_for_room_interaction(entity.entity_id, room)
+        raw_room_content = itertools.chain(
+            raw_room_content,
+            (x for x in [
+                {'entity_id': entity.entity_id, 'data': [name.value] + ['' for _ in range(1, totals)]}]
+             )
 
-    if not entity_id:
+        )
+        entity_id = get_entity_id_from_raw_data_input(targets[0], totals, raw_room_content)
+        if not entity_id:
+            await entity.emit_msg(get_look_at_no_target_to_msg())
+            return
+        response = await world_repository.get_look_components_for_entity_id(entity_id)
+        await entity.emit_msg(get_look_at_target_to_msg(response, entity_id == entity.entity_id))
         await entity.emit_system_event(
             {
                 "event": "look",
-                "error": "'{}' is not here".format(targets[0])
+                "target": "entity",
+                "details": {
+                    "title": response['name'],
+                    "known": response['known'],
+                    "description": response['description'],
+                    "type": response['type'],
+                    "status": response['status']
+                }
             }
         )
+    except Exception as e:
+        LOGGER.core.exception('log exception')
+        raise e

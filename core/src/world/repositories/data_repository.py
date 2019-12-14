@@ -175,7 +175,7 @@ class RedisDataRepository:
         _filtered = await self._get_components_values_from_entities_storage(_bits_statuses)
         return {
             e.entity_id: {
-                c.component_enum: c.cast_type(_filtered.get(e.entity_id, {}).get(c.key)) for c in components
+                c.component_enum: c(c.cast_type(_filtered.get(e.entity_id, {}).get(c.key))) for c in components
             } for e in entities
         }
 
@@ -398,7 +398,7 @@ class RedisDataRepository:
                 '{}:{}'.format(self._entity_prefix, _entity_id),
                 NameComponent.key
             )
-            _exp_res.append(entity_id)
+            _exp_res.append(_entity_id)
         result = await pipeline.execute()
 
         def _parse_data(res_entry):
@@ -415,3 +415,11 @@ class RedisDataRepository:
             '{}:{}'.format(self._entity_prefix, entity_id),
             NameComponent.key,
         )
+        return {
+            'name': components[0] and components[0].decode(),
+            'excerpt': '<placeholder for shot description>',
+            'known': True,
+            'type': 0,
+            'status': 0,
+            'description': "<character full description placeholder>"
+        }
