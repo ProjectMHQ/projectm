@@ -10,6 +10,7 @@ from core.src.world.services.transport.socketio_interface import SocketioTranspo
 from core.src.world.services.transport.websocket_channels_service import WebsocketChannelsService
 from core.src.world.services.worker_queue_service import WorkerQueueService
 from core.src.world.systems.commands import commands_observer_factory
+from core.src.world.systems.connect.manager import ConnectionsManager
 from core.src.world.systems.connect.observer import ConnectionsObserver
 from core.src.world.services.redis_pubsub_events_observer import PubSubObserver
 from core.src.world.systems.follow.manager import FollowSystemManager
@@ -64,11 +65,13 @@ queue = RedisQueueConsumer(async_redis_queues, 0)
 worker_queue_manager = WorkerQueueService(queue)
 cmds_observer = commands_observer_factory(transport)
 
+connections_manager = ConnectionsManager()
 connections_observer = ConnectionsObserver(
     transport,
     pubsub_observer,
     world_repository,
-    events_subscriber_service
+    events_subscriber_service,
+    connections_manager
 )
 
 singleton_actions_scheduler = SingletonActionsScheduler()

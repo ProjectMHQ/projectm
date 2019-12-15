@@ -36,6 +36,20 @@ def get_entity_id_from_raw_data_input(
     return entity_id
 
 
+def get_entity_data_from_raw_data_input(
+        text: str, totals: int, data: typing.Iterable, index: int = 0
+) -> typing.Optional[typing.Dict]:
+    if not data:
+        return
+    i = 0
+    for x in range(0, totals):
+        for entry in data:
+            if entry['data'][x].startswith(text):
+                if i == index:
+                    return entry
+                i += 1
+
+
 if __name__ == '__main__':
     room_data = [
         {'entity_id': 3, 'data': ['nome1']},

@@ -120,7 +120,7 @@ class PubSubObserver:
                     )
                     message = self.messages_translator.event_msg_to_string(payload, 'msg')
                     self.loop.create_task(entity.emit_msg(message))
-                    if payload['action'] == 'left':
+                    if payload['action'] == 'leave':
                         for observer in self.postprocessed_events_observers.get('follow', []):
                             self.loop.create_task(observer.on_event(payload))
 
@@ -170,7 +170,9 @@ class PubSubObserver:
                     "excerpt": evaluated_emitter_entity.excerpt,
                     "name": evaluated_emitter_entity.known and evaluated_emitter_entity.name,
                     "id": message['en']
-                }
+                },
+                'from': message['prev'],
+                'to': message['curr']
             }
         if message['curr'] == curr_pos.value:
             assert message['prev'] != curr_pos

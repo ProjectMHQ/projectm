@@ -19,6 +19,7 @@ class ConnectionsObserver:
             pubsub_observer,
             world_repository,
             events_subscriber_service,
+            connections_manager,
             loop=asyncio.get_event_loop()
     ):
         self._commands = {}
@@ -27,6 +28,7 @@ class ConnectionsObserver:
         self.pubsub_observer = pubsub_observer
         self.world_repository = world_repository
         self.events_subscriber_service = events_subscriber_service
+        self.manager = connections_manager
 
     def add_command(self, command: str, method: callable):
         self._commands[command] = method
@@ -48,6 +50,7 @@ class ConnectionsObserver:
             return
         await disconnect_entity(entity)
         self.events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
+        self.manager.remove_transport(entity.entity_id)
         await self.events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
@@ -61,6 +64,7 @@ class ConnectionsObserver:
             self.loop.create_task(self.greet(entity))
         else:
             await cast_entity(entity, pos, update=False, on_connect=True, reason="connect")
+        self.manager.set_transport(entity.entity_id, entity.transport)
         self.loop.create_task(look(entity))
         self.loop.create_task(getmap(entity))
 
