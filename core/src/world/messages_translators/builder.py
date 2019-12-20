@@ -1,3 +1,4 @@
+from core.src.world.messages_translators.follow_translator import TranslatorFollowItalian
 from core.src.world.messages_translators.look_translator import TranslatorLookItalian
 from core.src.world.messages_translators.movement_translator import TranslatorMovementsItalian
 from core.src.world.messages_translators.translators_factory import MessagesTranslator
@@ -6,7 +7,8 @@ TRANSLATORS = {
     'it': {
         'msg': [
             TranslatorMovementsItalian,
-            TranslatorLookItalian
+            TranslatorLookItalian,
+            TranslatorFollowItalian
         ],
     }
 }

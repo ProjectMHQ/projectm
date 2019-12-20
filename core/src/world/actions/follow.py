@@ -11,17 +11,18 @@ from core.src.world.components.name import NameComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
 from core.src.world.entity import Entity
-from core.src.world.utils.entity_utils import get_index_from_text, get_entity_data_from_raw_data_input
+from core.src.world.utils.entity_utils import get_index_from_text, get_entity_data_from_raw_data_input, \
+    get_entity_id_from_raw_data_input
 
 
-def get_follow_no_target_to_msg() -> str:
+def get_follow_failure_to_msg(reason) -> str:
     from core.src.world.builder import messages_translator
     return messages_translator.payload_msg_to_string(
         {
             "event": "follow",
             "target": "entity",
             "status": "failure",
-            "reason": "not_found"
+            "reason": reason
         },
         'msg'
     )
@@ -69,13 +70,6 @@ async def follow(
     entity: Entity,
     *target: str
 ):
-    if not len(target):
-        return await _handle_defollow(entity)
-    elif len(target) > 1:
-        return
-    else:
-        target = target[0]
-
     from core.src.world.builder import world_repository, map_repository
     data = await world_repository.get_components_values_by_entities(
         [entity],
@@ -84,8 +78,16 @@ async def follow(
     pos = PosComponent(data[entity.entity_id][PosComponent.component_enum])
     name_value = data[entity.entity_id][NameComponent.component_enum]
     room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
+
+    if not len(target):
+        return await _handle_defollow(entity, pos)
+    elif len(target) > 1:
+        return
+    else:
+        target = target[0]
+
     if not room.has_entities:
-        await entity.emit_msg(get_follow_no_target_to_msg())
+        await entity.emit_msg(get_follow_failure_to_msg('not_found'))
         return
     try:
         await room.populate_room_content_for_look(entity)
@@ -101,26 +103,42 @@ async def follow(
         if not entity_data:
             await entity.emit_msg(get_look_at_no_target_to_msg())
             return
-        if entity_data['entity_id'] == entity.entity_id:
-            await _handle_defollow(entity)
+        if entity.entity_id == entity_data['entity_id']:
+            await _handle_defollow(entity, pos)
             return
-        await _handle_follow(entity, entity_data)
+        await _handle_follow(entity, entity_data, pos)
     except Exception as e:
         LOGGER.core.exception('log exception')
         raise e
 
 
-async def _handle_defollow(entity):
-    from core.src.world.builder import follow_system_manager
-    follow_system_manager.stop_following(entity.entity_id)
+async def _handle_defollow(entity, room):
+    from core.src.world.builder import follow_system_manager, events_publisher_service
+    followed = follow_system_manager.stop_following(entity.entity_id)
     await entity.emit_msg(get_defollow_success())
+    payload = {
+        "action": "follow"
+    }
+    await events_publisher_service.on_entity_do_public_action(
+        entity, room, payload, followed
+    )
 
 
-async def _handle_follow(entity: Entity, followed_data: typing.Dict):
-    from core.src.world.builder import follow_system_manager
+async def _handle_follow(entity: Entity, followed_data: typing.Dict, room):
+    from core.src.world.builder import follow_system_manager, events_publisher_service
+    if follow_system_manager.is_follow_repetition(entity.entity_id, followed_data['entity_id']):
+        return await entity.emit_msg(get_follow_failure_to_msg('repeat'))
+    if follow_system_manager.is_follow_loop(entity.entity_id, followed_data['entity_id']):
+        return await entity.emit_msg(get_follow_failure_to_msg('loop'))
     follow_system_manager.follow_entity(entity.entity_id, followed_data['entity_id'])
     alias = followed_data['data'][0]  # Name FIXME TODO - Evaluate data, known, excerpt, etc.
     await entity.emit_msg(get_follow_target_to_msg(alias))
+    payload = {
+        "action": "unfollow"
+    }
+    await events_publisher_service.on_entity_do_public_action(
+        entity, room, payload, followed_data['entity_id']
+    )
 
 
 async def do_follow(entity: Entity, movement_event: typing.Dict):

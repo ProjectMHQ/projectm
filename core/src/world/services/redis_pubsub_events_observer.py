@@ -87,7 +87,7 @@ class PubSubObserver:
 
     @staticmethod
     def _is_public_action(message: typing.Dict):
-        return bool(message['ev'] == PubSubEventType.ENTITY_DO_PUBLIC_ACTION.value)
+        return bool(PubSubEventType(message['ev']) == PubSubEventType.ENTITY_DO_PUBLIC_ACTION)
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
         room = PosComponent(room)
@@ -113,16 +113,19 @@ class PubSubObserver:
                 self.loop.create_task(entity.emit_msg(message))
                 if payload['action'] == 'leave':
                     for observer in self.postprocessed_events_observers.get('follow', []):
-                        print('observerone!!!')
                         self.loop.create_task(observer.on_event(payload))
+        elif self._is_public_action(message):
+            if interest_type != InterestType.LOCAL:
+                return
+            payload = await self._get_public_action_message(
+                entity, message, interest_type
+            )
+            if not payload:
+                return
+            message = self.messages_translator.event_msg_to_string(payload, 'msg')
+            self.loop.create_task(entity.emit_msg(message))
         else:
-            if interest_type == InterestType.LOCAL:
-                if self._is_public_action(message):
-                    payload = await self._get_public_action_message(
-                        entity, message, interest_type
-                    )
-                    message = self.messages_translator.event_msg_to_string(payload, 'msg')
-                    self.loop.create_task(entity.emit_msg(message))
+            raise ValueError('wtfff? %s' % message)
 
     @staticmethod
     def _get_system_event(message, event_room, current_position):
@@ -190,6 +193,13 @@ class PubSubObserver:
 
     async def _get_public_action_message(self, entity, message, interest_type):
         assert interest_type.LOCAL
+        if message['p']['action'] == 'look':
+            return await self._get_public_look_message(entity, message)
+        elif message['p']['action'] == 'follow':
+            if message['target'] == entity.entity_id:
+                return await self._get_public_follow_message(entity, message)
+
+    async def _get_public_look_message(self, entity, message):
         evaluated_emitter_entity = (
             await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
         )[0]
@@ -214,4 +224,20 @@ class PubSubObserver:
                 "id": message['target'],
                 "known": True
             }
+        return payload
+
+    async def _get_public_follow_message(self, entity, message):
+        evaluated_emitter_entity = (
+            await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
+        )[0]
+        payload = {
+            "event": "follow",
+            "origin": {
+                "excerpt": evaluated_emitter_entity.excerpt,
+                "name": evaluated_emitter_entity.known and evaluated_emitter_entity.name,
+                "id": message['en'],
+                "known": True
+            },
+            "target": "self"
+        }
         return payload
