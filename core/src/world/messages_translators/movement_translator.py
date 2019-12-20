@@ -96,10 +96,7 @@ class TranslatorMovementsItalian:
     def translate_for_receivers(self, payload: typing.Dict) -> str:
         assert payload['event'] == self.event
         if payload['entity']['name']:
-            message = "{}, {}, ".format(
-                payload['entity']['name'].capitalize(),
-                payload['entity']['excerpt']
-            )
+            message = "{}, ".format(payload['entity']['name'].capitalize())
         else:
             message = '{} '.format(payload['entity']['excerpt'].capitalize())
         message += '{} {}.'.format(

@@ -41,13 +41,14 @@ async def check_entities_connection_status():
             if not ch:
                 to_update.append(Entity(connected_entity_ids[i]).set(ConnectionComponent("")))
             else:
+                _transport_item = Transport(ch.id, transport)
                 online.append(
                     {
                         'entity_id': connected_entity_ids[i],
-                        'transport': Transport(ch.id, transport)
+                        'transport': _transport_item
                     }
                 )
-                connections_manager.set_transport(connected_entity_ids[i], ch.id)
+                connections_manager.set_transport(connected_entity_ids[i], _transport_item)
     await world_repository.update_entities(*to_update)
     return online
 

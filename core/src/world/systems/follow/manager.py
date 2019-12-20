@@ -21,7 +21,7 @@ class FollowSystemManager:
             if not self._follows_by_target.get(followed_id):
                 assert not self._follows_by_target.pop(followed_id)
 
-    def follow(self, follower_id: int, target_id: int):
+    def follow_entity(self, follower_id: int, target_id: int):
         self._follow_by_follower[follower_id] = target_id
         if not self._follows_by_target.get(target_id):
             self._follows_by_target[target_id] = [follower_id]

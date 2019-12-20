@@ -68,7 +68,7 @@ class PubSubManager:
             except Exception:   # pylint: disable=W0703, broad-except
                 continue
 
-            asyncio.gather(*[
+            await asyncio.gather(*[
                 sub.put(message)
                 for sub in self._registry.get(channel, [])
             ])

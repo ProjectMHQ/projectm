@@ -76,5 +76,7 @@ connections_observer = ConnectionsObserver(
 
 singleton_actions_scheduler = SingletonActionsScheduler()
 
-follow_system_manager = FollowSystemManager()
+follow_system_manager = FollowSystemManager(
+    connections_manager
+)
 pubsub_observer.add_observer_for_pov_event('follow', follow_system_manager)

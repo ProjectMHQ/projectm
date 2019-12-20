@@ -4,7 +4,7 @@ from enum import Enum
 import typing
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
-from core.src.world.entity import Entity
+from core.src.world.entity import Entity, EntityID
 from core.src.world.services.redis_pubsub_publisher_service import PubSubEventType
 from core.src.world.utils.world_types import Transport
 
@@ -78,7 +78,7 @@ class PubSubObserver:
     @staticmethod
     def _is_system_event(message: typing.Dict):
         return bool(
-            message['ev'] in [
+            PubSubEventType(message['ev']) in [
                 PubSubEventType.ENTITY_APPEAR,
                 PubSubEventType.ENTITY_DISAPPEAR,
                 PubSubEventType.ENTITY_CHANGE_POS
@@ -91,7 +91,7 @@ class PubSubObserver:
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
         room = PosComponent(room)
-        entity = Entity(entity_id)
+        entity = Entity(EntityID(entity_id))
         entity.transport = Transport(transport_id, self.transport)
         curr_pos = await self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         interest_type = await self._get_message_interest_type(entity, room, curr_pos)
@@ -105,13 +105,16 @@ class PubSubObserver:
             self.loop.create_task(entity.emit_system_event(event))
 
         if self._is_movement_message(message):
-            if self._is_a_character_movement(message):
-                if self._entity_sees_it(message, curr_pos):
-                    payload = await self._get_character_movement_message(
-                        entity, message, interest_type, curr_pos
-                    )
-                    message = self.messages_translator.event_msg_to_string(payload, 'msg')
-                    self.loop.create_task(entity.emit_msg(message))
+            if self._entity_sees_it(message, curr_pos):
+                payload = await self._get_character_movement_message(
+                    entity, message, interest_type, curr_pos
+                )
+                message = self.messages_translator.event_msg_to_string(payload, 'msg')
+                self.loop.create_task(entity.emit_msg(message))
+                if payload['action'] == 'leave':
+                    for observer in self.postprocessed_events_observers.get('follow', []):
+                        print('observerone!!!')
+                        self.loop.create_task(observer.on_event(payload))
         else:
             if interest_type == InterestType.LOCAL:
                 if self._is_public_action(message):
@@ -120,9 +123,6 @@ class PubSubObserver:
                     )
                     message = self.messages_translator.event_msg_to_string(payload, 'msg')
                     self.loop.create_task(entity.emit_msg(message))
-                    if payload['action'] == 'leave':
-                        for observer in self.postprocessed_events_observers.get('follow', []):
-                            self.loop.create_task(observer.on_event(payload))
 
     @staticmethod
     def _get_system_event(message, event_room, current_position):
