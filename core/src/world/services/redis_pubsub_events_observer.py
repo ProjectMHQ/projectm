@@ -195,7 +195,7 @@ class PubSubObserver:
         assert interest_type.LOCAL
         if message['p']['action'] == 'look':
             return await self._get_public_look_message(entity, message)
-        elif message['p']['action'] == 'follow':
+        elif message['p']['action'] in ('follow', 'unfollow'):
             if message['target'] == entity.entity_id:
                 return await self._get_public_follow_message(entity, message)
 
@@ -232,6 +232,7 @@ class PubSubObserver:
         )[0]
         payload = {
             "event": "follow",
+            "action": message['p']['action'],
             "origin": {
                 "excerpt": evaluated_emitter_entity.excerpt,
                 "name": evaluated_emitter_entity.known and evaluated_emitter_entity.name,

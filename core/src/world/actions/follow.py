@@ -11,8 +11,7 @@ from core.src.world.components.name import NameComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
 from core.src.world.entity import Entity
-from core.src.world.utils.entity_utils import get_index_from_text, get_entity_data_from_raw_data_input, \
-    get_entity_id_from_raw_data_input
+from core.src.world.utils.entity_utils import get_index_from_text, get_entity_data_from_raw_data_input
 
 
 def get_follow_failure_to_msg(reason) -> str:
@@ -20,6 +19,7 @@ def get_follow_failure_to_msg(reason) -> str:
     return messages_translator.payload_msg_to_string(
         {
             "event": "follow",
+            "action": "follow",
             "target": "entity",
             "status": "failure",
             "reason": reason
@@ -41,25 +41,26 @@ def get_follow_target_to_msg(target_alias) -> str:
     )
 
 
-def get_defollow_success() -> str:
+def get_unfollow_success() -> str:
     from core.src.world.builder import messages_translator
     return messages_translator.payload_msg_to_string(
         {
             "event": "follow",
-            "action": "defollow",
+            "action": "unfollow",
             "status": "success",
         },
         'msg'
     )
 
 
-def get_follow_movement_msg(followed_alias):
+def get_follow_movement_msg(followed_alias, direction):
     from core.src.world.builder import messages_translator
     return messages_translator.payload_msg_to_string(
         {
             "event": "follow",
             "action": "move",
             "alias": followed_alias,
+            "direction": direction
         },
         'msg'
     )
@@ -115,10 +116,8 @@ async def follow(
 async def _handle_defollow(entity, room):
     from core.src.world.builder import follow_system_manager, events_publisher_service
     followed = follow_system_manager.stop_following(entity.entity_id)
-    await entity.emit_msg(get_defollow_success())
-    payload = {
-        "action": "follow"
-    }
+    await entity.emit_msg(get_unfollow_success())
+    payload = {"action": "unfollow"}
     await events_publisher_service.on_entity_do_public_action(
         entity, room, payload, followed
     )
@@ -133,9 +132,7 @@ async def _handle_follow(entity: Entity, followed_data: typing.Dict, room):
     follow_system_manager.follow_entity(entity.entity_id, followed_data['entity_id'])
     alias = followed_data['data'][0]  # Name FIXME TODO - Evaluate data, known, excerpt, etc.
     await entity.emit_msg(get_follow_target_to_msg(alias))
-    payload = {
-        "action": "unfollow"
-    }
+    payload = {"action": "follow"}
     await events_publisher_service.on_entity_do_public_action(
         entity, room, payload, followed_data['entity_id']
     )
@@ -149,11 +146,12 @@ async def do_follow(entity: Entity, movement_event: typing.Dict):
         movement_event['entity']['id'], NameComponent
     )  # FIXME TODO - Evaluate, etc.
 
-    await entity.emit_msg(get_follow_movement_msg(followed_name))
+    await entity.emit_msg(get_follow_movement_msg(followed_name.value, movement_event['direction']))
     if pos.value == movement_event['from']:
         await do_move_entity(
             entity,
             PosComponent(movement_event['to']),
             DirectionEnum(movement_event['direction']),
-            reason="movement"
+            reason="movement",
+            emit_msg=False
         )
