@@ -52,12 +52,12 @@ class TranslatorMovementsItalian:
             "u_join": "dall'alto",
             "d_join": "dal basso",
 
-            "n_leave": "verso nord",
-            "s_leave": "verso sud",
-            "w_leave": "verso ovest",
-            "e_leave": "verso est",
-            "u_leave": "verso l'alto",
-            "d_leave": "verso il basso"
+            "n_leave": "a nord",
+            "s_leave": "a sud",
+            "w_leave": "a ovest",
+            "e_leave": "a est",
+            "u_leave": "in alto",
+            "d_leave": "in basso"
         }['{}_{}'.format(direction, context)]
 
     @staticmethod
@@ -96,10 +96,7 @@ class TranslatorMovementsItalian:
     def translate_for_receivers(self, payload: typing.Dict) -> str:
         assert payload['event'] == self.event
         if payload['entity']['name']:
-            message = "{}, {}, ".format(
-                payload['entity']['name'].capitalize(),
-                payload['entity']['excerpt']
-            )
+            message = "{} ".format(payload['entity']['name'].capitalize())
         else:
             message = '{} '.format(payload['entity']['excerpt'].capitalize())
         message += '{} {}.'.format(

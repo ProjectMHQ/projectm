@@ -78,6 +78,15 @@ async def move_entity(entity: Entity, direction: str):
 move_entity.get_self = True
 
 
+async def do_move_entity(entity, position, direction, reason, emit_msg=True):
+    emit_msg and await entity.emit_msg(get_movement_message_payload(direction, "success"))
+    await cast_entity(entity, position, reason=reason)
+    await asyncio.gather(
+        getmap(entity),
+        look(entity)
+    )
+
+
 class ScheduledMovement:
     def __init__(self, entity: Entity, direction: DirectionEnum, where: RoomPosition, ):
         self.entity = entity
@@ -95,11 +104,11 @@ class ScheduledMovement:
             await self.entity.emit_msg(get_movement_message_no_walkable_direction(self.direction))
             return
 
-        await self.entity.emit_msg(get_movement_message_payload(self.direction, "success"))
-        await cast_entity(self.entity, PosComponent([self.where.x, self.where.y, self.where.z]), reason="movement")
-        await asyncio.gather(
-            getmap(self.entity),
-            look(self.entity)
+        await do_move_entity(
+            self.entity,
+            PosComponent([self.where.x, self.where.y, self.where.z]),
+            self.direction,
+            "movement"
         )
 
     async def stop(self):

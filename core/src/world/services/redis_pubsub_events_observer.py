@@ -4,7 +4,7 @@ from enum import Enum
 import typing
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
-from core.src.world.entity import Entity
+from core.src.world.entity import Entity, EntityID
 from core.src.world.services.redis_pubsub_publisher_service import PubSubEventType
 from core.src.world.utils.world_types import Transport
 
@@ -21,6 +21,13 @@ class PubSubObserver:
         self.repository = repository
         self.transport = transport
         self.messages_translator = translator
+        self.postprocessed_events_observers = {}
+
+    def add_observer_for_pov_event(self, event_type: str, observer):
+        if not self.postprocessed_events_observers.get(event_type):
+            self.postprocessed_events_observers[event_type] = [observer]
+        else:
+            self.postprocessed_events_observers[event_type].append(observer)
 
     @staticmethod
     def _gather_movement_direction(message: typing.Dict, action):
@@ -71,7 +78,7 @@ class PubSubObserver:
     @staticmethod
     def _is_system_event(message: typing.Dict):
         return bool(
-            message['ev'] in [
+            PubSubEventType(message['ev']) in [
                 PubSubEventType.ENTITY_APPEAR,
                 PubSubEventType.ENTITY_DISAPPEAR,
                 PubSubEventType.ENTITY_CHANGE_POS
@@ -80,11 +87,11 @@ class PubSubObserver:
 
     @staticmethod
     def _is_public_action(message: typing.Dict):
-        return bool(message['ev'] == PubSubEventType.ENTITY_DO_PUBLIC_ACTION.value)
+        return bool(PubSubEventType(message['ev']) == PubSubEventType.ENTITY_DO_PUBLIC_ACTION)
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
         room = PosComponent(room)
-        entity = Entity(entity_id)
+        entity = Entity(EntityID(entity_id))
         entity.transport = Transport(transport_id, self.transport)
         curr_pos = await self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         interest_type = await self._get_message_interest_type(entity, room, curr_pos)
@@ -98,21 +105,27 @@ class PubSubObserver:
             self.loop.create_task(entity.emit_system_event(event))
 
         if self._is_movement_message(message):
-            if self._is_a_character_movement(message):
-                if self._entity_sees_it(message, curr_pos):
-                    payload = await self._get_character_movement_message(
-                        entity, message, interest_type, curr_pos
-                    )
-                    message = self.messages_translator.event_msg_to_string(payload, 'msg')
-                    self.loop.create_task(entity.emit_msg(message))
+            if self._entity_sees_it(message, curr_pos):
+                payload = await self._get_character_movement_message(
+                    entity, message, interest_type, curr_pos
+                )
+                message = self.messages_translator.event_msg_to_string(payload, 'msg')
+                self.loop.create_task(entity.emit_msg(message))
+                if payload['action'] == 'leave':
+                    for observer in self.postprocessed_events_observers.get('follow', []):
+                        self.loop.create_task(observer.on_event(payload))
+        elif self._is_public_action(message):
+            if interest_type != InterestType.LOCAL:
+                return
+            payload = await self._get_public_action_message(
+                entity, message, interest_type
+            )
+            if not payload:
+                return
+            message = self.messages_translator.event_msg_to_string(payload, 'msg')
+            self.loop.create_task(entity.emit_msg(message))
         else:
-            if interest_type == InterestType.LOCAL:
-                if self._is_public_action(message):
-                    payload = await self._get_public_action_message(
-                        entity, message, interest_type
-                    )
-                    message = self.messages_translator.event_msg_to_string(payload, 'msg')
-                    self.loop.create_task(entity.emit_msg(message))
+            raise ValueError('wtfff? %s' % message)
 
     @staticmethod
     def _get_system_event(message, event_room, current_position):
@@ -160,7 +173,9 @@ class PubSubObserver:
                     "excerpt": evaluated_emitter_entity.excerpt,
                     "name": evaluated_emitter_entity.known and evaluated_emitter_entity.name,
                     "id": message['en']
-                }
+                },
+                'from': message['prev'],
+                'to': message['curr']
             }
         if message['curr'] == curr_pos.value:
             assert message['prev'] != curr_pos
@@ -178,6 +193,13 @@ class PubSubObserver:
 
     async def _get_public_action_message(self, entity, message, interest_type):
         assert interest_type.LOCAL
+        if message['p']['action'] == 'look':
+            return await self._get_public_look_message(entity, message)
+        elif message['p']['action'] in ('follow', 'unfollow'):
+            if message['target'] == entity.entity_id:
+                return await self._get_public_follow_message(entity, message)
+
+    async def _get_public_look_message(self, entity, message):
         evaluated_emitter_entity = (
             await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
         )[0]
@@ -202,4 +224,21 @@ class PubSubObserver:
                 "id": message['target'],
                 "known": True
             }
+        return payload
+
+    async def _get_public_follow_message(self, entity, message):
+        evaluated_emitter_entity = (
+            await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
+        )[0]
+        payload = {
+            "event": "follow",
+            "action": message['p']['action'],
+            "origin": {
+                "excerpt": evaluated_emitter_entity.excerpt,
+                "name": evaluated_emitter_entity.known and evaluated_emitter_entity.name,
+                "id": message['en'],
+                "known": True
+            },
+            "target": "self"
+        }
         return payload

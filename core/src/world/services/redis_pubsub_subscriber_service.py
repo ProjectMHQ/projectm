@@ -5,9 +5,9 @@ import typing
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
-from core.src.world.entity import Entity
+from core.src.world.entity import Entity, EntityID
 from core.src.world.services.redis_pubsub_interface import PubSubManager
-from core.src.world.utils.world_types import Transport
+
 
 class RedisPubSubEventsSubscriberService:
     def __init__(self, pubsub: PubSubManager, loop=asyncio.get_event_loop()):
@@ -101,7 +101,7 @@ class RedisPubSubEventsSubscriberService:
             self._unsubscribe_rooms(entity, rooms_to_unsubscribe)
         )
 
-    async def bootstrap_subscribes(self, data: typing.Dict[Entity, typing.List[int]]):
+    async def bootstrap_subscribes(self, data: typing.Dict[int, typing.List[int]]):
         for en, pos_val in data.items():
             LOGGER.core.debug('Entity %s subscribed Area with center %s', en, pos_val)
             area = Area(PosComponent(pos_val)).make_coordinates()
@@ -110,7 +110,7 @@ class RedisPubSubEventsSubscriberService:
                 en, pos_val, len(area.rooms_and_peripherals_coordinates)
             )
             pos_val and await self._subscribe_rooms(
-                Entity(en),
+                Entity(EntityID(en)),
                 area.rooms_and_peripherals_coordinates
             )
 

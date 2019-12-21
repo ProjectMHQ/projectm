@@ -8,7 +8,7 @@ from core.src.world.components.name import NameComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
 from core.src.world.entity import Entity
-from core.src.world.utils.entity_utils import get_entity_id_from_raw_data_input
+from core.src.world.utils.entity_utils import get_entity_id_from_raw_data_input, get_index_from_text
 
 
 def get_look_at_direction_to_msg(d: DirectionEnum):
@@ -154,7 +154,8 @@ async def _handle_targeted_look(entity, *targets):
              )
 
         )
-        entity_id = get_entity_id_from_raw_data_input(targets[0], totals, raw_room_content)
+        index, target = get_index_from_text(targets[0])
+        entity_id = get_entity_id_from_raw_data_input(target, totals, raw_room_content, index=index)
         if not entity_id:
             await entity.emit_msg(get_look_at_no_target_to_msg())
             return

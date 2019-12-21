@@ -7,9 +7,7 @@ def get_base_room_for_entity(entity: Entity):
     return PosComponent([19, 1, 0])  # TODO FIXME
 
 
-def get_entity_id_from_raw_data_input(text: str, totals: int, data: typing.Iterable) -> typing.Optional[int]:
-    if not data:
-        return
+def get_index_from_text(text: str) -> typing.Tuple[int, str]:
     if '.' in text:
         _split = text.split('.')
         if len(_split) > 2:
@@ -18,6 +16,14 @@ def get_entity_id_from_raw_data_input(text: str, totals: int, data: typing.Itera
         text = _split[1]
     else:
         index = 0
+    return index, text
+
+
+def get_entity_id_from_raw_data_input(
+        text: str, totals: int, data: typing.Iterable, index: int = 0
+) -> typing.Optional[int]:
+    if not data:
+        return
     i = 0
     entity_id = None
     for x in range(0, totals):
@@ -28,6 +34,20 @@ def get_entity_id_from_raw_data_input(text: str, totals: int, data: typing.Itera
                     break
                 i += 1
     return entity_id
+
+
+def get_entity_data_from_raw_data_input(
+        text: str, totals: int, data: typing.Iterable, index: int = 0
+) -> typing.Optional[typing.Dict]:
+    if not data:
+        return
+    i = 0
+    for x in range(0, totals):
+        for entry in data:
+            if entry['data'][x].startswith(text):
+                if i == index:
+                    return entry
+                i += 1
 
 
 if __name__ == '__main__':
