@@ -71,7 +71,7 @@ async def move_entity(entity: Entity, direction: str):
     await singleton_actions_scheduler.schedule(
         cancellable_scheduled_action_factory(
             entity,
-            ScheduledMovement(entity, direction, where),
+            ScheduledMovement(entity, direction, pos),
             wait_for=speed_component_to_movement_waiting_time(0.01)
         )
     )
@@ -88,28 +88,32 @@ async def do_move_entity(entity, position, direction, reason, emit_msg=True):
 
 
 class ScheduledMovement:
-    def __init__(self, entity: Entity, direction: DirectionEnum, where: RoomPosition, ):
+    def __init__(self, entity: Entity, direction: DirectionEnum, current_position):
         self.entity = entity
         self.direction = direction
-        self.where = where
+        self.pos = current_position
 
-    async def do(self):
+    async def do(self) -> bool:
+        delta = direction_to_coords_delta(self.direction)
+        where = apply_delta_to_position(RoomPosition(self.pos.x, self.pos.y, self.pos.z), delta)
         from core.src.world.builder import map_repository
         try:
-            room = await map_repository.get_room(self.where)
+            room = await map_repository.get_room(where)
         except exceptions.RoomError:
             room = None
 
         if not await room.walkable_by(self.entity):
             await self.entity.emit_msg(get_movement_message_no_walkable_direction(self.direction))
-            return
+            return False
 
         await do_move_entity(
             self.entity,
-            PosComponent([self.where.x, self.where.y, self.where.z]),
+            PosComponent([where.x, where.y, where.z]),
             self.direction,
             "movement"
         )
+        self.pos = where
+        return True
 
     async def stop(self):
         pass

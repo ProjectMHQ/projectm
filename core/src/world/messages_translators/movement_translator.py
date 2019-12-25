@@ -91,6 +91,8 @@ class TranslatorMovementsItalian:
                 self._emitter_direction_to_adjective(payload['direction'], 'success')
             )
         if payload['status'] == 'error':
+            if payload['code'] == 'invalid_direction':
+                return 'Non è una direzione valida'
             return 'Non puoi andare in quella direzione'
 
     def translate_for_receivers(self, payload: typing.Dict) -> str:
