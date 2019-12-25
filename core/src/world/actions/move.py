@@ -1,5 +1,7 @@
 import asyncio
 
+import typing
+
 from core.src.world import exceptions
 from core.src.world.actions.utils.utils import DirectionEnum, direction_to_coords_delta, apply_delta_to_position
 from core.src.world.actions_scheduler.tools import singleton_action, cancellable_scheduled_action_factory
@@ -7,7 +9,7 @@ from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
 from core.src.world.components.pos import PosComponent
-from core.src.world.domain.room import RoomPosition
+from core.src.world.domain.room import RoomPosition, Room
 from core.src.world.entity import Entity
 
 
@@ -88,10 +90,34 @@ async def do_move_entity(entity, position, direction, reason, emit_msg=True):
 
 
 class ScheduledMovement:
-    def __init__(self, entity: Entity, direction: DirectionEnum, current_position):
+    def __init__(self, entity: Entity, direction: DirectionEnum, current_position, escape_corners=False):
+        self._carambole = {
+            DirectionEnum.NORTH: [DirectionEnum.EAST, DirectionEnum.WEST],
+            DirectionEnum.SOUTH: [DirectionEnum.EAST, DirectionEnum.WEST],
+            DirectionEnum.EAST: [DirectionEnum.NORTH, DirectionEnum.SOUTH],
+            DirectionEnum.WEST: [DirectionEnum.NORTH, DirectionEnum.SOUTH]
+        }
         self.entity = entity
         self.direction = direction
         self.pos = current_position
+        self.escape_corners = escape_corners
+
+    async def find_carambole(self) -> typing.Optional[typing.Tuple]:
+        from core.src.world.builder import map_repository
+        escapes = self._carambole[self.direction]
+        coords = {}
+        for escape in escapes:
+            delta = direction_to_coords_delta(escape)
+            where = apply_delta_to_position(RoomPosition(self.pos.x, self.pos.y, self.pos.z), delta)
+            try:
+                _room = await map_repository.get_room(where)
+                if await _room.walkable_by(self.entity):
+                    coords[escape] = where
+            except exceptions.RoomError:
+                pass
+        if len(coords) != 1:
+            return
+        return list(coords.items())[0]
 
     async def do(self) -> bool:
         delta = direction_to_coords_delta(self.direction)
@@ -103,8 +129,12 @@ class ScheduledMovement:
             room = None
 
         if not await room.walkable_by(self.entity):
-            await self.entity.emit_msg(get_movement_message_no_walkable_direction(self.direction))
-            return False
+            carambole = self.escape_corners and await self.find_carambole()
+            if carambole:
+                self.direction, where = carambole
+            else:
+                await self.entity.emit_msg(get_movement_message_no_walkable_direction(self.direction))
+                return False
 
         await do_move_entity(
             self.entity,

@@ -51,7 +51,7 @@ async def go_entity(entity: Entity, direction: str):
     await singleton_actions_scheduler.schedule(
         looped_cancellable_scheduled_action_factory(
             entity,
-            ScheduledMovement(entity, direction, pos),
+            ScheduledMovement(entity, direction, pos, escape_corners=True),
             wait_for=speed_component_to_movement_waiting_time(0.5)
         )
     )
