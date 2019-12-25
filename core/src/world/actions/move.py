@@ -95,7 +95,9 @@ class ScheduledMovement:
             DirectionEnum.NORTH: [DirectionEnum.EAST, DirectionEnum.WEST],
             DirectionEnum.SOUTH: [DirectionEnum.EAST, DirectionEnum.WEST],
             DirectionEnum.EAST: [DirectionEnum.NORTH, DirectionEnum.SOUTH],
-            DirectionEnum.WEST: [DirectionEnum.NORTH, DirectionEnum.SOUTH]
+            DirectionEnum.WEST: [DirectionEnum.NORTH, DirectionEnum.SOUTH],
+            DirectionEnum.UP: [],
+            DirectionEnum.DOWN: []
         }
         self.entity = entity
         self.direction = direction
