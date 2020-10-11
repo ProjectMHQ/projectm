@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, './')
+
 import asyncio
 
 from core.src.world.builder import map_repository
@@ -41,7 +44,8 @@ def parse(filename):
 
 
 if __name__ == '__main__':
-    lines = parse('./mappa_prova_1')
+
+    lines = parse('./tools/mappa_prova_1')
     content = parse_lines(lines)
 
     asyncio.get_event_loop().run_until_complete(set_rooms(content))
