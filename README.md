@@ -42,6 +42,16 @@ cd projectm
 python -m manage --help 
 ```
 
+**FIRST USER SIGNUP**
+```bash
+python -m manage user signup
+```
+
+**POPULATE TEST MAP**:
+```bash
+ PROJECTM_ENV=development python -m tools.txt_map_to_redis
+```
+
 
 **IN THE NEED OF CUSTOMIZED SETTINGS**:
 ```bash
