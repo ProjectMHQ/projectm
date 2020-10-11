@@ -18,7 +18,7 @@ async def getmap(entity: Entity):
             "event": "map",
             "base": area_map["base"],
             "data": area_map["data"],
-            "shape": [area.size, area.size]  # placeholder for rows,cols
+            "shape": [area.size, area.size]  # placeholder for rows, cols
         }
     )
     LOGGER.websocket_monitor.debug('Map served in %s', '{:.4f}'.format(time.time() - start))

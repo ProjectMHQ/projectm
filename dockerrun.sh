@@ -8,4 +8,4 @@ cd ${project_dir}
 
 python -m alembic_script upgrade head  || true
 
-gunicorn -c gunicorn.py core.app:app
+gunicorn -c gunicorn.py src.app:app

@@ -10,7 +10,7 @@ from core.src.world.entity import Entity
 
 
 class Area:
-    def __init__(self, center: PosComponent, square_size=11):
+    def __init__(self, center: PosComponent, square_size=9):
         self.center = center
         self.size = square_size
         self.rooms: typing.List[typing.Optional[Room]] = []
