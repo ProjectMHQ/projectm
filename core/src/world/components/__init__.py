@@ -41,6 +41,8 @@ class ComponentType(metaclass=abc.ABCMeta):
             return bool(data)
         elif cls.component_type == list:
             return data and json.loads(data.decode()) or None
+        elif cls.component_type == dict:
+            return data and json.loads(data.decode()) or None
         return data is not None and cls.component_type(data)
 
     @property
