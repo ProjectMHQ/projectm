@@ -33,24 +33,12 @@ class AttributesComponent(ComponentType):
 
     @property
     def name(self):
-        return self._value.get('name')
+        return self._value.get('n')
 
     @property
     def description(self):
-        return self._value.get('description')
+        return self._value.get('d')
 
     @property
     def keyword(self):
-        return self._value.get('keyword')
-
-    @property
-    def icon(self):
-        return self._value.get('icon')
-
-    @property
-    def gender(self):
-        return self._value.get('gender')
-
-    @property
-    def role(self):
-        return self._value.get('role')
+        return self._value.get('k')

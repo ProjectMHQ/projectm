@@ -8,6 +8,7 @@ from core.src.world.components.types import ComponentTypeEnum
 class WeaponType(Enum):
     SWORD = 'sword'
     KNIFE = 'knife'
+    BROADSWORD = 'broadsword'
 
 
 class WeaponComponent(ComponentType):

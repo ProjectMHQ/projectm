@@ -2,6 +2,7 @@ import json
 from json import JSONDecodeError
 
 from core.src.world.builder import library_repository
+from core.src.world.systems.library.validator import LibraryJSONFileValidator
 from etc import settings
 
 
@@ -23,11 +24,10 @@ class LibrarySystemService:
             with open('{}/json/{}.json'.format(settings.LIBRARY_PATH, alias)) as f:
                 try:
                     data = json.load(f)
+                    data = LibraryJSONFileValidator(data)
                 except JSONDecodeError:
                     return await self.entity.emit_msg("Library file {}.json decode error".format(alias))
         except FileNotFoundError:
             return await self.entity.emit_msg("Library file {}.json not found".format(alias))
-        try:
-            data = ValidateLibraryFile(data)
-        except:
+        except LibraryValidationError:
             return await self.entity.emit_msg("Library file {}.json syntax not valid".format(alias))

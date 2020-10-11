@@ -1,7 +1,6 @@
 import asyncio
 import typing
 
-from core.src.world import exceptions
 from core.src.world.actions.follow import do_follow
 from core.src.world.utils.world_types import Transport
 
@@ -57,4 +56,3 @@ class FollowSystemManager:
         transport: Transport = self.transports_manager.get_transport_by_entity_id(follower_id)
         entity = Entity(EntityID(follower_id), transport=transport)
         self.loop.create_task(do_follow(entity, event))
-
