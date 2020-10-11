@@ -3,6 +3,7 @@ import socketio
 from core.src.world.actions_scheduler.singleton_actions_scheduler import SingletonActionsScheduler
 from core.src.world.messages_translators.builder import get_messages_translator
 from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
+from core.src.world.repositories.library_repository import RedisLibraryRepository
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 from core.src.world.services.redis_pubsub_publisher_service import RedisPubSubEventsPublisherService
 from core.src.world.services.redis_pubsub_subscriber_service import RedisPubSubEventsSubscriberService
@@ -32,6 +33,7 @@ else:
     async_redis_queue = get_redis_factory(RedisType.QUEUES)
 
 
+library_repository = RedisLibraryRepository(async_redis_data)
 map_repository = RedisMapRepository(async_redis_data)
 descriptions_repository = RedisDescriptionsRepository(async_redis_data)
 world_repository = RedisDataRepository(async_redis_data)

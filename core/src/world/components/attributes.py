@@ -50,3 +50,7 @@ class AttributesComponent(ComponentType):
     @property
     def gender(self):
         return self._value.get('gender')
+
+    @property
+    def role(self):
+        return self._value.get('role')
