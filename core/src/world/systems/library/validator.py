@@ -27,7 +27,8 @@ AttributesComponentValidator = combinators.struct(
             lambda x: string_size(x, 512)
         ),
     },
-    name="AttributesComponentValidator"
+    name="AttributesComponentValidator",
+    strict=True
 )
 
 WeaponComponentValidator = combinators.subtype(
@@ -36,7 +37,7 @@ WeaponComponentValidator = combinators.subtype(
     name="WeaponComponentValidator"
 )
 
-LibraryJSONFileValidator = combinators.struct(
+LibraryWeaponValidator = combinators.struct(
     {
         "alias": combinators.subtype(
             combinators.String,
@@ -49,5 +50,10 @@ LibraryJSONFileValidator = combinators.struct(
             }
         )
     },
-    name="LibraryJSONFileValidator"
+    name="LibraryJSONFileValidator",
+    strict=True
+)
+
+LibraryJSONFileValidator = combinators.union(
+    LibraryWeaponValidator
 )
