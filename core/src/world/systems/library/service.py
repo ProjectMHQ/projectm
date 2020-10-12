@@ -1,33 +1,43 @@
 import json
 from json import JSONDecodeError
 
-from core.src.world.builder import library_repository
+from pycomb.exceptions import PyCombValidationError
+
 from core.src.world.systems.library.validator import LibraryJSONFileValidator
-from etc import settings
 
 
 class LibrarySystemService:
-    def __init__(self, entity, repository=library_repository):
-        self.repository = repository
+    def __init__(self, entity, repository=None):
+        from core.src.world.builder import library_repository
+        self.repository = repository or library_repository
         self.entity = entity
 
-    async def load(self, location, alias):
-        if self.repository.exists(alias):
-            return await self.entity.emit_msg('Alias {} already exists'.format(alias))
-        if location not in ('json',):
-            return await self.entity.emit_msg("Library location must be 'json' or 'python'")
+    async def load(self, location: str, alias: str):
+        if await self.repository.exists(alias):
+            await self.entity.emit_msg('Alias {} already exists'.format(alias))
+            return
+
         if location == 'json':
-            await self._import_json_library(alias)
+            data = await self._import_json_library(alias)
+            await self.repository.save_library(data)
+            await self.entity.emit_msg(('Library {} loaded'.format(alias)))
+
+    async def ls(self, pattern: str, offset: int = 0, limit: int = 20):
+        data = await self.repository.get_libraries(pattern, offset=offset, limit=limit)
+        data and await self.entity.emit_msg(data)
 
     async def _import_json_library(self, alias):
         try:
-            with open('{}/json/{}.json'.format(settings.LIBRARY_PATH, alias)) as f:
+            from core.src.world.builder import WORLD_SYSTEM_PATH
+            filepath = '{}/core/src/world/library/json/{}.json'.format(WORLD_SYSTEM_PATH, alias)
+            with open(filepath, 'r') as f:
                 try:
                     data = json.load(f)
-                    data = LibraryJSONFileValidator(data)
+                    LibraryJSONFileValidator(data)
+                    return data
                 except JSONDecodeError:
                     return await self.entity.emit_msg("Library file {}.json decode error".format(alias))
         except FileNotFoundError:
             return await self.entity.emit_msg("Library file {}.json not found".format(alias))
-        except LibraryValidationError:
-            return await self.entity.emit_msg("Library file {}.json syntax not valid".format(alias))
+        except PyCombValidationError as e:
+            return await self.entity.emit_msg("Library file {}.json syntax error: \n{}".format(alias, e))

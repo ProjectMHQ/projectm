@@ -1,3 +1,5 @@
+import os
+
 import socketio
 
 from core.src.world.actions_scheduler.singleton_actions_scheduler import SingletonActionsScheduler
@@ -32,6 +34,8 @@ else:
     async_redis_data = get_redis_factory(RedisType.DATA)
     async_redis_queue = get_redis_factory(RedisType.QUEUES)
 
+
+WORLD_SYSTEM_PATH = os.getcwd()
 
 library_repository = RedisLibraryRepository(async_redis_data)
 map_repository = RedisMapRepository(async_redis_data)

@@ -1,6 +1,8 @@
 from core.src.world.actions.disconnect import disconnect_entity
 from core.src.world.actions.follow import follow
 from core.src.world.actions.go import go_entity
+
+from core.src.world.actions.library import library
 from core.src.world.actions.whoami import whoami
 
 
@@ -23,4 +25,5 @@ def commands_observer_factory(transport):
     observer.add_command(disconnect_entity, 'quit')
     observer.add_command(follow, 'follow')
     observer.add_command(go_entity, 'go')
+    observer.add_command(library, '@lib')
     return observer
