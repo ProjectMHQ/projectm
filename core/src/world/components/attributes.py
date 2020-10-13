@@ -1,8 +1,9 @@
 import json
 import typing
+from ast import literal_eval
 
 from core.src.world.components import ComponentType
-from core.src.world.components.types import ComponentTypeEnum
+from core.src.world.components._types_ import ComponentTypeEnum
 
 
 class AttributesComponent(ComponentType):
@@ -10,9 +11,16 @@ class AttributesComponent(ComponentType):
     key = ComponentTypeEnum.ATTRIBUTES.value
     component_type = dict
 
+    @classmethod
+    def from_bytes(cls, data: bytes):
+        return data and cls(literal_eval(data.decode()))
+
     def __init__(self, value: dict):
         super().__init__(value)
         self._prev_pos = None
+        self._component_values = {
+            'name', 'description', 'keyword'
+        }
 
     def __str__(self):
         return str(self.value)
@@ -33,12 +41,12 @@ class AttributesComponent(ComponentType):
 
     @property
     def name(self):
-        return self._value.get('n')
+        return self._value.get('name')
 
     @property
     def description(self):
-        return self._value.get('d')
+        return self._value.get('description')
 
     @property
     def keyword(self):
-        return self._value.get('k')
+        return self._value.get('keyword')

@@ -28,7 +28,7 @@ def get_entity_id_from_raw_data_input(
     entity_id = None
     for x in range(0, totals):
         for entry in data:
-            if entry['data'][x].startswith(text):
+            if entry['data'][x]['name'].startswith(text):
                 if i == index:
                     entity_id = entry['entity_id']
                     break

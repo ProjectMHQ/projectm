@@ -3,7 +3,6 @@ from core.src.world.systems.library.service import LibrarySystemService
 
 
 async def library(entity: Entity, action: str, *args):
-    print('lib: %s, %s' % (action, args))
     system = LibrarySystemService(entity)
     if action == 'load':
         await system.load('json', args[0])

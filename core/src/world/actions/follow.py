@@ -7,7 +7,7 @@ from core.src.world.actions.look import get_look_at_no_target_to_msg
 from core.src.world.actions.move import do_move_entity
 from core.src.world.actions.utils.utils import DirectionEnum
 from core.src.world.actions_scheduler.tools import singleton_action
-from core.src.world.components.name import NameComponent
+from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
 from core.src.world.entity import Entity
@@ -74,10 +74,10 @@ async def follow(
     from core.src.world.builder import world_repository, map_repository
     data = await world_repository.get_components_values_by_entities(
         [entity],
-        [PosComponent, NameComponent]
+        [PosComponent, AttributesComponent]
     )
     pos = PosComponent(data[entity.entity_id][PosComponent.component_enum])
-    name_value = data[entity.entity_id][NameComponent.component_enum]
+    attributes_value = data[entity.entity_id][AttributesComponent.component_enum]
     room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
 
     if not len(target):
@@ -96,7 +96,7 @@ async def follow(
         raw_room_content = itertools.chain(
             raw_room_content,
             (x for x in [
-                {'entity_id': entity.entity_id, 'data': [name_value, *('' for _ in range(1, totals))]}]
+                {'entity_id': entity.entity_id, 'data': [attributes_value, *('' for _ in range(1, totals))]}]
              )
         )
         index, target = get_index_from_text(target)
@@ -143,10 +143,10 @@ async def do_follow(entity: Entity, movement_event: typing.Dict):
     pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
 
     followed_name = await world_repository.get_component_value_by_entity_id(
-        movement_event['entity']['id'], NameComponent
+        movement_event['entity']['id'], AttributesComponent
     )  # FIXME TODO - Evaluate, etc.
 
-    await entity.emit_msg(get_follow_movement_msg(followed_name.value, movement_event['direction']))
+    await entity.emit_msg(get_follow_movement_msg(followed_name.name, movement_event['direction']))
     if pos.value == movement_event['from']:
         await do_move_entity(
             entity,

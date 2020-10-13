@@ -4,9 +4,9 @@ from core.src.auth.business.character import exceptions
 from core.src.auth.builder import auth_service, redis_characters_index_repository, ws_channels_repository, \
     psql_character_repository
 from core.src.auth.logging_factory import LOGGER
+from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.character import CharacterComponent
 from core.src.world.components.created_at import CreatedAtComponent
-from core.src.world.components.name import NameComponent
 from core.src.world.entity import Entity
 
 
@@ -26,11 +26,13 @@ def build_public_namespace(sio, world_repository, websocket_channels_service):
         entity = Entity() \
             .set(CharacterComponent(True))\
             .set(CreatedAtComponent(int(time.time()))) \
-            .set(NameComponent(payload["name"]))
+            .set(AttributesComponent({"name": payload["name"]}))
 
         entity = await world_repository.save_entity(entity)
         """
-        patchwork starts here
+        URGENT - TODO - FIX - Completely move characters allocation outside of SQL.
+        Create a "UserID Component" to pair the character in the ECS with the ecosystem uuid,
+        as we do for the connection.
         """
         from core.src.auth.database import init_db, db
         init_db(db)
@@ -43,7 +45,7 @@ def build_public_namespace(sio, world_repository, websocket_channels_service):
             # FIXME - This shouldn't be here, but we miss the "store_new_character" HTTP endpoint yet.
             pass
         """
-        patchwork ends here
+        Fix ends here, probably
         """
         redis_characters_index_repository.set_entity_id(character_id, entity.entity_id)
         await sio.emit('create', {'success': True, 'character_id': character_id}, to=sid)

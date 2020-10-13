@@ -1,9 +1,10 @@
 import asyncio
+import json
 from unittest import TestCase
 from core.src.world.components import ComponentTypeEnum
+from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.character import CharacterComponent
 from core.src.world.components.connection import ConnectionComponent
-from core.src.world.components.name import NameComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.entity import Entity, EntityID
 from core.src.world.repositories.data_repository import RedisDataRepository
@@ -39,7 +40,7 @@ class TestWorldDataRepository(TestCase):
         redis = await self.redis()
         _entity_name = 'Billy Zinna'
         entity = Entity()
-        entity.set(NameComponent(_entity_name))
+        entity.set(AttributesComponent({'name': _entity_name}))
 
         data = await redis.hget('c:2:d', 1)
         self.assertIsNone(data)
@@ -49,18 +50,18 @@ class TestWorldDataRepository(TestCase):
         await self.sut.save_entity(entity)
         self.assertEqual(await redis.getbit('c:5:m', 1), 0)
         self.assertEqual(await redis.getbit('c:3:m', 1), 0)
-        name_on_component_storage = await redis.hget('c:2:d', 1)
-        self.assertEqual(name_on_component_storage, _entity_name.encode())
-        name_on_entity_storage = await redis.hget('e:1', 2)
-        self.assertEqual(name_on_entity_storage, _entity_name.encode())
+        name_on_component_storage = await redis.hget('c:8:d', 1)
+        self.assertEqual(name_on_component_storage, json.dumps({'name': _entity_name}).encode())
+        name_on_entity_storage = await redis.hget('e:1', 8)
+        self.assertEqual(name_on_entity_storage, json.dumps({'name': _entity_name}).encode())
 
         response = await self.sut.get_components_values_by_entities(
-            [entity], [NameComponent, CharacterComponent, ConnectionComponent]
+            [entity], [AttributesComponent, CharacterComponent, ConnectionComponent]
         )
         self.assertEqual(
             {
                 EntityID(1): {
-                    ComponentTypeEnum.NAME: 'Billy Zinna',
+                    ComponentTypeEnum.ATTRIBUTES: {'name': 'Billy Zinna'},
                     ComponentTypeEnum.CHARACTER: False,
                     ComponentTypeEnum.CONNECTION: None
                 }
@@ -68,12 +69,12 @@ class TestWorldDataRepository(TestCase):
             response
         )
         response_by_components = await self.sut.get_components_values_by_components(
-            [entity.entity_id], [NameComponent, CharacterComponent, ConnectionComponent]
+            [entity.entity_id], [AttributesComponent, CharacterComponent, ConnectionComponent]
         )
         self.assertEqual(
             {
-                ComponentTypeEnum.NAME: {
-                    EntityID(1): 'Billy Zinna'
+                ComponentTypeEnum.ATTRIBUTES: {
+                    EntityID(1): {'name': 'Billy Zinna'}
                 },
                 ComponentTypeEnum.CHARACTER: {
                     EntityID(1): False
@@ -100,15 +101,15 @@ class TestWorldDataRepository(TestCase):
         )
         response = await self.sut.get_components_values_by_entities(
             [entity],
-            [CharacterComponent, NameComponent, PosComponent]
+            [CharacterComponent, AttributesComponent, PosComponent]
         )
         response_by_components = await self.sut.get_components_values_by_components(
-            [entity.entity_id], [NameComponent, CharacterComponent, ConnectionComponent]
+            [entity.entity_id], [AttributesComponent, CharacterComponent, ConnectionComponent]
         )
         self.assertEqual(
             {
-                ComponentTypeEnum.NAME: {
-                    EntityID(1): 'Billy Zinna'
+                ComponentTypeEnum.ATTRIBUTES: {
+                    EntityID(1): {'name': 'Billy Zinna'}
                 },
                 ComponentTypeEnum.CHARACTER: {
                     EntityID(1): True
@@ -122,7 +123,7 @@ class TestWorldDataRepository(TestCase):
         self.assertEqual(
             {
                 EntityID(1): {
-                    ComponentTypeEnum.NAME: 'Billy Zinna',
+                    ComponentTypeEnum.ATTRIBUTES: {'name': 'Billy Zinna'},
                     ComponentTypeEnum.CHARACTER: True,
                     ComponentTypeEnum.POS: None
                 }
@@ -156,22 +157,22 @@ class TestWorldDataRepository(TestCase):
         """
         _entity_2_name = 'Donna Arcama'
         entity_2 = Entity()
-        entity_2.set(NameComponent(_entity_2_name))
+        entity_2.set(AttributesComponent({'name': _entity_2_name}))
         await self.sut.save_entity(entity_2)
         await self.sut.update_entities(entity.set(CharacterComponent(True)), entity_2)
         response = await self.sut.get_components_values_by_entities(
             [entity, entity_2],
-            [CharacterComponent, NameComponent, PosComponent]
+            [CharacterComponent, AttributesComponent, PosComponent]
         )
         response_by_components = await self.sut.get_components_values_by_components(
             [entity.entity_id, entity_2.entity_id],
-            [NameComponent, CharacterComponent, ConnectionComponent]
+            [AttributesComponent, CharacterComponent, ConnectionComponent]
         )
         self.assertEqual(
             {
-                ComponentTypeEnum.NAME: {
-                    EntityID(1): 'Billy Zinna',
-                    EntityID(2): 'Donna Arcama'
+                ComponentTypeEnum.ATTRIBUTES: {
+                    EntityID(1): {'name': 'Billy Zinna'},
+                    EntityID(2): {'name': 'Donna Arcama'}
                 },
                 ComponentTypeEnum.CHARACTER: {
                     EntityID(1): True,
@@ -187,12 +188,12 @@ class TestWorldDataRepository(TestCase):
         self.assertEqual(
             {
                 EntityID(1): {
-                    ComponentTypeEnum.NAME: 'Billy Zinna',
+                    ComponentTypeEnum.ATTRIBUTES: {'name': 'Billy Zinna'},
                     ComponentTypeEnum.CHARACTER: True,
                     ComponentTypeEnum.POS: None
                 },
                 EntityID(2): {
-                    ComponentTypeEnum.NAME: 'Donna Arcama',
+                    ComponentTypeEnum.ATTRIBUTES: {'name': 'Donna Arcama'},
                     ComponentTypeEnum.CHARACTER: False,
                     ComponentTypeEnum.POS: None
                 }

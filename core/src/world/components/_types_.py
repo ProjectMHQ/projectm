@@ -15,3 +15,4 @@ class ComponentTypeEnum(enum.IntEnum):
     WEAPON = 6
     HAND = 7
     ATTRIBUTES = 8
+    INSTANCE_OF = 9

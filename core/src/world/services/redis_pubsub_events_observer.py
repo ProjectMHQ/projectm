@@ -77,17 +77,27 @@ class PubSubObserver:
 
     @staticmethod
     def _is_system_event(message: typing.Dict):
-        return bool(
+        value = bool(
             PubSubEventType(message['ev']) in [
                 PubSubEventType.ENTITY_APPEAR,
                 PubSubEventType.ENTITY_DISAPPEAR,
                 PubSubEventType.ENTITY_CHANGE_POS
             ]
         )
+        return value
 
     @staticmethod
     def _is_public_action(message: typing.Dict):
         return bool(PubSubEventType(message['ev']) == PubSubEventType.ENTITY_DO_PUBLIC_ACTION)
+
+    @staticmethod
+    def _is_appearance_message(message):
+        return bool(
+            PubSubEventType(message['ev']) in (
+                PubSubEventType.ENTITY_APPEAR,
+                PubSubEventType.ENTITY_DISAPPEAR
+            )
+        )
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
         room = PosComponent(room)
@@ -124,6 +134,8 @@ class PubSubObserver:
                 return
             message = self.messages_translator.event_msg_to_string(payload, 'msg')
             self.loop.create_task(entity.emit_msg(message))
+        elif self._is_appearance_message(message):
+            print('TODO DO CONNECT ACTION MESSAGE')
         else:
             raise ValueError('wtfff? %s' % message)
 

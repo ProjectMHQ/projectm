@@ -2,7 +2,7 @@ import typing
 from enum import Enum
 
 from core.src.world.components import ComponentType
-from core.src.world.components.types import ComponentTypeEnum
+from core.src.world.components._types_ import ComponentTypeEnum
 
 
 class WeaponType(Enum):

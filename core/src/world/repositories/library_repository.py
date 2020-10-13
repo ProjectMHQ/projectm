@@ -3,6 +3,8 @@ import time
 
 import aioredis
 
+from core.src.world.components.instance_of import InstanceOfComponent
+
 
 class RedisLibraryRepository:
     def __init__(self, redis_factory: callable):
@@ -53,6 +55,28 @@ class RedisLibraryRepository:
                 prev_y = prev_y and '.'.join(prev_y.split('.')[:-1])
         return res
 
+    @staticmethod
+    def _flattened_dictionary_to_entity(entity_data: dict):
+        from core.src.world.components.factory import get_component_by_type
+        from core.src.world.entity import Entity
+        entity = Entity()
+        entity.set(InstanceOfComponent(entity_data.pop(b'alias').decode()))
+        for k, v in entity_data.items():
+            k = k and k.decode()
+            if isinstance(v, bytes):
+                v = v.decode()
+            if k.startswith('components.'):
+                c = k.replace('components.', '').split('.')
+                comp_type = get_component_by_type(c[0])
+                if len(c) > 1:
+                    if comp_type.key in entity.pending_changes:
+                        entity.pending_changes[comp_type.key].add_component_value(c[1], v)
+                    else:
+                        entity.set(comp_type({c[1]: v}))
+                else:
+                    entity.set(comp_type(v))
+        return entity
+
     async def get_libraries(self, pattern: str, offset=0, limit=20):
         pattern = pattern.replace('*', '\xff').encode()
         redis = await self.redis()
@@ -75,3 +99,9 @@ class RedisLibraryRepository:
             )
         return res
 
+    async def get_instance_of(self, alias: str):
+        redis = await self.redis()
+        data = await redis.hgetall('{}:{}'.format(self._library_prefix, alias))
+        if not data:
+            return
+        return self._flattened_dictionary_to_entity(data)

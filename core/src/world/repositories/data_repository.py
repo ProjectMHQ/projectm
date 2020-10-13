@@ -1,5 +1,6 @@
 import asyncio
 import typing
+from ast import literal_eval
 from collections import OrderedDict
 
 import aioredis
@@ -7,7 +8,7 @@ import bitarray
 import os
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components import ComponentType, ComponentTypeEnum
-from core.src.world.components.name import NameComponent
+from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.room import Room
@@ -324,20 +325,23 @@ class RedisDataRepository:
             i += 1
         return data
 
-    async def get_entities_evaluation_by_entity(self, entity: Entity, *entity_ids: int) -> typing.List[EvaluatedEntity]:
+    async def get_entities_evaluation_by_entity(
+            self, entity: Entity, *entity_ids: int
+    ) -> typing.List[EvaluatedEntity]:
         result = []
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         for entity_id in entity_ids:
             pipeline.hmget(
                 '{}:{}'.format(self._entity_prefix, entity_id),
-                NameComponent.key,
+                AttributesComponent.key,
             )
         data = await pipeline.execute()
         for i, el in enumerate(data):
+            attrs = AttributesComponent.from_bytes(el[0])
             result.append(
                 EvaluatedEntity(
-                    name=el[0].decode(),
+                    name=attrs.name,
                     type=0,
                     status=0,
                     known=True,
@@ -370,14 +374,14 @@ class RedisDataRepository:
                 continue
             pipeline.hmget(
                 '{}:{}'.format(self._entity_prefix, entity_id),
-                NameComponent.key
+                AttributesComponent.key
             )
             _exp_res.append(entity_id)
         result = await pipeline.execute()
         for i, _entity_id in enumerate(_exp_res):
-            _evaluated_entity_response = result[i]
+            attrs = AttributesComponent.from_bytes(result[i][0])
             evaluated_entity = EvaluatedEntity(
-                name=_evaluated_entity_response[0].decode(),
+                name=attrs.name,
                 type=0,
                 status=0,
                 entity_id=_entity_id,
@@ -390,36 +394,36 @@ class RedisDataRepository:
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         _exp_res = []
-        total_values = 1  # NameComponent
+        values = (AttributesComponent, )
         for _entity_id in room.entity_ids:
             if _entity_id == entity_id:
                 continue
             pipeline.hmget(
                 '{}:{}'.format(self._entity_prefix, _entity_id),
-                NameComponent.key
+                *(x.key for x in values)
             )
             _exp_res.append(_entity_id)
         result = await pipeline.execute()
 
         def _parse_data(res_entry):
             return [
-                res_entry[0] and res_entry[0].decode() or ''
+                res_entry[0] and literal_eval(res_entry[0].decode()) or ''
             ]
-        return total_values, (
+        return len(values), [
             {'entity_id': entity_id, 'data': _parse_data(result[i])} for i, entity_id in enumerate(_exp_res)
-        )
+        ]
 
     async def get_look_components_for_entity_id(self, entity_id):
         redis = await self.async_redis()
         components = await redis.hmget(
             '{}:{}'.format(self._entity_prefix, entity_id),
-            NameComponent.key,
+            AttributesComponent.key,
         )
+        attributes = AttributesComponent.from_bytes(components[0])
         return {
-            'name': components[0] and components[0].decode(),
-            'excerpt': '<placeholder for shot description>',
+            'name': attributes.name,
             'known': True,
             'type': 0,
             'status': 0,
-            'description': "<character full description placeholder>"
+            'description': attributes.description
         }

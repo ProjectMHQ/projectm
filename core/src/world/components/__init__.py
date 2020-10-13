@@ -2,7 +2,7 @@ import abc
 import json
 import typing
 
-from core.src.world.components.types import ComponentTypeEnum
+from core.src.world.components._types_ import ComponentTypeEnum
 
 
 class ComponentType(metaclass=abc.ABCMeta):
@@ -12,6 +12,7 @@ class ComponentType(metaclass=abc.ABCMeta):
 
     def __init__(self, value):
         self._value = value
+        self._component_values = set()
 
     @abc.abstractmethod
     def value(self):
@@ -48,3 +49,11 @@ class ComponentType(metaclass=abc.ABCMeta):
     @property
     def serialized(self):
         return self.value
+
+    def add_component_value(self, key: str, value: (bool, int, str)):
+        if self.component_type != dict:
+            raise NotImplementedError
+        assert key not in self._value
+        assert key in self._component_values
+        assert isinstance(value, (int, str, bool))
+        self._value[key] = value
