@@ -53,7 +53,7 @@ class ComponentType(metaclass=abc.ABCMeta):
     def add_component_value(self, key: str, value: (bool, int, str)):
         if self.component_type != dict:
             raise NotImplementedError
-        assert key not in self._value
-        assert key in self._component_values
+        assert key not in self._value, key
+        assert key in self._component_values, (key, self._component_values)
         assert isinstance(value, (int, str, bool))
         self._value[key] = value

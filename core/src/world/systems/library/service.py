@@ -12,15 +12,23 @@ class LibrarySystemService:
         self.repository = repository or library_repository
         self.entity = entity
 
-    async def load(self, location: str, alias: str):
-        if await self.repository.exists(alias):
-            await self.entity.emit_msg('Alias {} already exists'.format(alias))
-            return
+    async def load(self, location: str, alias: str, overwrite=False):
+        if not overwrite:
+            if await self.repository.exists(alias):
+                await self.entity.emit_msg('Alias {} already exists, do you mean "reload"?'.format(alias))
+                return
+        else:
+            if not await self.repository.exists(alias):
+                await self.entity.emit_msg('Alias {} does not exists, do you mean "load"?'.format(alias))
+                return
 
         if location == 'json':
             data = await self._import_json_library(alias)
-            await self.repository.save_library(data)
-            await self.entity.emit_msg(('Library {} loaded'.format(alias)))
+            if not overwrite:
+                await self.repository.save_library(data)
+            else:
+                await self.repository.update_library(data)
+            await self.entity.emit_msg(('Library {} {}'.format(alias, 'reloaded' if overwrite else 'loaded')))
 
     async def ls(self, pattern: str, offset: int = 0, limit: int = 20):
         data = await self.repository.get_libraries(pattern, offset=offset, limit=limit)

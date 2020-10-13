@@ -17,11 +17,11 @@ class WeaponComponent(ComponentType):
     component_type = str
 
     def __init__(self, value: str):
-        super().__init__(value)
+        super().__init__(WeaponType(value).value)
 
     @property
     def value(self) -> WeaponType:
-        return WeaponType(self._value)
+        return self._value
 
     @classmethod
     async def get(cls, entity_id: int, repo=None) -> typing.Optional['WeaponComponent']:

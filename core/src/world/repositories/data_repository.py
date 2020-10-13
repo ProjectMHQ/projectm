@@ -379,7 +379,10 @@ class RedisDataRepository:
             _exp_res.append(entity_id)
         result = await pipeline.execute()
         for i, _entity_id in enumerate(_exp_res):
-            attrs = AttributesComponent.from_bytes(result[i][0])
+            try:
+                attrs = AttributesComponent.from_bytes(result[i][0])
+            except:
+                raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _entity_id))
             evaluated_entity = EvaluatedEntity(
                 name=attrs.name,
                 type=0,

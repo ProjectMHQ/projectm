@@ -40,6 +40,15 @@ class RedisLibraryRepository:
         )
         await p.execute()
 
+    async def update_library(self, data):
+        redis = await self.redis()
+        p = redis.pipeline()
+        key = '{}:{}'.format(self._library_prefix, data['alias'])
+        p.delete(key)
+        p.hmset(key, *self._flatten_dictionary(data))
+        p.zadd(self._library_index, int(time.time()), data['alias'], exist=True)
+        await p.execute()
+
     def _flatten_dictionary(self, d, prev_y=None, res=None):
         res = [] if res is None else res
         for y in d:
@@ -52,7 +61,8 @@ class RedisLibraryRepository:
             else:
                 res.append(prev_y)
                 res.append(d[y])
-                prev_y = prev_y and '.'.join(prev_y.split('.')[:-1])
+                #prev_y = prev_y and '.'.join(prev_y.split('.')[:-1])
+            prev_y = prev_y and '.'.join(prev_y.split('.')[:-1])
         return res
 
     @staticmethod

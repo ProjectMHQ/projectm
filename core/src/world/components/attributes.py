@@ -13,7 +13,8 @@ class AttributesComponent(ComponentType):
 
     @classmethod
     def from_bytes(cls, data: bytes):
-        return data and cls(literal_eval(data.decode()))
+        assert data
+        return cls(literal_eval(data.decode()))
 
     def __init__(self, value: dict):
         super().__init__(value)
