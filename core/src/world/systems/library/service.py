@@ -25,9 +25,9 @@ class LibrarySystemService:
         if location == 'json':
             data = await self._import_json_library(alias)
             if not overwrite:
-                await self.repository.save_library(data)
+                await self.repository.save_library_item(data)
             else:
-                await self.repository.update_library(data)
+                await self.repository.update_library_item(data)
             await self.entity.emit_msg(('Library {} {}'.format(alias, 'reloaded' if overwrite else 'loaded')))
 
     async def ls(self, pattern: str, offset: int = 0, limit: int = 20):

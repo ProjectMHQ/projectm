@@ -1,6 +1,6 @@
 from core.src.world.builder import events_subscriber_service, channels_repository, \
     world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub_manager, \
-    transport, connections_manager
+    transport, connections_manager, library_repository
 from core.src.world.components.pos import PosComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.entity import Entity
@@ -12,6 +12,7 @@ worker_queue_manager.add_queue_observer('cmd', cmds_observer)
 
 
 async def main(entities):
+    await library_repository.build()
     if entities:
         data = (await world_repository.get_components_values_by_components(
             [x['entity_id'] for x in entities], [PosComponent]

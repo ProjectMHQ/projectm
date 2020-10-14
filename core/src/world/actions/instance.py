@@ -4,7 +4,7 @@ from core.src.world.entity import Entity
 
 async def instance(entity: Entity, parent_alias: str, *args):
     from core.src.world.builder import world_repository, library_repository
-    instanced = await library_repository.get_instance_of(parent_alias)
+    instanced = library_repository.get_instance_of(parent_alias)
     if not instanced:
         await entity.emit_msg('Cannot obtain instance of {}'.format(parent_alias))
         return
