@@ -10,7 +10,7 @@ from core.src.world.actions_scheduler.tools import singleton_action
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import get_index_from_text, get_entity_data_from_raw_data_input
 
 

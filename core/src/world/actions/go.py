@@ -5,7 +5,7 @@ from core.src.world.actions.utils.utils import DirectionEnum, direction_to_coord
 from core.src.world.actions_scheduler.tools import singleton_action, looped_cancellable_scheduled_action_factory
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 
 
 def get_invalid_go_direction_message(d) -> str:

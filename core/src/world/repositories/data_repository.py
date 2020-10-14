@@ -15,7 +15,7 @@ from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.room import Room
-from core.src.world.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity, EntityID
 from core.src.world.repositories.library_repository import RedisLibraryRepository
 from core.src.world.utils.world_types import Bit, EvaluatedEntity
 

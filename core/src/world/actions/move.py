@@ -9,8 +9,8 @@ from core.src.world.actions.cast import cast_entity
 from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
 from core.src.world.components.pos import PosComponent
-from core.src.world.domain.room import RoomPosition, Room
-from core.src.world.entity import Entity
+from core.src.world.domain.room import RoomPosition
+from core.src.world.domain.entity import Entity
 
 
 def get_broadcast_msg_movement(status, direction):

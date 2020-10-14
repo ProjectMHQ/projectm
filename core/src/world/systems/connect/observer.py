@@ -7,7 +7,7 @@ from core.src.world.actions.getmap import getmap
 from core.src.world.actions.look import look
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
-from core.src.world.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity, EntityID
 from core.src.world.utils.entity_utils import get_base_room_for_entity
 from core.src.world.utils.world_types import Transport
 

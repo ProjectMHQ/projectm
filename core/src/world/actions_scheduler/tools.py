@@ -3,7 +3,7 @@ from functools import wraps
 
 from core.src.world.actions_scheduler.looped_scheduled_actions_factories import LoopedScheduledAction
 from core.src.world.actions_scheduler.scheduled_actions_factories import ScheduledAction, ActionType
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 
 
 def singleton_action(fn):

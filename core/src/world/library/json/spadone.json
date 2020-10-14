@@ -9,7 +9,7 @@
     "weapon": "broadsword"
   },
   "events": {
-    "on_take": [
+    "on_held": [
       {"selfEmit": ["{name} brilla di vita propria"]},
       {"roomEmit": ["{name} impugnato da {entity.name} brilla per un istante, acciecandoti"]},
       {"selfBonus": [{"vol":  5, "time": 30}, {"def":  20, "time":  30}]},

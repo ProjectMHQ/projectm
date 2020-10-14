@@ -1,7 +1,7 @@
 import json
 
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 
 
 async def whoami(entity: Entity):

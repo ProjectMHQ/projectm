@@ -1,6 +1,6 @@
 import typing
 
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 from core.src.world.utils.world_types import TerrainEnum, is_terrain_walkable, EvaluatedEntity
 
 RoomPosition = typing.NamedTuple(

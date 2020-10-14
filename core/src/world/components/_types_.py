@@ -12,6 +12,8 @@ class ComponentTypeEnum(enum.IntEnum):
     POS = 3
     CHARACTER = 4
     WEAPON = 5
-    HAND = 6
+    INVENTORY = 6
     ATTRIBUTES = 7
     INSTANCE_OF = 8
+    PARENT_OF = 9
+    INSTANCE_BY = 10

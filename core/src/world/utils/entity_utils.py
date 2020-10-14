@@ -1,6 +1,6 @@
 import typing
 from core.src.world.components.pos import PosComponent
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 
 
 def get_base_room_for_entity(entity: Entity):

@@ -6,7 +6,7 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
 
 from core.src.world.domain.room import Room
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 
 
 class Area:

@@ -4,7 +4,7 @@ import typing
 from core.src.world.actions.follow import do_follow
 from core.src.world.utils.world_types import Transport
 
-from core.src.world.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity, EntityID
 
 
 class FollowSystemManager:

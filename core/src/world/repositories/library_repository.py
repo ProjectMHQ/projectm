@@ -6,8 +6,9 @@ import aioredis
 import typing
 
 from core.src.world.components import ComponentType
+from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.components.instance_of import InstanceOfComponent
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 
 
 class RedisLibraryRepository:
@@ -104,9 +105,8 @@ class RedisLibraryRepository:
         data = self._local_copy.get(name)
         if not data:
             return
-        #  for k, v in data['components'].items():
-        #      e.set(get_component_by_type(k)(v))
         e.set(InstanceOfComponent(data['alias']))
+        e.set(CreatedAtComponent(int(time.time())))
         return e
 
     def get_libraries(self, pattern: str, offset=0, limit=20):

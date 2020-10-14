@@ -1,4 +1,4 @@
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 from core.src.world.systems.library.service import LibrarySystemService
 
 

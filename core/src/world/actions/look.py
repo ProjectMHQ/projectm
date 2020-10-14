@@ -7,7 +7,7 @@ from core.src.world.actions.utils.utils import DirectionEnum, direction_to_coord
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import get_entity_id_from_raw_data_input, get_index_from_text
 
 

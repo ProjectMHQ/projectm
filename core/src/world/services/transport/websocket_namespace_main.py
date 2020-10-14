@@ -7,7 +7,7 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.character import CharacterComponent
 from core.src.world.components.created_at import CreatedAtComponent
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 
 
 WS_MOTD = """Project M\n"""

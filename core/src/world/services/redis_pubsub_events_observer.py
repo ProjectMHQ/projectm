@@ -4,7 +4,7 @@ from enum import Enum
 import typing
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
-from core.src.world.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity, EntityID
 from core.src.world.services.redis_pubsub_publisher_service import PubSubEventType
 from core.src.world.utils.world_types import Transport
 

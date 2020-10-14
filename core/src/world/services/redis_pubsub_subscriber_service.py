@@ -5,7 +5,7 @@ import typing
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
-from core.src.world.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity, EntityID
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 
 

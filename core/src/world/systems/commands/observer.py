@@ -2,7 +2,7 @@ import typing
 
 from core.src.auth.logging_factory import LOGGER
 from etc import settings
-from core.src.world.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity, EntityID
 from core.src.world.utils.world_types import Transport
 
 

@@ -10,6 +10,7 @@ class ComponentType(metaclass=abc.ABCMeta):
     key = ComponentTypeEnum.NULL.value
     component_type = NotImplementedError
     libname = ''
+    has_default = False
 
     def __init__(self, value):
         self._value = value

@@ -2,7 +2,7 @@ import asyncio
 
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 
 
 async def cast_entity(

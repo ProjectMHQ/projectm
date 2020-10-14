@@ -6,7 +6,7 @@ from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.character import CharacterComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
-from core.src.world.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity, EntityID
 from core.src.world.repositories.data_repository import RedisDataRepository
 from core.src.world.services.system_utils import get_redis_factory, RedisType
 from etc import settings

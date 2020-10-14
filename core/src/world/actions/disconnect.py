@@ -1,7 +1,7 @@
 from core.src.world.actions_scheduler.tools import singleton_action
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
-from core.src.world.entity import Entity
+from core.src.world.domain.entity import Entity
 
 
 @singleton_action

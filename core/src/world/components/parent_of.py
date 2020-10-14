@@ -6,12 +6,11 @@ from core.src.world.components import ComponentType
 from core.src.world.components._types_ import ComponentTypeEnum
 
 
-class AttributesComponent(ComponentType):
-    component_enum = ComponentTypeEnum.ATTRIBUTES
-    key = ComponentTypeEnum.ATTRIBUTES.value
+class ParentOfComponent(ComponentType):
+    component_enum = ComponentTypeEnum.PARENT_OF
+    key = ComponentTypeEnum.PARENT_OF.value
     component_type = dict
-    libname = "attributes"
-    has_default = True
+    libname = "parent_of"
 
     @classmethod
     def from_bytes(cls, data: bytes):
@@ -22,7 +21,7 @@ class AttributesComponent(ComponentType):
         super().__init__(value)
         self._prev_pos = None
         self._component_values = {
-            'name', 'description', 'keyword'
+            'parent_id', 'location'
         }
 
     def __str__(self):
@@ -33,7 +32,7 @@ class AttributesComponent(ComponentType):
         return self._value
 
     @classmethod
-    async def get(cls, entity_id: int, repo=None) -> typing.Optional['AttributesComponent']:
+    async def get(cls, entity_id: int, repo=None) -> typing.Optional['ParentOfComponent']:
         if not repo:
             from core.src.world.builder import world_repository as repo
         return await repo.get_entity_position(entity_id)
@@ -43,13 +42,9 @@ class AttributesComponent(ComponentType):
         return json.dumps(self.value)
 
     @property
-    def name(self):
-        return self._value.get('name')
+    def parent_id(self):
+        return self._value.get('parent_id')
 
     @property
-    def description(self):
-        return self._value.get('description')
-
-    @property
-    def keyword(self):
-        return self._value.get('keyword')
+    def location(self):
+        return self._value.get('location')
