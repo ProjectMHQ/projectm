@@ -26,7 +26,12 @@ def build_public_namespace(sio, world_repository, websocket_channels_service):
         entity = Entity() \
             .set(CharacterComponent(True))\
             .set(CreatedAtComponent(int(time.time()))) \
-            .set(AttributesComponent({"name": payload["name"]}))
+            .set(AttributesComponent(
+                {
+                    "name": payload["name"],
+                    "keyword": "uomo"  # FIXME TODO Race
+                }
+        ))\
 
         entity = await world_repository.save_entity(entity)
         """

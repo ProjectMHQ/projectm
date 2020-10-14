@@ -9,6 +9,7 @@ class PosComponent(ComponentType):
     component_enum = ComponentTypeEnum.POS
     key = ComponentTypeEnum.POS.value
     component_type = list
+    libname = "pos"
 
     def __init__(self, value: (list, tuple)):
         if value != list:

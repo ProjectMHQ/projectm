@@ -1,0 +1,11 @@
+{
+  "alias": "coltello",
+  "components": {
+    "attributes": {
+      "keyword": "coltello",
+      "name": "il coltello del potere",
+      "description": "Con questo coltello potresti skillare, ma non c'è"
+    },
+    "weapon": "knife"
+  }
+}

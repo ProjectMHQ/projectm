@@ -87,14 +87,14 @@ async def look(entity: Entity, *targets):
                 }
             }
         )
-    elif len(targets) == 1 and len(targets[0]) == 1:
+    elif len(targets) == 1 and targets[0] in (x.value for x in DirectionEnum):
         await _handle_direction_look(entity, targets)
-    elif len(targets) <= 2 and len(targets[0]) >= 3:
+    elif len(targets) <= 2:
         await _handle_targeted_look(entity, *targets)
 
 
 async def _handle_direction_look(entity, targets):
-    if targets[0] in ('u, d'):
+    if targets[0] in ('u', 'd'):
         """
         evaluate sight
         """

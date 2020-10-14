@@ -8,6 +8,7 @@ class CharacterComponent(ComponentType):
     component_enum = ComponentTypeEnum.CHARACTER
     key = ComponentTypeEnum.CHARACTER.value
     component_type = bool
+    libname = "character"
 
     def __init__(self, value: bool):
         super().__init__(value)

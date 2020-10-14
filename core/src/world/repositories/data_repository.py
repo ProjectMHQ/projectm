@@ -372,17 +372,18 @@ class RedisDataRepository:
         for entity_id in room.entity_ids:
             if entity_id == entity.entity_id:
                 continue
-            pipeline.hmget(
-                '{}:{}'.format(self._entity_prefix, entity_id),
-                AttributesComponent.key
+            self._get_components_for_entity_fallback_to_default(
+                entity_id,
+                AttributesComponent,
+                pipeline=pipeline
             )
             _exp_res.append(entity_id)
         result = await pipeline.execute()
         for i, _entity_id in enumerate(_exp_res):
             try:
                 attrs = AttributesComponent.from_bytes(result[i][0])
-            except:
-                raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _entity_id))
+            except Exception as e:
+                raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _entity_id)) from e
             evaluated_entity = EvaluatedEntity(
                 name=attrs.name,
                 type=0,
@@ -397,32 +398,34 @@ class RedisDataRepository:
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         _exp_res = []
-        values = (AttributesComponent, )
-        for _entity_id in room.entity_ids:
-            if _entity_id == entity_id:
+        for look_at_entity_id in room.entity_ids:
+            if look_at_entity_id == entity_id:
                 continue
-            pipeline.hmget(
-                '{}:{}'.format(self._entity_prefix, _entity_id),
-                *(x.key for x in values)
+            self._get_components_for_entity_fallback_to_default(
+                look_at_entity_id, AttributesComponent, pipeline=pipeline
             )
-            _exp_res.append(_entity_id)
+            _exp_res.append(look_at_entity_id)
         result = await pipeline.execute()
 
         def _parse_data(res_entry):
-            return [
+            x = [
                 res_entry[0] and literal_eval(res_entry[0].decode()) or ''
             ]
-        return len(values), [
-            {'entity_id': entity_id, 'data': _parse_data(result[i])} for i, entity_id in enumerate(_exp_res)
-        ]
+            return x
+
+        res = [{'entity_id': entity_id, 'data': _parse_data(result[i])} for i, entity_id in enumerate(_exp_res)]
+        return 1, res
 
     async def get_look_components_for_entity_id(self, entity_id):
         redis = await self.async_redis()
-        components = await redis.hmget(
-            '{}:{}'.format(self._entity_prefix, entity_id),
-            AttributesComponent.key,
+        pipeline = redis.pipeline()
+        self._get_components_for_entity_fallback_to_default(
+            entity_id,
+            AttributesComponent,
+            pipeline=pipeline
         )
-        attributes = AttributesComponent.from_bytes(components[0])
+        components = await pipeline.execute()
+        attributes = AttributesComponent.from_bytes(components[0][0])
         return {
             'name': attributes.name,
             'known': True,
@@ -430,3 +433,49 @@ class RedisDataRepository:
             'status': 0,
             'description': attributes.description
         }
+
+    @staticmethod
+    def _get_components_for_entity_fallback_to_default(
+            entity_id, *components, pipeline=None
+    ):
+        assert components
+        keys = ', '.join((str(c.key) for c in components))
+        fallbacks = ', '.join(("'{}'".format(x.libname) for x in components))
+        script = """
+            local keys = {%s}
+            local defaults = {%s}
+            local entity_id = %s
+            local response = {}
+            local missings = {}
+            
+            local function getdefaultpaths(missings)
+              local res = {}
+              for i,v in ipairs(missings) do
+                table.insert(res, defaults[v])
+              end
+              return res
+            end
+            
+            local function getdefaults(missings)
+              if next(missings) == nil then
+               return
+              end
+              local instanceof = redis.call('hget', 'e:' .. entity_id, 9)
+              local data = redis.call('hmget', 'lib:' .. instanceof, unpack(getdefaultpaths(missings)))
+              for i, v in ipairs(missings) do
+                response[v] = data[i]
+              end
+            end
+            
+            local values = redis.call('hmget', 'e:' .. entity_id, unpack(keys)) 
+            for i,v in ipairs(values) do
+             if not v then
+              table.insert(missings, i)
+             else
+              response[i] = v
+             end
+            end
+            getdefaults(missings)
+            return response
+        """ % (keys, fallbacks, entity_id)
+        pipeline.eval(script)

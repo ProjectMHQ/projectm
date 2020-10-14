@@ -9,7 +9,7 @@ async def library(entity: Entity, action: str, *args):
         return
     if action == 'load':
         await system.load('json', args[0])
-    if action == 'reload':
+    elif action == 'reload':
         await system.load('json', args[0], overwrite=True)
     elif action == 'ls':
         await system.ls(args and args[0] or '*')

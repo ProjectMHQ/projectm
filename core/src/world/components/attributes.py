@@ -10,6 +10,7 @@ class AttributesComponent(ComponentType):
     component_enum = ComponentTypeEnum.ATTRIBUTES
     key = ComponentTypeEnum.ATTRIBUTES.value
     component_type = dict
+    libname = "attributes"
 
     @classmethod
     def from_bytes(cls, data: bytes):

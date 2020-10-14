@@ -8,6 +8,7 @@ class CreatedAtComponent(ComponentType):
     component_enum = ComponentTypeEnum.CREATED_AT
     key = ComponentTypeEnum.CREATED_AT.value
     component_type = int
+    libname = "created_at"
 
     def __init__(self, value: int):
         super().__init__(value)

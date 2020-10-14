@@ -15,6 +15,7 @@ class WeaponComponent(ComponentType):
     component_enum = ComponentTypeEnum.WEAPON
     key = ComponentTypeEnum.WEAPON.value
     component_type = str
+    libname = "weapon"
 
     def __init__(self, value: str):
         super().__init__(WeaponType(value).value)

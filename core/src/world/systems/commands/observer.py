@@ -1,4 +1,6 @@
 import typing
+
+from core.src.auth.logging_factory import LOGGER
 from etc import settings
 from core.src.world.entity import Entity, EntityID
 from core.src.world.utils.world_types import Transport
@@ -34,6 +36,9 @@ class CommandsObserver:
             if settings.RUNNING_TESTS:
                 raise
             await self._on_error(message, "Command error: %s" % str(exc))
+        except Exception as exc:
+            LOGGER.core.exception('Unhandled exception %s', exc)
+            print(exc)
 
     def _on_error(self, message, error):
         return self.transport.send_system_event(namespace=message['n'], payload={"event": "cmd", "error": error})

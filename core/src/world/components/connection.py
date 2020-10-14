@@ -8,6 +8,7 @@ class ConnectionComponent(ComponentType):
     component_enum = ComponentTypeEnum.CONNECTION
     key = ComponentTypeEnum.CONNECTION.value
     component_type = str
+    libname = "connection"
 
     def __init__(self, value: str):
         super().__init__(value)

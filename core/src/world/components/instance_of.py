@@ -8,6 +8,7 @@ class InstanceOfComponent(ComponentType):
     component_enum = ComponentTypeEnum.INSTANCE_OF
     key = ComponentTypeEnum.INSTANCE_OF.value
     component_type = str
+    libname = "instance_of"
 
     def __init__(self, value: str):
         super().__init__(value)
