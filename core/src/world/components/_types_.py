@@ -8,11 +8,10 @@ class ComponentTypeEnum(enum.IntEnum):
     """
     NULL = 0
     CREATED_AT = 1
-    NAME = 2
-    CONNECTION = 3
-    POS = 4
-    CHARACTER = 5
-    WEAPON = 6
-    HAND = 7
-    ATTRIBUTES = 8
-    INSTANCE_OF = 9
+    CONNECTION = 2
+    POS = 3
+    CHARACTER = 4
+    WEAPON = 5
+    HAND = 6
+    ATTRIBUTES = 7
+    INSTANCE_OF = 8

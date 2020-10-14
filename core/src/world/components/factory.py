@@ -1,4 +1,4 @@
-from core.src.world.components import ComponentType
+from core.src.world.components import ComponentType, ComponentTypeEnum
 
 
 def get_component_by_type(component_type_string) -> ComponentType:
@@ -18,3 +18,15 @@ def get_component_by_type(component_type_string) -> ComponentType:
         'pos': PosComponent,
         'weapon': WeaponComponent,
     }[component_type_string]
+
+
+def get_component_alias_by_enum_value(enum_value: ComponentTypeEnum):
+    return {
+        ComponentTypeEnum.ATTRIBUTES: 'attributes',
+        ComponentTypeEnum.CHARACTER: 'character',
+        ComponentTypeEnum.CONNECTION: 'connection',
+        ComponentTypeEnum.CREATED_AT: 'created_at',
+        ComponentTypeEnum.INSTANCE_OF: 'instance_of',
+        ComponentTypeEnum.POS: 'pos',
+        ComponentTypeEnum.WEAPON: 'weapon'
+    }[enum_value]

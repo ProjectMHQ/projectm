@@ -9,16 +9,21 @@ import os
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.components.attributes import AttributesComponent
+from core.src.world.components.connection import ConnectionComponent
+from core.src.world.components.factory import get_component_alias_by_enum_value
+from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.room import Room
 from core.src.world.entity import Entity, EntityID
+from core.src.world.repositories.library_repository import RedisLibraryRepository
 from core.src.world.utils.world_types import Bit, EvaluatedEntity
 
 
 class RedisDataRepository:
-    def __init__(self, async_redis_factory):
+    def __init__(self, async_redis_factory, library_repository: RedisLibraryRepository):
         self._async_redis_factory = async_redis_factory
+        self.library_repository = library_repository
         self._entity_prefix = 'e'
         self._component_prefix = 'c'
         self._map_suffix = 'm'
@@ -159,13 +164,22 @@ class RedisDataRepository:
         LOGGER.core.debug('EntityRepository.update_entity_components, response: %s', response)
         return response
 
-    async def get_component_value_by_entity_id(self, entity_id: int, component: typing.Type[ComponentType]):
+    async def get_component_value_by_entity_id(self, entity_id: int, component: typing.Type[ComponentType])\
+             -> typing.Optional[ComponentType]:
         redis = await self.async_redis()
-        res = await redis.hget(
+        res = await redis.hmget(
             '{}:{}'.format(self._entity_prefix, entity_id),
-            component.key
+            InstanceOfComponent.key, component.key
         )
-        return res and component(component.cast_type(res))
+        if not res:
+            return
+        if not res[1]:
+            if component in (PosComponent, ConnectionComponent):
+                # Fixme
+                return
+
+            return self.library_repository.get_defaults_for_library_element(res[0].decode(), component)
+        return res and component(component.cast_type(res[1]))
 
     async def get_components_values_by_entities(
             self,
@@ -186,9 +200,18 @@ class RedisDataRepository:
         pipeline = redis.pipeline()
         for entity_id in entity_ids:
             key = '{}:{}'.format(self._entity_prefix, entity_id)
-            pipeline.hget(key, component.key)
+            pipeline.hmget(key, InstanceOfComponent.key, component.key)
         results = await pipeline.execute()
-        return (x.decode() for x in results if x)
+        response = []
+        for result in results:
+            if result[1]:
+                response.append(result[1].decode())
+            else:
+                v = self.library_repository.get_defaults_for_library_element(
+                    result[0].decode(), component
+                )
+                response.append(v and v.value or v)
+        return response
 
     async def get_components_values_by_components(
             self,
@@ -275,23 +298,48 @@ class RedisDataRepository:
                 if all(status_and_querable)
             ]
             if keys:
-                pipeline.hmget('{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix), *keys)
-        response = await pipeline.execute()
+                pipeline.hget(
+                    '{}:{}:{}'.format(self._component_prefix, InstanceOfComponent.key, self._data_suffix),
+                    *keys
+                )
+                pipeline.hmget(
+                    '{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix),
+                    *keys
+                )
+        entities_instance_of = []
+        response = []
+        redis_response = await pipeline.execute()
+
+        for i, element in enumerate(redis_response):
+            if not i % 2:
+                entities_instance_of.append(element)
+            else:
+                response.append(element)
         data = {}
         i = 0
         for c_key, value in filtered_query.items():
             e_i = 0
             for entity_id, status in value.items():
                 if not status[1]:
+                    value = status[0] or self.library_repository.get_defaults_for_library_element(
+                        entities_instance_of[i].decode(),
+                        get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                    )
+                    value = value.value if (not status[0] and value) else value
                     try:
-                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): status[0] or None})
+                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): value})
                     except KeyError:
-                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): status[0] or None}
+                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): value}
                 elif all(status):
+                    value = response[i][e_i] or self.library_repository.get_defaults_for_library_element(
+                        entities_instance_of[i].decode(),
+                        get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                    )
+                    value = value.value if (not response[i][e_i] and value) else value
                     try:
-                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): response[i][e_i]})
+                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): value})
                     except KeyError:
-                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): response[i][e_i]}
+                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): value}
                     except IndexError:
                         raise
                     e_i += 1
@@ -302,25 +350,34 @@ class RedisDataRepository:
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         for entity_id, value in filtered_query.items():
-            keys = [comp_key for comp_key, status_and_querable in value.items() if all(status_and_querable)]
-            if keys:
-                pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
+            keys = [InstanceOfComponent.key] + [
+                comp_key for comp_key, status_and_querable in value.items() if all(status_and_querable)
+            ]
+            pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
         response = await pipeline.execute()
         data = {}
         i = 0
         for entity_id, value in filtered_query.items():
-            c_i = 0
+            c_i = 1   # 1-based cause the element 0 is InstanceOf
             for c_key, status in value.items():
                 if not status[1]:
+                    value = status[0] or self.library_repository.get_defaults_for_library_element(
+                        response[i][0].decode(), get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                    )
+                    value = value.value if (not status[0] and value) else value
                     try:
-                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): status[0] or None})
+                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): value})
                     except KeyError:
-                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): status[0] or None}
+                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): value}
                 elif all(status):
+                    value = response[i][c_i] or self.library_repository.get_defaults_for_library_element(
+                        response[i][0].decode(), get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                    )
+                    value = value.value if (not response[i][c_i] and value) else value
                     try:
-                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): response[i][c_i]})
+                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): value})
                     except KeyError:
-                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): response[i][c_i]}
+                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): value}
                     c_i += 1
             i += 1
         return data
@@ -334,11 +391,16 @@ class RedisDataRepository:
         for entity_id in entity_ids:
             pipeline.hmget(
                 '{}:{}'.format(self._entity_prefix, entity_id),
-                AttributesComponent.key,
+                InstanceOfComponent.key, AttributesComponent.key,
             )
         data = await pipeline.execute()
         for i, el in enumerate(data):
-            attrs = AttributesComponent.from_bytes(el[0])
+            if el[1]:
+                attrs = AttributesComponent.from_bytes(el[1])
+            else:
+                attrs = self.library_repository.get_defaults_for_library_element(
+                    el[0].decode(), AttributesComponent
+                )
             result.append(
                 EvaluatedEntity(
                     name=attrs.name,
@@ -352,6 +414,7 @@ class RedisDataRepository:
         return result
 
     async def populate_area_content_for_area(self, entity: Entity, area: Area) -> None:
+        # TODO FIXME
         for _room in area.rooms:
             if _room:
                 for _entity_id in _room.entity_ids:
@@ -372,16 +435,20 @@ class RedisDataRepository:
         for entity_id in room.entity_ids:
             if entity_id == entity.entity_id:
                 continue
-            self._get_components_for_entity_fallback_to_default(
-                entity_id,
-                AttributesComponent,
-                pipeline=pipeline
+            pipeline.hmget(
+                '{}:{}'.format(self._entity_prefix, entity_id),
+                InstanceOfComponent.key, AttributesComponent.key
             )
             _exp_res.append(entity_id)
         result = await pipeline.execute()
         for i, _entity_id in enumerate(_exp_res):
             try:
-                attrs = AttributesComponent.from_bytes(result[i][0])
+                if result[i][1]:
+                    attrs = AttributesComponent.from_bytes(result[i][1])
+                else:
+                    attrs = self.library_repository.get_defaults_for_library_element(
+                        result[i][0].decode(), AttributesComponent
+                    )
             except Exception as e:
                 raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _entity_id)) from e
             evaluated_entity = EvaluatedEntity(
@@ -401,31 +468,39 @@ class RedisDataRepository:
         for look_at_entity_id in room.entity_ids:
             if look_at_entity_id == entity_id:
                 continue
-            self._get_components_for_entity_fallback_to_default(
-                look_at_entity_id, AttributesComponent, pipeline=pipeline
+            pipeline.hmget(
+                '{}:{}'.format(self._entity_prefix, look_at_entity_id),
+                InstanceOfComponent.key, AttributesComponent.key
             )
             _exp_res.append(look_at_entity_id)
         result = await pipeline.execute()
 
         def _parse_data(res_entry):
-            x = [
-                res_entry[0] and literal_eval(res_entry[0].decode()) or ''
-            ]
-            return x
-
+            if res_entry[1]:
+                return [
+                    res_entry[1] and literal_eval(res_entry[1].decode()) or {}
+                ]
+            else:
+                return [
+                    self.library_repository.get_defaults_for_library_element(
+                        res_entry[0].decode(), AttributesComponent
+                    ).value
+                ]
         res = [{'entity_id': entity_id, 'data': _parse_data(result[i])} for i, entity_id in enumerate(_exp_res)]
         return 1, res
 
     async def get_look_components_for_entity_id(self, entity_id):
         redis = await self.async_redis()
-        pipeline = redis.pipeline()
-        self._get_components_for_entity_fallback_to_default(
-            entity_id,
-            AttributesComponent,
-            pipeline=pipeline
+        data = await redis.hmget(
+            '{}:{}'.format(self._entity_prefix, entity_id),
+            InstanceOfComponent.key, AttributesComponent.key
         )
-        components = await pipeline.execute()
-        attributes = AttributesComponent.from_bytes(components[0][0])
+        if not data[1]:
+            attributes = self.library_repository.get_defaults_for_library_element(
+                data[0].decode(), AttributesComponent
+            )
+        else:
+            attributes = AttributesComponent.from_bytes(data[1])
         return {
             'name': attributes.name,
             'known': True,
@@ -433,49 +508,3 @@ class RedisDataRepository:
             'status': 0,
             'description': attributes.description
         }
-
-    @staticmethod
-    def _get_components_for_entity_fallback_to_default(
-            entity_id, *components, pipeline=None
-    ):
-        assert components
-        keys = ', '.join((str(c.key) for c in components))
-        fallbacks = ', '.join(("'{}'".format(x.libname) for x in components))
-        script = """
-            local keys = {%s}
-            local defaults = {%s}
-            local entity_id = %s
-            local response = {}
-            local missings = {}
-            
-            local function getdefaultpaths(missings)
-              local res = {}
-              for i,v in ipairs(missings) do
-                table.insert(res, defaults[v])
-              end
-              return res
-            end
-            
-            local function getdefaults(missings)
-              if next(missings) == nil then
-               return
-              end
-              local instanceof = redis.call('hget', 'e:' .. entity_id, 9)
-              local data = redis.call('hmget', 'lib:' .. instanceof, unpack(getdefaultpaths(missings)))
-              for i, v in ipairs(missings) do
-                response[v] = data[i]
-              end
-            end
-            
-            local values = redis.call('hmget', 'e:' .. entity_id, unpack(keys)) 
-            for i,v in ipairs(values) do
-             if not v then
-              table.insert(missings, i)
-             else
-              response[i] = v
-             end
-            end
-            getdefaults(missings)
-            return response
-        """ % (keys, fallbacks, entity_id)
-        pipeline.eval(script)

@@ -5,7 +5,7 @@ import time
 import aioredis
 import typing
 
-from core.src.world.components.factory import get_component_by_type
+from core.src.world.components import ComponentType
 from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.entity import Entity
 
@@ -104,8 +104,8 @@ class RedisLibraryRepository:
         data = self._local_copy.get(name)
         if not data:
             return
-        for k, v in data['components'].items():
-            e.set(get_component_by_type(k)(v))
+        #  for k, v in data['components'].items():
+        #      e.set(get_component_by_type(k)(v))
         e.set(InstanceOfComponent(data['alias']))
         return e
 
@@ -128,3 +128,8 @@ class RedisLibraryRepository:
             if len(res) == limit:
                 break
         return res
+
+    def get_defaults_for_library_element(self, name: str, component: typing.Type[ComponentType]) -> ComponentType:
+        assert name
+        val = self._local_copy.get(name, {'components': {}})['components'].get(component.libname)
+        return val and component(val)
