@@ -17,7 +17,7 @@ class ParentOfComponent(ComponentType):
         assert data
         return cls(literal_eval(data.decode()))
 
-    def __init__(self, value: dict):
+    def __init__(self, value: dict = None):
         super().__init__(value)
         self._prev_pos = None
         self._component_values = {

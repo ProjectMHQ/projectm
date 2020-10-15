@@ -10,6 +10,7 @@ class InventoryComponent(ComponentType):
     key = ComponentTypeEnum.INVENTORY.value
     component_type = list
     libname = "inventory"
+    subtype = int
 
     def __init__(self, value: (list, tuple) = None):
         self._to_remove = []
@@ -19,6 +20,8 @@ class InventoryComponent(ComponentType):
                 value = []
             value = list(value)
         super().__init__(value)
+        self._populated = []
+        self._raw_populated = []
 
     def __str__(self):
         return ', '.join(self._value)
@@ -41,10 +44,14 @@ class InventoryComponent(ComponentType):
         return tuple(self.value)
 
     def add(self, *entity_ids):
+        for x in entity_ids:
+            assert isinstance(x, int)
         self._to_add.extend(list(entity_ids))
         return self
 
     def remove(self, *entity_ids):
+        for x in entity_ids:
+            assert isinstance(x, int)
         self._to_remove.extend(list(entity_ids))
         return self
 
@@ -59,3 +66,32 @@ class InventoryComponent(ComponentType):
     @property
     def to_remove(self):
         return self._to_remove or []
+
+    async def populate(self, *components, repo=None):
+        from core.src.world.domain.entity import Entity
+        if not repo:
+            from core.src.world.builder import world_repository
+            repo = world_repository
+        data = await repo.get_components_values_by_entities([Entity(x) for x in self.content], list(components))
+        self._raw_populated = data
+        self._populated = [data[x] for x in self.content]
+        return self
+
+    def get_items_from_attributes(self, key: str, value: str):
+        from core.src.world.components.attributes import AttributesComponent
+        from core.src.world.domain.entity import Entity
+        if '*' not in key:
+            for i, v in enumerate(self._populated):
+                if v[AttributesComponent.component_enum][key].startswith(value):
+                    return [Entity(entity_id=self.content[i])]
+        return []
+
+    def get_item_component(self, entity_id: int, component: typing.Type[ComponentType]):
+        return component(self._raw_populated[entity_id][component.component_enum])
+
+    def is_active(self):
+        return True
+
+    @classmethod
+    def from_bytes(cls, value: bytes):
+        return value and cls(json.loads(value)) or []

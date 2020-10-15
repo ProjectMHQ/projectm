@@ -1,5 +1,5 @@
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.components._types_ import COLLECTIBLE_COMPONENTS
+from core.src.world.components.factory import COLLECTIBLE_COMPONENTS
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.parent_of import ParentOfComponent
@@ -81,8 +81,10 @@ async def pick(entity: Entity, *targets):
             return
 
         e = Entity(entity_id)
-        e.set(PosComponent()).set(ParentOfComponent(entity.entity_id))
+        e.set(PosComponent().add_previous_position(pos))\
+            .set(ParentOfComponent(entity.entity_id))
         entity.set(InventoryComponent().add(entity_id))
+        await world_repository.update_entities(e, entity)
 
         action = {'action': 'pick'}
         await events_publisher_service.on_entity_do_public_action(entity, pos, action, entity_id)

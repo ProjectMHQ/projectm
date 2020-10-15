@@ -1,6 +1,7 @@
 import abc
 import json
 import typing
+from ast import literal_eval
 
 from core.src.world.components._types_ import ComponentTypeEnum
 
@@ -11,6 +12,7 @@ class ComponentType(metaclass=abc.ABCMeta):
     component_type = NotImplementedError
     libname = ''
     has_default = False
+    subtype = None
 
     def __init__(self, value):
         self._value = value
@@ -49,15 +51,27 @@ class ComponentType(metaclass=abc.ABCMeta):
         return False
 
     @classmethod
-    def cast_type(cls, data: bytes):
+    def cast_type(cls, data):
         if cls.component_type == str:
+            if isinstance(data, str):
+                return data
             return data and data.decode() or None
         elif cls.component_type == bool:
+            if isinstance(data, bool):
+                return data
             return bool(data)
         elif cls.component_type == list:
-            return data and json.loads(data.decode()) or None
+            if isinstance(data, list):
+                x = data
+            else:
+                x = data and literal_eval(data.decode()) or None
+            if cls.subtype is not None:
+                return x and [cls.subtype(y) for y in x]
+            return x
         elif cls.component_type == dict:
-            return data and json.loads(data.decode()) or None
+            if isinstance(data, dict):
+                return data
+            return data and literal_eval(data.decode()) or None
         return data is not None and cls.component_type(data)
 
     @property

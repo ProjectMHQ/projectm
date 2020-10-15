@@ -13,7 +13,9 @@ class PosComponent(ComponentType):
     libname = "pos"
 
     def __init__(self, value: (list, tuple) = None):
-        if value != list:
+        if value is None:
+            value = value
+        elif value != list:
             value = list(value)
             if len(value) == 2:
                 value.append(0)
@@ -68,7 +70,8 @@ class PosComponent(ComponentType):
         instance = value and cls(literal_eval(value.decode()))
         return instance
 
-    def is_array(self):
+    @classmethod
+    def is_array(cls):
         """
         Important, override this value because PosComponent is not treated as a normal array component.
         It MUST stay disabled.

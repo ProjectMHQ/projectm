@@ -104,21 +104,25 @@ class RedisDataRepository:
                 )
                 if c.is_array():
                     payload = []
-                    for x in c.to_add:
-                        payload.extend([0, x])
-                    pipeline.zadd(
-                        '{}:{}:{}:{}'.format(self._component_prefix, c.key, self._zset_suffix, entity.entity_id),
-                        *payload
-                    )
+                    if c.to_add:
+                        for x in c.to_add:
+                            payload.extend([0, x])
+                        pipeline.zadd(
+                            '{}:{}:{}:{}'.format(self._component_prefix, c.key, self._zset_suffix, entity.entity_id),
+                            *payload
+                        )
                     c.to_remove and pipeline.zrem(
                         '{}:{}:{}:{}'.format(self._component_prefix, c.key, self._zset_suffix, entity.entity_id),
                         *c.to_remove
                     )
-                    _ent_v = {c.key: c.serialized}
-                    try:
-                        entities_updates[entity.entity_id].update(_ent_v)
-                    except KeyError:
-                        entities_updates[entity.entity_id] = _ent_v
+                    # ---- It is not convenient to store arrays into entity Hashmaps.
+                    # ---- Code Disabled
+                    #_ent_v = {c.key: c.serialized}
+                    #try:
+                    #    entities_updates[entity.entity_id].update(_ent_v)
+                    #except KeyError:
+                    #    entities_updates[entity.entity_id] = _ent_v
+                    # ----
 
                 elif c.has_data() and not c.has_operation() and c.has_value():
                     LOGGER.core.debug('Absolute value, component data set')
@@ -227,6 +231,9 @@ class RedisDataRepository:
             entities: typing.List[Entity],
             components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[EntityID, typing.Dict[ComponentTypeEnum, bytes]]:
+        for component in components:
+            assert not component.is_array(), 'At the moment is not possible to use this API with array components'
+
         _bits_statuses = await self._get_components_statuses_by_entities(entities, components)
         _filtered = await self._get_components_values_from_entities_storage(_bits_statuses)
         return {
@@ -237,6 +244,7 @@ class RedisDataRepository:
 
     async def get_raw_component_value_by_entity_ids(
             self, component, *entity_ids: int):
+        assert not component.is_array(), 'At the moment is not possible to use this API with array components'
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         for entity_id in entity_ids:
@@ -361,13 +369,13 @@ class RedisDataRepository:
         response = []
         arrays = {}
         redis_response = await pipeline.execute()
+        i = 0
         for c_key in filtered_query:
             entity_ids = [
                 ent_id for ent_id, status_and_querable in filtered_query[c_key].items()
                 if all(status_and_querable)
             ]
             if entity_ids:
-                i = 0
                 for _ in entity_ids:
                     entities_instance_of.append(redis_response[i])
                     i += 1
@@ -375,8 +383,10 @@ class RedisDataRepository:
                 if comp.is_array():
                     for eid in entity_ids:
                         arrays['{}.{}'.format(eid, c_key)] = redis_response[i]
+                        i += 1
                 else:
                     response.append(redis_response[i])
+                    i += 1
         data = {}
         i = 0
         for c_key, value in filtered_query.items():
@@ -399,14 +409,13 @@ class RedisDataRepository:
                 elif all(status):
                     if component.is_array():
                         if component.has_default:
-                            value = arrays['{}.{}'.format(e_i, component.key)] or \
-                                    self.library_repository.get_defaults_for_library_element(
+                            value = arrays['{}.{}'.format(e_i, component.key)]
+                            value = value or self.library_repository.get_defaults_for_library_element(
                                         entities_instance_of[i].decode(),
                                         get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
-                                    )
-                            value = value.value if (not response[i][e_i] and value) else value
+                                    ).value
                         else:
-                            value = arrays['{}.{}'.format(e_i, component.key)]
+                            value = arrays['{}.{}'.format(entity_id, component.key)]
                     else:
                         if component.has_default:
                             value = response[i][e_i] or self.library_repository.get_defaults_for_library_element(
@@ -422,7 +431,7 @@ class RedisDataRepository:
                         data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): value}
                     except IndexError:
                         raise
-                    e_i += 1
+                e_i += 1
             i += 1
         return data
 
@@ -433,6 +442,8 @@ class RedisDataRepository:
         for entity_id, value in filtered_query.items():
             for comp_key, status_and_querable in value.items():
                 components[comp_key] = components.get(comp_key, get_component_by_enum_value(comp_key))
+                assert not components[comp_key].is_array(), \
+                    'At the moment is not possible to use this API with array components'
                 if all(status_and_querable):
                     keys = [InstanceOfComponent.key] + [
                         comp_key for comp_key, status_and_querable in value.items() if all(status_and_querable)
@@ -460,7 +471,7 @@ class RedisDataRepository:
                 elif all(status):
                     if component.has_default:
                         value = response[i][c_i] or self.library_repository.get_defaults_for_library_element(
-                            response[i][0].decode(), get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                            response[i][0].decode(), get_component_by_enum_value(ComponentTypeEnum(c_key))
                         )
                         value = value.value if (not response[i][c_i] and value) else value
                     else:
@@ -629,5 +640,5 @@ class RedisDataRepository:
         pipeline = redis.pipeline()
         for component in components:
             pipeline.getbit('{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix), entity_id)
-        result = pipeline.execute()
+        result = await pipeline.execute()
         return [bool(x) for x in result]
