@@ -34,8 +34,11 @@ class RedisLUAPipeline:
     def allocate_value(self):
         self.value += "local value = "
 
-    def add_if(self, expected_value, value_selector=""):
+    def add_if_equal(self, expected_value, value_selector=""):
         self.value += "if value{} != {} then\nreturn 0\nend".format(expected_value, value_selector)
+
+    def hget(self, key, value):
+        self.value += "redis.call('hget', '{}', '{}')\n".format(key, value)
 
     def setbit(self, key, bit, value):
         self.value += "redis.call('setbit', '{}', {}, {})\n".format(key, bit, value)
@@ -59,7 +62,7 @@ class RedisLUAPipeline:
         self.value += "redis.call('hmset', '{}', {})\n".format(key, values)
 
     def hdel(self, key, value):
-        self.value += "redis.call('hdel', {}, {}\n".format(key, value)
+        self.value += "redis.call('hdel', '{}', '{}')\n".format(key, value)
 
     def return_exit(self):
         self.value += "return 1"
