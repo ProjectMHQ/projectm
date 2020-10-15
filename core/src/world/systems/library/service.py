@@ -31,8 +31,8 @@ class LibrarySystemService:
             await self.entity.emit_msg(('Library {} {}'.format(alias, 'reloaded' if overwrite else 'loaded')))
 
     async def ls(self, pattern: str, offset: int = 0, limit: int = 20):
-        data = await self.repository.get_libraries(pattern, offset=offset, limit=limit)
-        data and await self.entity.emit_msg(data)
+        data = self.repository.get_libraries(pattern, offset=offset, limit=limit)
+        await self.entity.emit_msg(data)
 
     async def _import_json_library(self, alias):
         try:
