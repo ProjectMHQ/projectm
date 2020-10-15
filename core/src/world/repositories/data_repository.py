@@ -175,25 +175,44 @@ class RedisDataRepository:
         LOGGER.core.debug('EntityRepository.update_entity_components, response: %s', response)
         return response
 
-    async def get_component_value_by_entity_id(self, entity_id: int, component: typing.Type[ComponentType])\
-             -> typing.Optional[ComponentType]:
+    async def get_component_value_by_entity_id(
+            self, entity_id: int, component: typing.Type[ComponentType]
+    ) -> typing.Optional[ComponentType]:
         redis = await self.async_redis()
-        res = await redis.hmget(
-            '{}:{}'.format(self._entity_prefix, entity_id),
-            InstanceOfComponent.key, component.key
-        )
-        if not res:
-            return
-        if not res[1]:
+        if component.component_type == bool:
+            pipeline = redis.pipeline()
+            pipeline.getbit(
+                '{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix),
+                entity_id
+            )
+            if component.has_default:
+                pipeline.hget('{}:{}'.format(self._entity_prefix, entity_id), InstanceOfComponent.key)
+            else:
+                instance_of_value = None
+            res = await pipeline.execute()
+            if not res:
+                return
+            component_value = res[0]
+            if component.has_default:
+                instance_of_value = res[1]
+        else:
+            res = await redis.hmget(
+                '{}:{}'.format(self._entity_prefix, entity_id),
+                InstanceOfComponent.key, component.key
+            )
+            if not res:
+                return
+            instance_of_value, component_value = res
+        if not component_value:
             if component in (PosComponent, ConnectionComponent):
                 # Fixme
                 return
-            if not res[0]:
+            if not instance_of_value:
                 # Todo - Remove once all the entities are fixed with a proper InstanceOf
                 LOGGER.core.error('Entity id {} has not InstanceOfComponent'.format(entity_id))
                 return
-            return self.library_repository.get_defaults_for_library_element(res[0].decode(), component)
-        return res and component(component.cast_type(res[1]))
+            return self.library_repository.get_defaults_for_library_element(instance_of_value.decode(), component)
+        return res and component(component.cast_type(component_value))
 
     async def get_components_values_by_entities(
             self,
@@ -447,8 +466,6 @@ class RedisDataRepository:
         pipeline = redis.pipeline()
         _exp_res = []
         for entity_id in room.entity_ids:
-            if entity_id == entity.entity_id:
-                continue
             pipeline.hmget(
                 '{}:{}'.format(self._entity_prefix, entity_id),
                 InstanceOfComponent.key, AttributesComponent.key

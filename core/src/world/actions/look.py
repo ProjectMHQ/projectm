@@ -147,13 +147,16 @@ async def _handle_targeted_look(entity, *targets):
     try:
         await room.populate_room_content_for_look(entity)
         totals, raw_room_content = await world_repository.get_raw_content_for_room_interaction(entity.entity_id, room)
-        raw_room_content = itertools.chain(
-            raw_room_content,
-            (x for x in [
-                {'entity_id': entity.entity_id, 'data': [attrs_value, *('' for _ in range(1, totals))]}]
-             )
+        personal_data = [
+            {
+                'entity_id': entity.entity_id, 'data': [attrs_value, *('' for _ in range(1, totals))]
+            },
+            {
+                'entity_id': entity.entity_id, 'data': [{'keyword': attrs_value['name']}]
+            },
+        ]
 
-        )
+        raw_room_content = itertools.chain(raw_room_content, personal_data)
         index, target = get_index_from_text(targets[0])
         entity_id = get_entity_id_from_raw_data_input(target, totals, raw_room_content, index=index)
         if not entity_id:

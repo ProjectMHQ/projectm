@@ -1,3 +1,4 @@
+from core.src.world.components.character import CharacterComponent
 from core.src.world.components.instance_by import InstanceByComponent
 from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.components.pos import PosComponent
@@ -41,9 +42,13 @@ async def _create_instance(entity: Entity, parent_alias: str, *args):
 
 async def _destroy_instance(entity: Entity, parent_alias: str, entity_id_to_delete: int, force=False):
     from core.src.world.builder import world_repository
-    instance_of = await world_repository.get_component_value_by_entity_id(entity_id_to_delete, InstanceOfComponent)
     if not await world_repository.entity_exists(entity_id_to_delete):
         await entity.emit_msg('Entity does not exists, use cleanup (bug)')
+        return
+    instance_of = await world_repository.get_component_value_by_entity_id(entity_id_to_delete, InstanceOfComponent)
+    is_character = await world_repository.get_component_value_by_entity_id(entity_id_to_delete, CharacterComponent)
+    if is_character:
+        await entity.emit_msg('Cannot destroy characters with this command')
         return
     if force != '--force':
         if instance_of and (parent_alias != instance_of.value):
