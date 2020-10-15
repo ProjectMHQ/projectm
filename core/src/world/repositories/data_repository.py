@@ -21,6 +21,54 @@ from core.src.world.repositories.map_repository import RedisMapRepository
 from core.src.world.utils.world_types import Bit, EvaluatedEntity
 
 
+class RedisLUAPipeline:
+    """
+    A "Value Bounded" pipeline reimplementation of the Redis Pipeline component.
+    It produces a LUA script to use a Pipeline while adding conditions to be verified before the execution.
+    Something like a SELECT FOR UPDATE.
+    """
+    def __init__(self, redis):
+        self.value = ""
+        self.redis = redis
+
+    def allocate_value(self):
+        self.value += "local value = "
+
+    def add_if(self, expected_value, value_selector=""):
+        self.value += "if value{} != {} then\nreturn 0\nend".format(expected_value, value_selector)
+
+    def setbit(self, key, bit, value):
+        self.value += "redis.call('setbit', '{}', {}, {})\n".format(key, bit, value)
+
+    def zadd(self, key, *payload):
+        ppload = ", ".join(["'{}'".format(str(p)) for p in payload])
+        self.value += "redis.call('zadd', '{}', {})\n".format(key, ppload)
+
+    def zrem(self, key, *payload):
+        ppload = ", ".join(["'{}'".format(str(p)) for p in payload])
+        self.value += "redis.call('zrem', '{}', {})\n".format(key, ppload)
+
+    def hincrby(self, key, entity_id, value):
+        self.value += "redis.call('hincrby', {}, {}, {})\n".format(key, entity_id, value)
+
+    def hmset_dict(self, key, value):
+        values = ""
+        for k, v in value.items():
+            values += "'{}', '{}',".format(k, v)
+        values = values.rstrip(',')
+        self.value += "redis.call('hmset', '{}', {})\n".format(key, values)
+
+    def hdel(self, key, value):
+        self.value += "redis.call('hdel', {}, {}\n".format(key, value)
+
+    def return_exit(self):
+        self.value += "return 1"
+
+    async def execute(self):
+        self.return_exit()
+        return await self.redis.eval(self.value)
+
+
 class RedisDataRepository:
     def __init__(
             self,
@@ -87,8 +135,11 @@ class RedisDataRepository:
         return entity
 
     async def update_entities(self, *entities: Entity) -> Entity:
+        """
+        This must be the only writing point of the entire ECS.
+        """
         redis = await self.async_redis()
-        pipeline = redis.pipeline()
+        pipeline = RedisLUAPipeline(redis)
         entities_updates = {}
         components_updates = {}
         deletions_by_component = {}
@@ -98,6 +149,7 @@ class RedisDataRepository:
             for c in entity.pending_changes.values():
                 if c.component_enum == ComponentTypeEnum.POS:
                     self.map_repository.update_map_position_for_entity(c, entity, pipeline)
+            for c in entity.pending_changes.values():
                 pipeline.setbit(
                     '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
                     entity.entity_id, Bit.ON.value if c.is_active() else Bit.OFF.value
@@ -115,14 +167,6 @@ class RedisDataRepository:
                         '{}:{}:{}:{}'.format(self._component_prefix, c.key, self._zset_suffix, entity.entity_id),
                         *c.to_remove
                     )
-                    # ---- It is not convenient to store arrays into entity Hashmaps.
-                    # ---- Code Disabled
-                    #_ent_v = {c.key: c.serialized}
-                    #try:
-                    #    entities_updates[entity.entity_id].update(_ent_v)
-                    #except KeyError:
-                    #    entities_updates[entity.entity_id] = _ent_v
-                    # ----
 
                 elif c.has_data() and not c.has_operation() and c.has_value():
                     LOGGER.core.debug('Absolute value, component data set')
