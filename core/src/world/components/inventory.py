@@ -12,6 +12,8 @@ class InventoryComponent(ComponentType):
     libname = "inventory"
 
     def __init__(self, value: (list, tuple)):
+        self._to_remove = []
+        self._to_add = []
         if value != list:
             value = list(value)
         super().__init__(value)
@@ -35,3 +37,15 @@ class InventoryComponent(ComponentType):
 
     def as_tuple(self):
         return tuple(self.value)
+
+    def add(self, *entity_ids):
+        self._to_add.extend(list(entity_ids))
+        return self
+
+    def remove(self, *entity_ids):
+        self._to_remove.extend(list(entity_ids))
+        return self
+
+    @property
+    def content(self):
+        return self._value

@@ -207,6 +207,9 @@ class RedisMapRepository:
                 )
         return response
 
-    async def remove_entity_from_map(self, entity_id: int, position: PosComponent):
+    async def remove_entity_from_map(self, entity_id: int, position: PosComponent, pipeline=None):
+        if pipeline:
+            pipeline.spop(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id))
+            return
         redis = await self.redis()
         return bool(await redis.srem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id)))

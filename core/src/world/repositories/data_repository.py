@@ -17,13 +17,20 @@ from core.src.world.domain.area import Area
 from core.src.world.domain.room import Room
 from core.src.world.domain.entity import Entity, EntityID
 from core.src.world.repositories.library_repository import RedisLibraryRepository
+from core.src.world.repositories.map_repository import RedisMapRepository
 from core.src.world.utils.world_types import Bit, EvaluatedEntity
 
 
 class RedisDataRepository:
-    def __init__(self, async_redis_factory, library_repository: RedisLibraryRepository):
+    def __init__(
+            self,
+            async_redis_factory,
+            library_repository: RedisLibraryRepository,
+            map_repository: RedisMapRepository
+    ):
         self._async_redis_factory = async_redis_factory
         self.library_repository = library_repository
+        self.map_repository = map_repository
         self._entity_prefix = 'e'
         self._component_prefix = 'c'
         self._map_suffix = 'm'
@@ -66,6 +73,10 @@ class RedisDataRepository:
         LOGGER.core.debug('EntityRepository.create_entity, response: %s', response)
         assert response
         return int(response)
+
+    async def entity_exists(self, entity_id):
+        redis = await self.async_redis()
+        return bool(await redis.keys('{}:{}'.format(self._entity_prefix, entity_id)))
 
     def _update_map_position_for_entity(self, position: PosComponent, entity: Entity, pipeline):
         # TODO FIXME - use smove in the future, with a clean bootstrap
@@ -177,7 +188,10 @@ class RedisDataRepository:
             if component in (PosComponent, ConnectionComponent):
                 # Fixme
                 return
-
+            if not res[0]:
+                # Todo - Remove once all the entities are fixed with a proper InstanceOf
+                LOGGER.core.error('Entity id {} has not InstanceOfComponent'.format(entity_id))
+                return
             return self.library_repository.get_defaults_for_library_element(res[0].decode(), component)
         return res and component(component.cast_type(res[1]))
 
@@ -446,13 +460,18 @@ class RedisDataRepository:
                 if result[i][1]:
                     attrs = AttributesComponent.from_bytes(result[i][1])
                 else:
-                    attrs = self.library_repository.get_defaults_for_library_element(
-                        result[i][0].decode(), AttributesComponent
-                    )
+                    if not result[i][0]:
+                        # FIXME REMOVE TODO
+                        LOGGER.core.error('Entity id {} has not InstanceOfComponent'.format(_entity_id))
+                        attrs = None
+                    else:
+                        attrs = self.library_repository.get_defaults_for_library_element(
+                            result[i][0].decode(), AttributesComponent
+                        )
             except Exception as e:
                 raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _entity_id)) from e
             evaluated_entity = EvaluatedEntity(
-                name=attrs.name,
+                name=attrs and attrs.name,
                 type=0,
                 status=0,
                 entity_id=_entity_id,
@@ -508,3 +527,24 @@ class RedisDataRepository:
             'status': 0,
             'description': attributes.description
         }
+
+    async def delete_entity(self, entity_id: int):
+        redis = await self.async_redis()
+        components = await redis.hgetall('{}:{}'.format(self._entity_prefix, entity_id))
+        pipeline = redis.pipeline()
+        pipeline.delete('{}:{}'.format(self._entity_prefix, entity_id))
+        for k, v in components.items():
+            k = k.decode()
+            try:
+                if int(k) == PosComponent.key:
+                    await self.map_repository.remove_entity_from_map(
+                        entity_id, PosComponent.from_bytes(v), pipeline=pipeline
+                    )
+            except Exception:
+                LOGGER.core.error('Cannot remove instance from position {}. Must do a manual cleanup'.format(v))
+            pipeline.hdel('{}:{}:{}'.format(self._component_prefix, k, self._data_suffix), entity_id)
+            pipeline.setbit(
+                '{}:{}:{}'.format(self._component_prefix, k, self._map_suffix), entity_id, Bit.OFF.value
+            )
+        await pipeline.execute()
+        return True

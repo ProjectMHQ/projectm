@@ -1,5 +1,6 @@
 import json
 import typing
+from ast import literal_eval
 
 from core.src.world.components import ComponentType
 from core.src.world.components._types_ import ComponentTypeEnum
@@ -14,6 +15,8 @@ class PosComponent(ComponentType):
     def __init__(self, value: (list, tuple)):
         if value != list:
             value = list(value)
+            if len(value) == 2:
+                value.append(0)
         super().__init__(value)
         self._prev_pos = None
 
@@ -59,3 +62,8 @@ class PosComponent(ComponentType):
     @property
     def previous_position(self) -> typing.Optional['PosComponent']:
         return self._prev_pos
+
+    @classmethod
+    def from_bytes(cls, value: bytes):
+        instance = value and cls(literal_eval(value.decode()))
+        return instance

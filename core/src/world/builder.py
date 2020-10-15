@@ -40,7 +40,7 @@ WORLD_SYSTEM_PATH = os.getcwd()
 library_repository = RedisLibraryRepository(async_redis_data)
 map_repository = RedisMapRepository(async_redis_data)
 descriptions_repository = RedisDescriptionsRepository(async_redis_data)
-world_repository = RedisDataRepository(async_redis_data, library_repository)
+world_repository = RedisDataRepository(async_redis_data, library_repository, map_repository)
 channels_repository = WebsocketChannelsRepository(strict_redis)
 redis_queues_service = RedisMultipleQueuesPublisher(async_redis_queue, num_queues=settings.WORKERS)
 websocket_channels_service = WebsocketChannelsService(
