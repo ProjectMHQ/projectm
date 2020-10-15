@@ -10,7 +10,7 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.connection import ConnectionComponent
-from core.src.world.components.factory import get_component_alias_by_enum_value
+from core.src.world.components.factory import get_component_alias_by_enum_value, get_component_by_enum_value
 from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
@@ -237,7 +237,7 @@ class RedisDataRepository:
         results = await pipeline.execute()
         response = []
         for result in results:
-            if result[1]:
+            if result[1] or not component.has_default:
                 response.append(result[1].decode())
             else:
                 v = self.library_repository.get_defaults_for_library_element(
@@ -353,10 +353,11 @@ class RedisDataRepository:
         for c_key, value in filtered_query.items():
             e_i = 0
             for entity_id, status in value.items():
-                if not status[1]:
+                component = get_component_by_enum_value(ComponentTypeEnum(c_key))
+                if not status[1] and component.has_default:
                     value = status[0] or self.library_repository.get_defaults_for_library_element(
                         entities_instance_of[i].decode(),
-                        get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                        component.libname
                     )
                     value = value.value if (not status[0] and value) else value
                     try:
@@ -364,11 +365,14 @@ class RedisDataRepository:
                     except KeyError:
                         data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): value}
                 elif all(status):
-                    value = response[i][e_i] or self.library_repository.get_defaults_for_library_element(
-                        entities_instance_of[i].decode(),
-                        get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
-                    )
-                    value = value.value if (not response[i][e_i] and value) else value
+                    if component.has_default:
+                        value = response[i][e_i] or self.library_repository.get_defaults_for_library_element(
+                            entities_instance_of[i].decode(),
+                            get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                        )
+                        value = value.value if (not response[i][e_i] and value) else value
+                    else:
+                        value = response[i][e_i]
                     try:
                         data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): value})
                     except KeyError:
@@ -393,9 +397,10 @@ class RedisDataRepository:
         for entity_id, value in filtered_query.items():
             c_i = 1   # 1-based cause the element 0 is InstanceOf
             for c_key, status in value.items():
-                if not status[1]:
+                component = get_component_by_enum_value(ComponentTypeEnum(c_key))
+                if not status[1] and component.has_default:
                     value = status[0] or self.library_repository.get_defaults_for_library_element(
-                        response[i][0].decode(), get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                        response[i][0].decode(), component.libname
                     )
                     value = value.value if (not status[0] and value) else value
                     try:
@@ -403,10 +408,13 @@ class RedisDataRepository:
                     except KeyError:
                         data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): value}
                 elif all(status):
-                    value = response[i][c_i] or self.library_repository.get_defaults_for_library_element(
-                        response[i][0].decode(), get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
-                    )
-                    value = value.value if (not response[i][c_i] and value) else value
+                    if component.has_default:
+                        value = response[i][c_i] or self.library_repository.get_defaults_for_library_element(
+                            response[i][0].decode(), get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                        )
+                        value = value.value if (not response[i][c_i] and value) else value
+                    else:
+                        value = response[i][c_i]
                     try:
                         data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): value})
                     except KeyError:
