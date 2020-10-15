@@ -138,6 +138,7 @@ class RedisDataRepository:
                         c.key, int(c.operation)
                     )
                 elif c.is_active():
+                    assert c.component_type == bool
                     LOGGER.core.debug('No data to set')
                 else:
                     LOGGER.core.debug('Data to delete')
@@ -331,10 +332,11 @@ class RedisDataRepository:
                 if all(status_and_querable)
             ]
             if keys:
-                pipeline.hget(
-                    '{}:{}:{}'.format(self._component_prefix, InstanceOfComponent.key, self._data_suffix),
-                    *keys
-                )
+                for k in keys:
+                    pipeline.hget(
+                        '{}:{}:{}'.format(self._component_prefix, InstanceOfComponent.key, self._data_suffix),
+                        k
+                    )
                 pipeline.hmget(
                     '{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix),
                     *keys
@@ -342,24 +344,32 @@ class RedisDataRepository:
         entities_instance_of = []
         response = []
         redis_response = await pipeline.execute()
-
-        for i, element in enumerate(redis_response):
-            if not i % 2:
-                entities_instance_of.append(element)
-            else:
-                response.append(element)
+        for c_key in filtered_query:
+            keys = [
+                ent_id for ent_id, status_and_querable in filtered_query[c_key].items()
+                if all(status_and_querable)
+            ]
+            if keys:
+                i = 0
+                for _ in keys:
+                    entities_instance_of.append(redis_response[i])
+                    i += 1
+                response.append(redis_response[i])
         data = {}
         i = 0
         for c_key, value in filtered_query.items():
             e_i = 0
             for entity_id, status in value.items():
                 component = get_component_by_enum_value(ComponentTypeEnum(c_key))
-                if not status[1] and component.has_default:
-                    value = status[0] or self.library_repository.get_defaults_for_library_element(
-                        entities_instance_of[i].decode(),
-                        component.libname
-                    )
-                    value = value.value if (not status[0] and value) else value
+                if not status[1]:
+                    if component.has_default:
+                        value = status[0] or self.library_repository.get_defaults_for_library_element(
+                            entities_instance_of[i].decode(),
+                            component.libname
+                        )
+                        value = value.value if (not status[0] and value) else value
+                    else:
+                        value = status[0]
                     try:
                         data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): value})
                     except KeyError:
@@ -386,11 +396,15 @@ class RedisDataRepository:
     async def _get_components_values_from_entities_storage(self, filtered_query: OrderedDict):
         redis = await self.async_redis()
         pipeline = redis.pipeline()
+        components = {}
         for entity_id, value in filtered_query.items():
-            keys = [InstanceOfComponent.key] + [
-                comp_key for comp_key, status_and_querable in value.items() if all(status_and_querable)
-            ]
-            pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
+            for comp_key, status_and_querable in value.items():
+                components[comp_key] = components.get(comp_key, get_component_by_enum_value(comp_key))
+                if all(status_and_querable):
+                    keys = [InstanceOfComponent.key] + [
+                        comp_key for comp_key, status_and_querable in value.items() if all(status_and_querable)
+                    ]
+                    pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
         response = await pipeline.execute()
         data = {}
         i = 0
@@ -398,11 +412,14 @@ class RedisDataRepository:
             c_i = 1   # 1-based cause the element 0 is InstanceOf
             for c_key, status in value.items():
                 component = get_component_by_enum_value(ComponentTypeEnum(c_key))
-                if not status[1] and component.has_default:
-                    value = status[0] or self.library_repository.get_defaults_for_library_element(
-                        response[i][0].decode(), component.libname
-                    )
-                    value = value.value if (not status[0] and value) else value
+                if not status[1]:
+                    if component.has_default:
+                        value = status[0] or self.library_repository.get_defaults_for_library_element(
+                            response[i][0].decode(), component.libname
+                        )
+                        value = value.value if (not status[0] and value) else value
+                    else:
+                        value = status[0]
                     try:
                         data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): value})
                     except KeyError:

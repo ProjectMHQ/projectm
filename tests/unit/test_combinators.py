@@ -33,3 +33,4 @@ class TestCombinators(unittest.TestCase):
         with self.assertRaises(ValueError) as e:
             LibraryJSONFileValidator(test1)
             self.assertEqual(str(e), "ValueError: 'antani' is not a valid WeaponType")
+        print('test combinators done')

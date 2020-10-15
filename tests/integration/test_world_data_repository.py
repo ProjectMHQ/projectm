@@ -1,6 +1,8 @@
 import asyncio
 import json
 from unittest import TestCase
+from unittest.mock import Mock
+
 from core.src.world.components import ComponentTypeEnum
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.character import CharacterComponent
@@ -17,8 +19,9 @@ class TestWorldDataRepository(TestCase):
         assert settings.INTEGRATION_TESTS
         assert settings.RUNNING_TESTS
         asyncio.get_event_loop().run_until_complete(self._flush_redis())
-
-        self.sut = RedisDataRepository(get_redis_factory(RedisType.DATA))
+        self.lib_repo = Mock()
+        self.map_repo = Mock()
+        self.sut = RedisDataRepository(get_redis_factory(RedisType.DATA), self.lib_repo, self.map_repo)
         self.test_success = False
 
     async def _flush_redis(self):
@@ -29,7 +32,9 @@ class TestWorldDataRepository(TestCase):
         return await self.sut.async_redis()
 
     def tearDown(self):
-        self.sut = RedisDataRepository(self.redis)
+        self.lib_repo.reset_mock()
+        self.map_repo.reset_mock()
+        self.sut = RedisDataRepository(self.redis, self.lib_repo, self.map_repo)
 
     def test(self):
         loop = asyncio.get_event_loop()
@@ -50,9 +55,9 @@ class TestWorldDataRepository(TestCase):
         await self.sut.save_entity(entity)
         self.assertEqual(await redis.getbit('c:5:m', 1), 0)
         self.assertEqual(await redis.getbit('c:3:m', 1), 0)
-        name_on_component_storage = await redis.hget('c:8:d', 1)
+        name_on_component_storage = await redis.hget('c:{}:d'.format(AttributesComponent.key), 1)
         self.assertEqual(name_on_component_storage, json.dumps({'name': _entity_name}).encode())
-        name_on_entity_storage = await redis.hget('e:1', 8)
+        name_on_entity_storage = await redis.hget('e:1', AttributesComponent.key)
         self.assertEqual(name_on_entity_storage, json.dumps({'name': _entity_name}).encode())
 
         response = await self.sut.get_components_values_by_entities(
@@ -87,8 +92,8 @@ class TestWorldDataRepository(TestCase):
         )
         entity.set(CharacterComponent(True))
         await self.sut.update_entities(entity)
-        self.assertTrue(await redis.getbit('c:5:m', 1))
-        self.assertIsNone(await redis.hget('c:5:d', 1))
+        self.assertTrue(await redis.getbit('c:{}:m'.format(CharacterComponent.key), 1))
+        self.assertIsNone(await redis.hget('c:{}:d'.format(CharacterComponent.key), 1))
         response = await self.sut.get_components_values_by_entities([entity], [CharacterComponent])
 
         self.assertEqual(

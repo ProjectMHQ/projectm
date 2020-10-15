@@ -13,4 +13,4 @@ class TestArea(TestCase):
         pos2 = PosComponent([1, 4, 0])
         area = Area(pos, square_size=11)
         self.assertEqual(area.get_relative_position(pos2), 48)
-
+        print('test area done')
