@@ -9,9 +9,9 @@ async def library(entity: Entity, *args):
         return
     action = args[0]
     if action == 'load':
-        await system.load('json', args[0])
+        await system.load('json', args[1])
     elif action == 'reload':
-        await system.load('json', args[0], overwrite=True)
+        await system.load('json', args[1], overwrite=True)
     elif action == 'ls':
         await system.ls(len(args) > 1 and args[1] or '*')
     else:

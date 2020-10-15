@@ -78,19 +78,6 @@ class RedisDataRepository:
         redis = await self.async_redis()
         return bool(await redis.keys('{}:{}'.format(self._entity_prefix, entity_id)))
 
-    def _update_map_position_for_entity(self, position: PosComponent, entity: Entity, pipeline):
-        # TODO FIXME - use smove in the future, with a clean bootstrap
-        if position.previous_position:
-            prev_set_name = self.get_room_key(
-                position.previous_position.x,
-                position.previous_position.y,
-                position.previous_position.z
-            )
-            pipeline.srem(prev_set_name, '{}'.format(entity.entity_id))
-        if position.value:
-            new_set_name = self.get_room_key(position.x, position.y, position.z)
-            pipeline.sadd(new_set_name, '{}'.format(entity.entity_id))
-
     async def save_entity(self, entity: Entity) -> Entity:
         assert not entity.entity_id, 'entity_id: %s, use update, not save.' % entity.entity_id
         entity_id = await self._allocate_entity_id()
@@ -109,7 +96,7 @@ class RedisDataRepository:
             assert entity.entity_id
             for c in entity.pending_changes.values():
                 if c.component_enum == ComponentTypeEnum.POS:
-                    self._update_map_position_for_entity(c, entity, pipeline)
+                    self.map_repository.update_map_position_for_entity(c, entity, pipeline)
                 pipeline.setbit(
                     '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
                     entity.entity_id, Bit.ON.value if c.is_active() else Bit.OFF.value

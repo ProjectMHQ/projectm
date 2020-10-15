@@ -1,11 +1,11 @@
 import asyncio
+import binascii
+import os
 import struct
 
 import typing
 
 import aioredis
-from aioredis.commands import Pipeline
-
 from core.src.auth.logging_factory import LOGGER
 from core.src.world import exceptions
 from core.src.world.components.pos import PosComponent
@@ -57,16 +57,22 @@ class RedisMapRepository:
     def _pack_coords(x: int, y: int, z: int) -> bytes:
         return struct.pack('>hhh', x, y, z)
 
-    def _get_room_content(self, pipeline: Pipeline, x: int, y: int, z: int):
-        pipeline.smembers(self.get_room_key(x, y, z))
+    def _get_room_content(self, pipeline, x: int, y: int, z: int):
+        pipeline.zrange(self.get_room_key(x, y, z))
 
-    def _get_rooms_content(self, pipeline: Pipeline, x: int, from_y: int, to_y: int, z: int):
-        pipeline.sunion(
-            *(self.get_room_key(*c) for c in ((x, y, z) for y in range(from_y, to_y)))
+    def _get_rooms_content(self, pipeline, x: int, from_y: int, to_y: int, z: int):
+        key = 'temp:rmc:{}'.format(binascii.unhexlify(os.urandom(8)).decode())
+        pipeline.zunionstore(
+            key, *(self.get_room_key(*c) for c in ((x, y, z) for y in range(from_y, to_y)))
         )
+        pipeline.zrange(key)
+        pipeline.delete(key)
 
-    def _set_room_content(self, pipeline: Pipeline, room: Room):
-        pipeline.sadd(self.get_room_key(room.position.x, room.position.y, room.position.z), *room.entity_ids)
+    def _set_room_content(self, pipeline, room: Room):
+        res = []
+        for x in room.entity_ids:
+            res.extend([0, x])
+        pipeline.zadd(self.get_room_key(room.position.x, room.position.y, room.position.z), *res)
 
     async def set_room(self, room: Room):
         return await self._set_room(room)
@@ -209,7 +215,19 @@ class RedisMapRepository:
 
     async def remove_entity_from_map(self, entity_id: int, position: PosComponent, pipeline=None):
         if pipeline:
-            pipeline.spop(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id))
+            pipeline.zrem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id))
             return
         redis = await self.redis()
-        return bool(await redis.srem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id)))
+        return bool(await redis.zrem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id)))
+
+    def update_map_position_for_entity(self, position: PosComponent, entity, pipeline):
+        if position.previous_position:
+            prev_set_name = self.get_room_key(
+                position.previous_position.x,
+                position.previous_position.y,
+                position.previous_position.z
+            )
+            pipeline.zrem(prev_set_name, '{}'.format(entity.entity_id))
+        if position.value:
+            new_set_name = self.get_room_key(position.x, position.y, position.z)
+            pipeline.zadd(new_set_name, 0, '{}'.format(entity.entity_id))
