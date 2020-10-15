@@ -3,7 +3,7 @@ import unittest
 from core.src.world.systems.library.validator import LibraryJSONFileValidator
 
 
-class TestCombinators(unittest.TestCase):
+class TestLibraryCombinators(unittest.TestCase):
     def test_library_combinator(self):
         test1 = {
             "alias": "spadone",
