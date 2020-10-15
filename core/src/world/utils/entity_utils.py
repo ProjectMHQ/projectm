@@ -21,19 +21,21 @@ def get_index_from_text(text: str) -> typing.Tuple[int, str]:
 
 def get_entity_id_from_raw_data_input(
         text: str, totals: int, data: typing.Iterable, index: int = 0
-) -> typing.Optional[int]:
+) -> typing.Optional[typing.Tuple]:
     if not data:
         return
     i = 0
     entity_id = None
+    keyword = None
     for x in range(0, totals):
         for entry in data:
             if entry['data'][x]['keyword'].startswith(text):
                 if i == index:
                     entity_id = entry['entity_id']
+                    keyword = entry['data'][x]['keyword']
                     break
                 i += 1
-    return entity_id
+    return entity_id, keyword
 
 
 def get_entity_data_from_raw_data_input(

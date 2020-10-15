@@ -206,3 +206,4 @@ class TestWorldDataRepository(TestCase):
             response
         )
         self.test_success = True
+        print('test get set done')

@@ -7,6 +7,7 @@ import typing
 
 from core.src.world.components import ComponentType
 from core.src.world.components.created_at import CreatedAtComponent
+from core.src.world.components.factory import get_component_by_type
 from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.domain.entity import Entity
 
@@ -107,6 +108,8 @@ class RedisLibraryRepository:
             return
         e.set(InstanceOfComponent(data['alias']))
         e.set(CreatedAtComponent(int(time.time())))
+        for component in data['components']:
+            e.set(get_component_by_type(component)(None).activate())
         return e
 
     def get_libraries(self, pattern: str, offset=0, limit=20):

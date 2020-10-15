@@ -36,6 +36,7 @@ class RedisDataRepository:
         self._map_suffix = 'm'
         self._map_prefix = 'm'
         self._data_suffix = 'd'
+        self._zset_suffix = 'zs'
         self._room_content_suffix = 'c'
         self.async_lock = asyncio.Lock()
         self._async_redis = None
@@ -101,7 +102,25 @@ class RedisDataRepository:
                     '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
                     entity.entity_id, Bit.ON.value if c.is_active() else Bit.OFF.value
                 )
-                if c.has_data() and not c.has_operation():
+                if c.is_array():
+                    payload = []
+                    for x in c.to_add:
+                        payload.extend([0, x])
+                    pipeline.zadd(
+                        '{}:{}:{}:{}'.format(self._component_prefix, c.key, self._zset_suffix, entity.entity_id),
+                        *payload
+                    )
+                    c.to_remove and pipeline.zrem(
+                        '{}:{}:{}:{}'.format(self._component_prefix, c.key, self._zset_suffix, entity.entity_id),
+                        *c.to_remove
+                    )
+                    _ent_v = {c.key: c.serialized}
+                    try:
+                        entities_updates[entity.entity_id].update(_ent_v)
+                    except KeyError:
+                        entities_updates[entity.entity_id] = _ent_v
+
+                elif c.has_data() and not c.has_operation() and c.has_value():
                     LOGGER.core.debug('Absolute value, component data set')
                     _comp_v = {entity.entity_id: c.serialized}
                     _ent_v = {c.key: c.serialized}
@@ -113,7 +132,7 @@ class RedisDataRepository:
                         entities_updates[entity.entity_id].update(_ent_v)
                     except KeyError:
                         entities_updates[entity.entity_id] = _ent_v
-                elif c.has_data():
+                elif c.has_data() and c.has_value():
                     LOGGER.core.debug('Relative value, component data incr')
                     assert c.component_type == int
                     pipeline.hincrby(
@@ -124,9 +143,9 @@ class RedisDataRepository:
                         '{}:{}'.format(self._entity_prefix, entity.entity_id),
                         c.key, int(c.operation)
                     )
-                elif c.is_active():
+                elif not c.has_data() and c.is_active():
                     assert c.component_type == bool
-                    LOGGER.core.debug('No data to set')
+                    LOGGER.core.debug('No data to set, component active')
                 else:
                     LOGGER.core.debug('Data to delete')
                     try:
@@ -167,6 +186,7 @@ class RedisDataRepository:
             self, entity_id: int, component: typing.Type[ComponentType]
     ) -> typing.Optional[ComponentType]:
         redis = await self.async_redis()
+        instance_of_value = None
         if component.component_type == bool:
             pipeline = redis.pipeline()
             pipeline.getbit(
@@ -314,34 +334,49 @@ class RedisDataRepository:
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         for c_key in filtered_query:
-            keys = [
+            entity_ids = [
                 ent_id for ent_id, status_and_querable in filtered_query[c_key].items()
                 if all(status_and_querable)
             ]
-            if keys:
-                for k in keys:
+            if entity_ids:
+                for eid in entity_ids:
                     pipeline.hget(
                         '{}:{}:{}'.format(self._component_prefix, InstanceOfComponent.key, self._data_suffix),
-                        k
+                        eid
                     )
-                pipeline.hmget(
-                    '{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix),
-                    *keys
-                )
+                comp = get_component_by_enum_value(c_key)
+                if comp.is_array():
+                    for eid in entity_ids:
+                        pipeline.zrange(
+                            '{}:{}:{}:{}'.format(self._component_prefix, c_key, self._zset_suffix, eid),
+                            0,
+                            -1
+                        )
+                else:
+                    pipeline.hmget(
+                        '{}:{}:{}'.format(self._component_prefix, c_key, self._data_suffix),
+                        *entity_ids
+                    )
         entities_instance_of = []
         response = []
+        arrays = {}
         redis_response = await pipeline.execute()
         for c_key in filtered_query:
-            keys = [
+            entity_ids = [
                 ent_id for ent_id, status_and_querable in filtered_query[c_key].items()
                 if all(status_and_querable)
             ]
-            if keys:
+            if entity_ids:
                 i = 0
-                for _ in keys:
+                for _ in entity_ids:
                     entities_instance_of.append(redis_response[i])
                     i += 1
-                response.append(redis_response[i])
+                comp = get_component_by_enum_value(c_key)
+                if comp.is_array():
+                    for eid in entity_ids:
+                        arrays['{}.{}'.format(eid, c_key)] = redis_response[i]
+                else:
+                    response.append(redis_response[i])
         data = {}
         i = 0
         for c_key, value in filtered_query.items():
@@ -362,14 +397,25 @@ class RedisDataRepository:
                     except KeyError:
                         data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): value}
                 elif all(status):
-                    if component.has_default:
-                        value = response[i][e_i] or self.library_repository.get_defaults_for_library_element(
-                            entities_instance_of[i].decode(),
-                            get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
-                        )
-                        value = value.value if (not response[i][e_i] and value) else value
+                    if component.is_array():
+                        if component.has_default:
+                            value = arrays['{}.{}'.format(e_i, component.key)] or \
+                                    self.library_repository.get_defaults_for_library_element(
+                                        entities_instance_of[i].decode(),
+                                        get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                                    )
+                            value = value.value if (not response[i][e_i] and value) else value
+                        else:
+                            value = arrays['{}.{}'.format(e_i, component.key)]
                     else:
-                        value = response[i][e_i]
+                        if component.has_default:
+                            value = response[i][e_i] or self.library_repository.get_defaults_for_library_element(
+                                entities_instance_of[i].decode(),
+                                get_component_alias_by_enum_value(ComponentTypeEnum(c_key))
+                            )
+                            value = value.value if (not response[i][e_i] and value) else value
+                        else:
+                            value = response[i][e_i]
                     try:
                         data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): value})
                     except KeyError:
@@ -577,3 +623,11 @@ class RedisDataRepository:
             )
         await pipeline.execute()
         return True
+
+    async def check_entity_id_has_components(self, entity_id: int, *components: typing.Type[ComponentType]):
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
+        for component in components:
+            pipeline.getbit('{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix), entity_id)
+        result = pipeline.execute()
+        return [bool(x) for x in result]

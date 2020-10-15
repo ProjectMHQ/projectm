@@ -12,7 +12,7 @@ class PosComponent(ComponentType):
     component_type = list
     libname = "pos"
 
-    def __init__(self, value: (list, tuple)):
+    def __init__(self, value: (list, tuple) = None):
         if value != list:
             value = list(value)
             if len(value) == 2:
@@ -67,3 +67,10 @@ class PosComponent(ComponentType):
     def from_bytes(cls, value: bytes):
         instance = value and cls(literal_eval(value.decode()))
         return instance
+
+    def is_array(self):
+        """
+        Important, override this value because PosComponent is not treated as a normal array component.
+        It MUST stay disabled.
+        """
+        return False

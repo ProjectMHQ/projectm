@@ -10,10 +10,10 @@ class CharacterComponent(ComponentType):
     component_type = bool
     libname = "character"
 
-    def __init__(self, value: (int, bool)):
+    def __init__(self, value: (int, bool) = None):
         if not isinstance(value, bool):
             assert value in (0, 1), value
-            value = bool(int)
+            value = bool(value or 0)
         super().__init__(value)
 
     @property

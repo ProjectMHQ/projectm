@@ -15,6 +15,15 @@ class ComponentType(metaclass=abc.ABCMeta):
     def __init__(self, value):
         self._value = value
         self._component_values = set()
+        self._is_active = False
+
+    def activate(self):
+        self._is_active = True
+        return self
+
+    def deactivate(self):
+        self._is_active = False
+        return self
 
     @abc.abstractmethod
     def value(self):
@@ -28,6 +37,9 @@ class ComponentType(metaclass=abc.ABCMeta):
         return data and cls(cls.cast_type(data))
 
     def is_active(self):
+        return bool(self._is_active) or bool(self.value)
+
+    def has_value(self):
         return bool(self.value)
 
     def has_data(self):
@@ -59,3 +71,7 @@ class ComponentType(metaclass=abc.ABCMeta):
         assert key in self._component_values, (key, self._component_values)
         assert isinstance(value, (int, str, bool))
         self._value[key] = value
+
+    @classmethod
+    def is_array(cls):
+        return cls.component_type == list

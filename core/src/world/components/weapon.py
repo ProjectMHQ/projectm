@@ -16,9 +16,10 @@ class WeaponComponent(ComponentType):
     key = ComponentTypeEnum.WEAPON.value
     component_type = str
     libname = "weapon"
+    has_default = True
 
-    def __init__(self, value: str):
-        super().__init__(WeaponType(value).value)
+    def __init__(self, value: str = None):
+        super().__init__(value and WeaponType(value).value)
 
     @property
     def value(self) -> WeaponType:

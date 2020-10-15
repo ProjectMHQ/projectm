@@ -11,10 +11,12 @@ class InventoryComponent(ComponentType):
     component_type = list
     libname = "inventory"
 
-    def __init__(self, value: (list, tuple)):
+    def __init__(self, value: (list, tuple) = None):
         self._to_remove = []
         self._to_add = []
         if value != list:
+            if value is None:
+                value = []
             value = list(value)
         super().__init__(value)
 
@@ -49,3 +51,11 @@ class InventoryComponent(ComponentType):
     @property
     def content(self):
         return self._value
+
+    @property
+    def to_add(self):
+        return self._to_add or []
+
+    @property
+    def to_remove(self):
+        return self._to_remove or []
