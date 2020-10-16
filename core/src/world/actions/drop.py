@@ -93,6 +93,7 @@ async def drop(entity: Entity, *targets):
                 raise ValueError(response)
         else:
             await entity.emit_msg(get_drop_at_no_target_to_msg(targets[0]))
-            # TODO - Cancel baked futures
+            _ = [f.cancel() for f in futures]
     except:
         LOGGER.core.exception('Exception')
+        raise

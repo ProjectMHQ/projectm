@@ -80,12 +80,12 @@ async def pick(entity: Entity, *targets):
             await entity.emit_msg(get_pick_at_not_collectible_target_msg(entity_keyword))
             return
 
-        e = Entity(entity_id)\
+        picked_entity = Entity(entity_id)\
             .add_bound(pos)\
             .set(PosComponent().add_previous_position(pos))\
             .set(ParentOfComponent(entity.entity_id))
         entity.set(InventoryComponent().add(entity_id))
-        await world_repository.update_entities(e, entity)
+        await world_repository.update_entities(picked_entity, entity)
 
         action = {'action': 'pick'}
         await events_publisher_service.on_entity_do_public_action(entity, pos, action, entity_id)

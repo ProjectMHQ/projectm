@@ -81,12 +81,12 @@ move_entity.get_self = True
 
 
 async def do_move_entity(entity, position, direction, reason, emit_msg=True):
-    emit_msg and await entity.emit_msg(get_movement_message_payload(direction, "success"))
-    await cast_entity(entity, position, reason=reason)
-    await asyncio.gather(
-        getmap(entity),
-        look(entity)
-    )
+    if await cast_entity(entity, position, reason=reason):
+        await asyncio.gather(
+            getmap(entity),
+            look(entity)
+        )
+        emit_msg and await entity.emit_msg(get_movement_message_payload(direction, "success"))
 
 
 class ScheduledMovement:
