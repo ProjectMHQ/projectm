@@ -32,12 +32,21 @@ class RedisLUAPipeline:
         self.value = ""
         self.redis = redis
 
-    def allocate_value(self):
-        self.value += "local value = "
+    def allocate_value(self, key='value'):
+        self.value += "local {} = ".format(key)
         return self
 
-    def add_if_equal(self, expected_value, value_selector=""):
-        self.value += "if value{} ~= {} then\nreturn 0\nend\n".format(value_selector, expected_value)
+    def add_if_equal(self, expected_value, value_name='value', value_selector=""):
+        if isinstance(expected_value, int):
+            expected_value = expected_value
+            self.value += "if {}{} ~= {} then\nreturn 0\nend\n".format(value_name, value_selector, expected_value)
+        elif isinstance(expected_value, str):
+            self.value += "if {}{} ~= '{}' then\nreturn 0\nend\n".format(value_name, value_selector, expected_value)
+        elif isinstance(expected_value, list):
+            lua_table = '{' + ', '.join([str(x) for x in expected_value]) + '}'
+            self.value += "if table.concat({}{}) ~= table.concat({}) then\nreturn 0\nend\n".format(
+                value_selector, value_name, lua_table
+            )
         return self
 
     def hget(self, key, value):
@@ -77,20 +86,20 @@ class RedisLUAPipeline:
 
     def zprepareinter(self, key, values_to_inter):
         seed = binascii.hexlify(os.urandom(8)).decode()
-        values = ', '.join(["'{}'".format(x) for x in values_to_inter])
-        self.value += "redis.call('zadd', temp:{}:1, {})\n".format(seed, values)
-        self.value += "redis.call('interstore', 'temp:{}:2', {}, 'temp:{}:1')\n".format(seed, key, seed)
+        values = ', '.join(["0, '{}'".format(value) for value in values_to_inter])
+        self.value += "redis.call('zadd', 'temp:{}:1', {})\n".format(seed, values)
+        self.value += "redis.call('zinterstore', 'temp:{0}:2', 2, '{1}', 'temp:{0}:1')\n".format(seed, key)
         return seed
 
     def zfetchinter(self, seed):
-        self.value += "redis.call('zrange', temp:{}:2, 0, -1)\n".format(seed)
-        self.value += "redis.call('del', 'temp:{}:2')\n".format(seed)
+        self.value += "redis.call('zrange', 'temp:{}:2', 0, -1)\n".format(seed)
+        self.value += "redis.call('del', 'temp:{0}:2', 'temp:{0}:1')\n".format(seed)
 
-    def return_exit(self):
-        self.value += "return 1"
+    def return_exit(self, value_key=None):
+        self.value += "return {}".format(value_key or 0)
 
-    async def execute(self):
-        self.return_exit()
+    async def execute(self, return_value_at_exit=1):
+        self.return_exit(value_key=return_value_at_exit)
         return await self.redis.eval(self.value)
 
 
@@ -179,17 +188,15 @@ class RedisDataRepository:
                     )
                     if len(bound.bounds) == 1:
                         pipeline.allocate_value().zscan(key, cursor=0, match=bound.bounds[0])
-                        check = "'{}'".format(bound.bounds[0])
-                        v = "[2][1]"
+                        v, check = "[2][1]", str(bound.bounds[0])
                     else:
                         inter_seed = pipeline.zprepareinter(key, bound.bounds)
                         pipeline.allocate_value().zfetchinter(inter_seed)
-                        check = ['{}'.format(x).encode() for x in bound.bounds]
-                        v = ""
+                        v, check = "", bound.bounds
                     pipeline.add_if_equal(check, value_selector=v)
                 else:
                     pipeline.allocate_value().hget('e:{}'.format(entity.entity_id), bound.key)
-                    pipeline.add_if_equal("'{}'".format(bound.value))
+                    pipeline.add_if_equal(str(bound.value))
         for entity in entities:
             for c in entity.pending_changes.values():
                 if c.component_enum == ComponentTypeEnum.POS:

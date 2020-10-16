@@ -85,6 +85,7 @@ class InventoryComponent(ComponentType):
             for i, v in enumerate(self._populated):
                 if v[AttributesComponent.component_enum][key].startswith(value):
                     return [Entity(entity_id=self.content[i])]
+            return []
         else:
             res = []
             assert value[-1] == '*'

@@ -1,5 +1,6 @@
 import asyncio
 
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.parent_of import ParentOfComponent
 from core.src.world.components.attributes import AttributesComponent
@@ -82,11 +83,16 @@ async def drop(entity: Entity, *targets):
             }
         )
         )
-    entity.set(inventory).add_bound(bounded_inventory)
-    response = await world_repository.update_entities(entity, *items)
-    if response:
-        await asyncio.gather(*futures)
-    else:
-        raise ValueError(response)
-        # TODO - Cancel baked futures
-
+    try:
+        if items:
+            entity.set(inventory).add_bound(bounded_inventory)
+            response = await world_repository.update_entities(entity, *items)
+            if response:
+                await asyncio.gather(*futures)
+            else:
+                raise ValueError(response)
+        else:
+            await entity.emit_msg(get_drop_at_no_target_to_msg(targets[0]))
+            # TODO - Cancel baked futures
+    except:
+        LOGGER.core.exception('Exception')
