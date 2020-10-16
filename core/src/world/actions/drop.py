@@ -60,17 +60,19 @@ async def drop(entity: Entity, *targets):
     inventory = InventoryComponent(data[InventoryComponent.component_enum][entity.entity_id])
     await inventory.populate(AttributesComponent)
     items = inventory.get_items_from_attributes('keyword', targets[0])
-    pending = []
+    futures = []
+    bounded_inventory = InventoryComponent()
     for item in items:
         item.set(pos)
         item.set(ParentOfComponent())
+        bounded_inventory.add_bounded_item_id(item.entity_id)
         inventory.remove(item.entity_id)
         attributes = inventory.get_item_component(item.entity_id, AttributesComponent)
-        pending.append(entity.emit_msg(get_drop_msg(attributes.name)))
-        pending.append(
+        futures.append(entity.emit_msg(get_drop_msg(attributes.name)))
+        futures.append(
             events_publisher_service.on_entity_do_public_action(entity, pos, {'action': 'drop'}, item.entity_id)
         )
-        pending.append(entity.emit_system_event(
+        futures.append(entity.emit_system_event(
             {
                 "event": "drop",
                 "target": "entity",
@@ -80,7 +82,11 @@ async def drop(entity: Entity, *targets):
             }
         )
         )
-    entity.set(inventory)
-    await world_repository.update_entities(entity, *items)
-    await asyncio.gather(*pending)
+    entity.set(inventory).add_bound(bounded_inventory)
+    response = await world_repository.update_entities(entity, *items)
+    if response:
+        await asyncio.gather(*futures)
+    else:
+        raise ValueError(response)
+        # TODO - Cancel baked futures
 

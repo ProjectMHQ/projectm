@@ -80,8 +80,9 @@ async def pick(entity: Entity, *targets):
             await entity.emit_msg(get_pick_at_not_collectible_target_msg(entity_keyword))
             return
 
-        e = Entity(entity_id)
-        e.set(PosComponent().add_previous_position(pos))\
+        e = Entity(entity_id)\
+            .add_bound(pos)\
+            .set(PosComponent().add_previous_position(pos))\
             .set(ParentOfComponent(entity.entity_id))
         entity.set(InventoryComponent().add(entity_id))
         await world_repository.update_entities(e, entity)

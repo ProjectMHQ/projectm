@@ -11,6 +11,7 @@ class Entity:
         self._entity_id = entity_id
         self._pending_changes = {}
         self.transport = transport
+        self._bounds = []
 
     def get_view_size(self):
         return 15
@@ -45,3 +46,14 @@ class Entity:
     def can_see_evaluated_entity(evaluated_entity: EvaluatedEntity):
         # FIXME TODO
         return bool(evaluated_entity)
+
+    def bounds(self):
+        return self._bounds
+
+    def clear_bounds(self):
+        self._bounds = []
+        return self
+
+    def add_bound(self, component):
+        self._bounds.append(component)
+        return self

@@ -157,11 +157,12 @@ async def _handle_targeted_look(entity, *targets):
         raw_room_content = itertools.chain(raw_room_content, personal_data)
         index, target = get_index_from_text(targets[0])
         found_entity = get_entity_id_from_raw_data_input(target, totals, raw_room_content, index=index)
-        if not found_entity:
+        if not found_entity or not found_entity[0]:
             await entity.emit_msg(get_look_at_no_target_to_msg())
             return
         else:
             entity_id, entity_keyword = found_entity
+
         response = await world_repository.get_look_components_for_entity_id(entity_id)
         is_self = True
         if entity.entity_id != entity_id:

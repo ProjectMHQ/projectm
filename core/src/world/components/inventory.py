@@ -22,6 +22,7 @@ class InventoryComponent(ComponentType):
         super().__init__(value)
         self._populated = []
         self._raw_populated = []
+        self._bounded_items = []
 
     def __str__(self):
         return ', '.join(self._value)
@@ -80,11 +81,18 @@ class InventoryComponent(ComponentType):
     def get_items_from_attributes(self, key: str, value: str):
         from core.src.world.components.attributes import AttributesComponent
         from core.src.world.domain.entity import Entity
-        if '*' not in key:
+        if '*' not in value:
             for i, v in enumerate(self._populated):
                 if v[AttributesComponent.component_enum][key].startswith(value):
                     return [Entity(entity_id=self.content[i])]
-        return []
+        else:
+            res = []
+            assert value[-1] == '*'
+            value = value.replace('*', '')
+            for i, v in enumerate(self._populated):
+                if v[AttributesComponent.component_enum][key].startswith(value):
+                    res.append(Entity(entity_id=self.content[i]))
+            return res
 
     def get_item_component(self, entity_id: int, component: typing.Type[ComponentType]):
         return component(self._raw_populated[entity_id][component.component_enum])
@@ -93,5 +101,20 @@ class InventoryComponent(ComponentType):
         return True
 
     @classmethod
+    def is_array(cls):
+        return True
+
+    @classmethod
     def from_bytes(cls, value: bytes):
         return value and cls(json.loads(value)) or []
+
+    def add_bounded_item_id(self, item_id: int):
+        self._bounded_items.append(item_id)
+        return self
+
+    def clear_bounds(self):
+        self._bounded_items = []
+
+    @property
+    def bounds(self):
+        return self._bounded_items

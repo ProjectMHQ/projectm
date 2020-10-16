@@ -1,4 +1,5 @@
 import asyncio
+import binascii
 import typing
 from ast import literal_eval
 from collections import OrderedDict
@@ -33,9 +34,11 @@ class RedisLUAPipeline:
 
     def allocate_value(self):
         self.value += "local value = "
+        return self
 
     def add_if_equal(self, expected_value, value_selector=""):
-        self.value += "if value{} != {} then\nreturn 0\nend".format(expected_value, value_selector)
+        self.value += "if value{} ~= {} then\nreturn 0\nend\n".format(value_selector, expected_value)
+        return self
 
     def hget(self, key, value):
         self.value += "redis.call('hget', '{}', '{}')\n".format(key, value)
@@ -52,7 +55,7 @@ class RedisLUAPipeline:
         self.value += "redis.call('zrem', '{}', {})\n".format(key, ppload)
 
     def hincrby(self, key, entity_id, value):
-        self.value += "redis.call('hincrby', {}, {}, {})\n".format(key, entity_id, value)
+        self.value += "redis.call('hincrby', '{}', '{}', {})\n".format(key, entity_id, value)
 
     def hmset_dict(self, key, value):
         values = ""
@@ -61,8 +64,27 @@ class RedisLUAPipeline:
         values = values.rstrip(',')
         self.value += "redis.call('hmset', '{}', {})\n".format(key, values)
 
-    def hdel(self, key, value):
-        self.value += "redis.call('hdel', '{}', '{}')\n".format(key, value)
+    def hdel(self, key, *values):
+        value = ', '.join(["'{}'".format(str(v)) for v in values])
+        self.value += "redis.call('hdel', '{}', {})\n".format(key, value)
+
+    def zscan(self, key, cursor=0, match=None):
+        assert all((key, match)), (key, cursor, match)
+        self.value += "redis.call('zscan', '{}', {}, 'match', '{}')\n".format(key, cursor, match)
+
+    def zrange(self, key, min_value, max_value):
+        self.value += "redis.call('zrange', '{}', {}, {})\n".format(key, min_value, max_value)
+
+    def zprepareinter(self, key, values_to_inter):
+        seed = binascii.hexlify(os.urandom(8)).decode()
+        values = ', '.join(["'{}'".format(x) for x in values_to_inter])
+        self.value += "redis.call('zadd', temp:{}:1, {})\n".format(seed, values)
+        self.value += "redis.call('interstore', 'temp:{}:2', {}, 'temp:{}:1')\n".format(seed, key, seed)
+        return seed
+
+    def zfetchinter(self, seed):
+        self.value += "redis.call('zrange', temp:{}:2, 0, -1)\n".format(seed)
+        self.value += "redis.call('del', 'temp:{}:2')\n".format(seed)
 
     def return_exit(self):
         self.value += "return 1"
@@ -149,6 +171,26 @@ class RedisDataRepository:
         deletions_by_entity = {}
         for entity in entities:
             assert entity.entity_id
+            for bound in entity.bounds():
+                if bound.is_array():
+                    assert bound.bounds
+                    key = '{}:{}:{}:{}'.format(
+                        self._component_prefix, bound.key, self._zset_suffix, entity.entity_id
+                    )
+                    if len(bound.bounds) == 1:
+                        pipeline.allocate_value().zscan(key, cursor=0, match=bound.bounds[0])
+                        check = "'{}'".format(bound.bounds[0])
+                        v = "[2][1]"
+                    else:
+                        inter_seed = pipeline.zprepareinter(key, bound.bounds)
+                        pipeline.allocate_value().zfetchinter(inter_seed)
+                        check = ['{}'.format(x).encode() for x in bound.bounds]
+                        v = ""
+                    pipeline.add_if_equal(check, value_selector=v)
+                else:
+                    pipeline.allocate_value().hget('e:{}'.format(entity.entity_id), bound.key)
+                    pipeline.add_if_equal("'{}'".format(bound.value))
+        for entity in entities:
             for c in entity.pending_changes.values():
                 if c.component_enum == ComponentTypeEnum.POS:
                     self.map_repository.update_map_position_for_entity(c, entity, pipeline)
@@ -170,7 +212,6 @@ class RedisDataRepository:
                         '{}:{}:{}:{}'.format(self._component_prefix, c.key, self._zset_suffix, entity.entity_id),
                         *c.to_remove
                     )
-
                 elif c.has_data() and not c.has_operation() and c.has_value():
                     LOGGER.core.debug('Absolute value, component data set')
                     _comp_v = {entity.entity_id: c.serialized}
@@ -228,7 +269,7 @@ class RedisDataRepository:
 
         response = await pipeline.execute()
         for entity in entities:
-            entity.pending_changes.clear()
+            entity.clear_bounds().pending_changes.clear()
 
         LOGGER.core.debug('EntityRepository.update_entity_components, response: %s', response)
         return response
@@ -642,6 +683,7 @@ class RedisDataRepository:
         return 1, res
 
     async def get_look_components_for_entity_id(self, entity_id):
+        assert entity_id
         redis = await self.async_redis()
         data = await redis.hmget(
             '{}:{}'.format(self._entity_prefix, entity_id),
