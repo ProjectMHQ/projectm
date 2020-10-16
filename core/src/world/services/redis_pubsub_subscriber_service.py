@@ -83,7 +83,7 @@ class RedisPubSubEventsSubscriberService:
             LOGGER.core.debug('MESSAGE for entity_id %s: %s', entity_id, message)
             self.loop.create_task(
                 observer.on_event(
-                    entity_id, message, room, self._transports_by_entity_id[entity_id].namespace
+                    entity_id, message, message['curr'], self._transports_by_entity_id[entity_id].namespace
                 )
             )
 
@@ -94,8 +94,8 @@ class RedisPubSubEventsSubscriberService:
             entity.entity_id, area.center, len(area.rooms_and_peripherals_coordinates)
         )
         current_rooms = self._get_current_rooms_by_entity_id(entity.entity_id)
-        rooms_to_unsubscribe = current_rooms - area.rooms_and_peripherals_coordinates
-        rooms_to_subscribe = area.rooms_and_peripherals_coordinates - current_rooms
+        rooms_to_unsubscribe = current_rooms - {(area.center.x, area.center.y, area.center.z)}
+        rooms_to_subscribe = {(area.center.x, area.center.y, area.center.z)} - current_rooms
         await asyncio.gather(
             self._subscribe_rooms(entity, rooms_to_subscribe),
             self._unsubscribe_rooms(entity, rooms_to_unsubscribe)
@@ -104,14 +104,14 @@ class RedisPubSubEventsSubscriberService:
     async def bootstrap_subscribes(self, data: typing.Dict[int, typing.List[int]]):
         for en, pos_val in data.items():
             LOGGER.core.debug('Entity %s subscribed Area with center %s', en, pos_val)
-            area = Area(PosComponent(pos_val)).make_coordinates()
+            area = Area(PosComponent(pos_val))
             LOGGER.core.debug(
                 'Entity %s subscribed Area with center %s - Total %s subs',
                 en, pos_val, len(area.rooms_and_peripherals_coordinates)
             )
             pos_val and await self._subscribe_rooms(
                 Entity(EntityID(en)),
-                area.rooms_and_peripherals_coordinates
+                {(area.center.x, area.center.y, area.center.z)}
             )
 
     async def unsubscribe_all(self, entity: Entity):

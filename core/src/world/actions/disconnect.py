@@ -13,4 +13,4 @@ async def disconnect_entity(entity: Entity):
     await map_repository.remove_entity_from_map(entity, where)
     await events_publisher_service.on_entity_disappear_position(entity, where, "disconnect")
     await entity.emit_system_event({"event": "disconnect", "reason": "quit"})
-    await events_publisher_service.on_entity_quit_world(entity)
+    await events_publisher_service.on_entity_quit_world(entity, where)

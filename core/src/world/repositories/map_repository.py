@@ -214,11 +214,14 @@ class RedisMapRepository:
         return response
 
     async def remove_entity_from_map(self, entity_id: int, position: PosComponent, pipeline=None):
-        if pipeline:
-            pipeline.zrem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id))
-            return
-        redis = await self.redis()
-        return bool(await redis.zrem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id)))
+        if not pipeline:
+            redis = await self.redis()
+            pipeline = redis.pipeline()
+        pipeline.zrem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id))
+        pipeline.hdel('positions', entity_id)
+        if not pipeline:
+            res = await pipeline.execute()
+            return bool(res[1])
 
     def update_map_position_for_entity(self, position: PosComponent, entity, pipeline):
         if position.previous_position:
@@ -231,3 +234,22 @@ class RedisMapRepository:
         if position.value:
             new_set_name = self.get_room_key(position.x, position.y, position.z)
             pipeline.zadd(new_set_name, 0, '{}'.format(entity.entity_id))
+            pipeline.hset('positions', entity.entity_id, [position.x, position.y, position.z])
+
+    async def get_all_entity_ids_in_area(self, area):
+        redis = await self.redis()
+        pipeline = redis.pipeline()
+        key = binascii.hexlify(os.urandom(8)).decode()
+        pipeline.zunionstore(
+            'temp:{}'.format(key), *(
+                self.get_room_key(r[0], r[1], r[2]) for r in area.make_coordinates().rooms_and_peripherals_coordinates
+            )
+        )
+        pipeline.zrange('temp:{}'.format(key), 0, -1)
+        pipeline.delete('temp:{}'.format(key))
+        result = await pipeline.execute()
+        return result[1]
+
+    async def get_positions_for_entity_ids(self, *entity_ids: int):
+        redis = await self.redis()
+        return await redis.hmget('positions', *entity_ids)

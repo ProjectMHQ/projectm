@@ -11,7 +11,8 @@ async def cast_entity(
         where: PosComponent,
         update=True,
         on_connect=False,
-        reason=None
+        reason=None,
+        override=False
 ):
     from core.src.world.builder import world_repository, events_subscriber_service, events_publisher_service
     loop = asyncio.get_event_loop()
@@ -20,7 +21,7 @@ async def cast_entity(
     )
     if update:
         entity = entity.set(where)
-        if where.previous_position:
+        if not override and where.previous_position:
             entity.add_bound(where.previous_position)
         update_response = await world_repository.update_entities(entity.set(where))
         if not update_response:
@@ -29,10 +30,12 @@ async def cast_entity(
                     entity.entity_id, where.previous_position, where
                 ))
             return
+    area = Area(center=where).make_coordinates()
+    interested_pos = await world_repository.get_positions_of_living_entity_ids_in_area(area, entity)
     if on_connect:
-        await events_publisher_service.on_entity_appear_position(entity, where, reason)
+        await events_publisher_service.on_entity_appear_position(entity, where, reason, targets=interested_pos)
     else:
-        await events_publisher_service.on_entity_change_position(entity, where, reason)
+        await events_publisher_service.on_entity_change_position(entity, where, reason, targets=interested_pos)
     loop.create_task(
         events_subscriber_service.subscribe_area(entity, Area(where).make_coordinates())
     )
