@@ -1,11 +1,9 @@
-import itertools
 import typing
 
 from core.src.world.actions.movement._utils_ import direction_to_coords_delta, apply_delta_to_position
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.world_types import SearchResponse
 
 
 def get_base_room_for_entity(entity: Entity):
@@ -24,23 +22,21 @@ def get_index_from_text(text: str) -> typing.Tuple[int, str]:
     return index, text
 
 
-def get_entity_id_from_raw_data_input(
-        text: str, totals: int, data: typing.Iterable, index: int = 0
-) -> typing.Optional[typing.Tuple]:
+def get_entity_id_from_raw_data_input(text: str, data: typing.List, index: int = 0) -> typing.Optional[typing.Tuple]:
     if not data:
         return
     i = 0
     entity_id = None
-    keyword = None
-    for x in range(0, totals):
-        for entry in data:
-            if entry['data'][x]['keyword'].startswith(text):
+    res = None
+    for entry in data:
+        for x in entry['data']:
+            if x['keyword'].startswith(text):
                 if i == index:
                     entity_id = entry['entity_id']
-                    keyword = entry['data'][x]['keyword']
+                    res = x
                     break
-                i += 1
-    return entity_id, keyword
+        i += 1
+    return entity_id, res
 
 
 def get_entity_data_from_raw_data_input(
@@ -57,7 +53,7 @@ def get_entity_data_from_raw_data_input(
                 i += 1
 
 
-async def search_entity_by_keyword(entity, keyword, include_self=True) -> SearchResponse:
+async def search_entity_by_keyword(entity, keyword, include_self=True) -> typing.Optional[Entity]:
     from core.src.world.builder import world_repository, map_repository
     data = await world_repository.get_components_values_by_entities(
         [entity],
@@ -66,33 +62,39 @@ async def search_entity_by_keyword(entity, keyword, include_self=True) -> Search
     pos = PosComponent(data[entity.entity_id][PosComponent.component_enum])
     attrs_value = data[entity.entity_id][AttributesComponent.component_enum]
     room = await map_repository.get_room(PosComponent([pos.x, pos.y, pos.z]))
-    if not room.has_entities:
-        return
-    await room.populate_room_content_for_look(entity)
-    totals, raw_room_content = await world_repository.get_raw_content_for_room_interaction(entity.entity_id, room)
-    if include_self:
-        personal_data = [
-            {
-                'entity_id': entity.entity_id, 'data': [attrs_value, *('' for _ in range(1, totals))]
-            },
-            {
-                'entity_id': entity.entity_id, 'data': [{'keyword': attrs_value['name']}]
-            },
+    entity.set_component(AttributesComponent(attrs_value)).set_component(pos).set_room(room)
+    all_but_me = [eid for eid in room.entity_ids if eid != entity.entity_id]
+    target_data = (
+        await world_repository.get_components_values_by_entities_ids(all_but_me, [PosComponent, AttributesComponent])
+    ) if room.has_entities else {}
+    search_data = []
+    include_self and search_data.extend(
+        [
+            {'entity_id': entity.entity_id, 'data': [
+                {'keyword': attrs_value['name']},
+                {'keyword': attrs_value['keyword']}
+            ]},
         ]
-
-        raw_room_content = itertools.chain(raw_room_content, personal_data)
+    )
+    for entity_id in all_but_me:
+        search_data.append(
+            {'entity_id': entity_id, 'data': [
+                {'keyword': target_data[entity_id][AttributesComponent.component_enum]['keyword']}
+            ]},
+        )
+    if not search_data:
+        return
     index, target = get_index_from_text(keyword)
-    found_entity = get_entity_id_from_raw_data_input(target, totals, raw_room_content, index=index)
+    found_entity = get_entity_id_from_raw_data_input(target, search_data, index=index)
     if found_entity and found_entity[0]:
-        found_entity_id, keyword = found_entity
+        found_entity_id, _ = found_entity
     else:
         return
-    return SearchResponse(
-        search_origin_attributes=AttributesComponent(attrs_value),
-        room=room,
-        entity_id=found_entity_id,
-        keyword=keyword
-    )
+    if entity.entity_id == found_entity_id:
+        target_attributes = entity.get_component(AttributesComponent)
+    else:
+        target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.component_enum])
+    return Entity(found_entity_id).set_component(pos).set_component(target_attributes)
 
 
 async def get_current_room(entity: Entity, populate=True):

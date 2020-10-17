@@ -1,4 +1,5 @@
-from core.src.world.utils.utils import ActionTarget
+from core.src.world.components.attributes import AttributesComponent
+from core.src.world.domain.entity import Entity
 from core.src.world.domain.room import Room
 
 
@@ -8,7 +9,9 @@ def serialize_system_message_item(item):
     """
     if isinstance(item, Room):
         return item.item_type, item.serialize()
-    elif isinstance(item, ActionTarget):
+    elif isinstance(item, Entity):
         return "entity", {
-            "attributes": item.components.attributes.value,
+            "attributes": item.get_component(AttributesComponent).value,
         }
+    else:
+        raise ValueError

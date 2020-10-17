@@ -4,7 +4,7 @@ from enum import Enum
 import typing
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
-from core.src.world.domain.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity
 from core.src.world.services.redis_pubsub_publisher_service import PubSubEventType
 from core.src.world.utils.world_types import Transport
 
@@ -101,7 +101,7 @@ class PubSubObserver:
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
         room = PosComponent(room)
-        entity = Entity(EntityID(entity_id))
+        entity = Entity(entity_id)
         entity.transport = Transport(transport_id, self.transport)
         curr_pos = await self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         interest_type = await self._get_message_interest_type(entity, room, curr_pos)

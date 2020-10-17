@@ -33,16 +33,6 @@ Transport = typing.NamedTuple(
     )
 )
 
-SearchResponse = typing.NamedTuple(
-    'SearchResponse',
-    (
-        ('search_origin_attributes', object),
-        ('room', object),
-        ('entity_id', int),
-        ('keyword', str)
-    )
-)
-
 
 def is_terrain_walkable(terrain_type: TerrainEnum):
     return {

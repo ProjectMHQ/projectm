@@ -1,57 +1,75 @@
 import asyncio
 import typing
 
+from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
-from core.src.world.utils.utils import ActionTarget
 from core.src.world.domain import DomainObject
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.serialization import serialize_system_message_item
 
 
-async def emit_msg(item, message: str):
+async def emit_msg(entity, message: str, strict=True):
     from core.src.world.builder import transport
-    if isinstance(item, ActionTarget):
-        namespace = item.components.connection.value
-    elif isinstance(item, Entity):
-        namespace = item.transport.namespace
-    else:
-        raise ValueError
-    return await transport.send_message(namespace, message)
+    from core.src.world.builder import world_repository
+    request_components = []
+    if entity.itsme:
+        connection_id = entity.get_component(ConnectionComponent).value
+        assert connection_id
+        await transport.send_message(connection_id, message)
+        return True
+
+    if not entity.get_component(ConnectionComponent):
+        request_components.append(ConnectionComponent)
+    if strict:
+        expected_pos = entity.get_component(PosComponent)
+        if not expected_pos:
+            raise ValueError
+        request_components = [PosComponent, ConnectionComponent]
+    if request_components:
+        components_data = await world_repository.get_components_values_by_components(
+            [entity.entity_id], [ConnectionComponent, PosComponent]
+        )
+        entity.set_component(ConnectionComponent(components_data[ConnectionComponent.component_enum][entity.entity_id]))
+        if strict:
+            current_pos = PosComponent(components_data[PosComponent.component_enum][entity.entity_id])
+            if current_pos.value != expected_pos.value:
+                return False
+    await transport.send_message(
+        entity.get_component(ConnectionComponent).value,
+        message
+    )
+    return True
 
 
-async def emit_system_message(entity, event_type: str, item: (DomainObject, typing.NamedTuple)):
+async def emit_system_message(entity, event_type: str, item: (DomainObject, Entity)):
     from core.src.world.builder import transport
-    assert isinstance(item, (DomainObject, ActionTarget)), item
     item_type, details = serialize_system_message_item(item)
     payload = {
         "event": event_type,
         "target": item_type,
         "details": details
     }
-    if isinstance(entity, ActionTarget):
-        namespace = item.components.connection.value
-    else:
-        namespace = entity.transport.namespace
-    return await transport.send_system_event(namespace, payload)
+    return await transport.send_system_event(entity.get_component(ConnectionComponent).value, payload)
 
 
-async def emit_room_msg(room, origin_attributes, action_target, message_template):
+async def emit_room_msg(origin: Entity, target: Entity, message_template):
     from core.src.world.builder import world_repository
     from core.src.world.builder import transport
+    room = origin.get_room()
     elegible_listeners = await world_repository.get_elegible_listeners_for_room(room)
     components_data = await world_repository.get_components_values_by_components(
         elegible_listeners, [ConnectionComponent, PosComponent]
     )
     futures = []
     for entity_id, value in components_data[PosComponent.component_enum].items():
-        if entity_id == action_target.entity_id:
+        if entity_id == origin.entity_id:
             continue
         if value == room.position.value and components_data[ConnectionComponent.component_enum][entity_id]:
             # TODO - Evaluate VS entity memory
             msg_template_arguments = {
-                'origin': origin_attributes.keyword,
-                'target': action_target.components.target_attributes.keyword
+                'origin': origin.get_component(AttributesComponent).keyword,
+                'target': target.get_component(AttributesComponent).keyword
             }
             futures.append(
                 transport.send_message(

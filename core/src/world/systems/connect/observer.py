@@ -7,7 +7,7 @@ from core.src.world.actions.system.getmap import getmap
 from core.src.world.actions.look.look import look
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
-from core.src.world.domain.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import get_base_room_for_entity
 from core.src.world.utils.world_types import Transport
 
@@ -34,7 +34,11 @@ class ConnectionsObserver:
         self._commands[command] = method
 
     async def on_message(self, message: typing.Dict):
-        entity = Entity(EntityID(message['e_id']), transport=Transport(message['n'], self.transport))
+        entity = Entity(
+            message['e_id'],
+            transport=Transport(message['n'], self.transport),
+            itsme=True
+        ).set_component(ConnectionComponent(message['n']))
         if message['c'] == 'connected':
             await self.on_connect(entity)
         elif message['c'] == 'disconnected':

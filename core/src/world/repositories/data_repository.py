@@ -17,7 +17,7 @@ from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.room import Room
-from core.src.world.domain.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity
 from core.src.world.repositories.library_repository import RedisLibraryRepository
 from core.src.world.repositories.map_repository import RedisMapRepository
 from core.src.world.utils.world_types import Bit, EvaluatedEntity
@@ -168,7 +168,7 @@ class RedisDataRepository:
     async def save_entity(self, entity: Entity) -> Entity:
         assert not entity.entity_id, 'entity_id: %s, use update, not save.' % entity.entity_id
         entity_id = await self._allocate_entity_id()
-        entity.entity_id = EntityID(entity_id)
+        entity.entity_id = entity_id
         await self.update_entities(entity)
         return entity
 
@@ -329,7 +329,7 @@ class RedisDataRepository:
             self,
             entities: typing.List[Entity],
             components: typing.List[typing.Type[ComponentType]]
-    ) -> typing.Dict[EntityID, typing.Dict[ComponentTypeEnum, bytes]]:
+    ) -> typing.Dict[int, typing.Dict[ComponentTypeEnum, bytes]]:
         for component in components:
             assert not component.is_array(), 'At the moment is not possible to use this API with array components'
 
@@ -339,6 +339,22 @@ class RedisDataRepository:
             e.entity_id: {
                 c.component_enum: c.cast_type(_filtered.get(e.entity_id, {}).get(c.key)) for c in components
             } for e in entities
+        }
+
+    async def get_components_values_by_entities_ids(
+            self,
+            entities_ids: typing.List[int],
+            components: typing.List[typing.Type[ComponentType]]
+    ) -> typing.Dict[int, typing.Dict[ComponentTypeEnum, bytes]]:
+        for component in components:
+            assert not component.is_array(), 'At the moment is not possible to use this API with array components'
+
+        _bits_statuses = await self._get_components_statuses_by_entities_ids(entities_ids, components)
+        _filtered = await self._get_components_values_from_entities_storage(_bits_statuses)
+        return {
+            entity_id: {
+                c.component_enum: c.cast_type(_filtered.get(entity_id, {}).get(c.key)) for c in components
+            } for entity_id in entities_ids
         }
 
     async def get_raw_component_value_by_entity_ids(
@@ -365,7 +381,7 @@ class RedisDataRepository:
             self,
             entity_ids: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
-    ) -> typing.Dict[ComponentTypeEnum, typing.Dict[EntityID, bytes]]:
+    ) -> typing.Dict[ComponentTypeEnum, typing.Dict[int, bytes]]:
         _bits_statuses = await self._get_components_statuses_by_components(entity_ids, components)
         _filtered = await self._get_components_values_from_components_storage(_bits_statuses)
         s = {
@@ -397,6 +413,31 @@ class RedisDataRepository:
                     bits_by_entity[ent.entity_id] = _ent_v
                 i += 1
         return bits_by_entity
+
+    async def _get_components_statuses_by_entities_ids(
+            self,
+            entities_ids: typing.List[int],
+            components: typing.List[typing.Type[ComponentType]]
+    ) -> OrderedDict:
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
+        bits_by_entity = OrderedDict()
+        for _e in entities_ids:
+            for _c in components:
+                key = '{}:{}:{}'.format(self._component_prefix, _c.key, self._map_suffix)
+                pipeline.getbit(key, _e)
+        data = await pipeline.execute()
+        i = 0
+        for ent in entities_ids:
+            for comp in components:
+                _ent_v = {comp.key: [data[i], comp.component_type != bool]}
+                try:
+                    bits_by_entity[ent].update(_ent_v)
+                except KeyError:
+                    bits_by_entity[ent] = _ent_v
+                i += 1
+        return bits_by_entity
+
 
     async def _get_components_statuses_by_components(
             self,
@@ -502,9 +543,9 @@ class RedisDataRepository:
                     else:
                         value = status[0]
                     try:
-                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): value})
+                        data[ComponentTypeEnum(c_key)].update({entity_id: value})
                     except KeyError:
-                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): value}
+                        data[ComponentTypeEnum(c_key)] = {entity_id: value}
                 elif all(status):
                     if component.is_array():
                         if component.has_default:
@@ -525,9 +566,9 @@ class RedisDataRepository:
                         else:
                             value = response[i][e_i]
                     try:
-                        data[ComponentTypeEnum(c_key)].update({EntityID(entity_id): value})
+                        data[ComponentTypeEnum(c_key)].update({entity_id: value})
                     except KeyError:
-                        data[ComponentTypeEnum(c_key)] = {EntityID(entity_id): value}
+                        data[ComponentTypeEnum(c_key)] = {entity_id: value}
                     except IndexError:
                         raise
                 e_i += 1
@@ -564,9 +605,9 @@ class RedisDataRepository:
                     else:
                         value = status[0]
                     try:
-                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): value})
+                        data[entity_id].update({ComponentTypeEnum(c_key): value})
                     except KeyError:
-                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): value}
+                        data[entity_id] = {ComponentTypeEnum(c_key): value}
                 elif all(status):
                     if component.has_default:
                         value = response[i][c_i] or self.library_repository.get_defaults_for_library_element(
@@ -576,11 +617,11 @@ class RedisDataRepository:
                     else:
                         value = response[i][c_i]
                     try:
-                        data[EntityID(entity_id)].update({ComponentTypeEnum(c_key): value})
+                        data[entity_id].update({ComponentTypeEnum(c_key): value})
                     except KeyError:
-                        data[EntityID(entity_id)] = {ComponentTypeEnum(c_key): value}
+                        data[entity_id] = {ComponentTypeEnum(c_key): value}
                     c_i += 1
-            i += 1
+                i += 1
         return data
 
     async def get_entities_evaluation_by_entity(
@@ -679,44 +720,21 @@ class RedisDataRepository:
             _exp_res.append(look_at_entity_id)
         result = await pipeline.execute()
 
-        def _parse_data(res_entry):
-            if res_entry[1]:
-                return [
-                    res_entry[1] and literal_eval(res_entry[1].decode()) or {}
-                ]
-            else:
-                return [
-                    self.library_repository.get_defaults_for_library_element(
-                        res_entry[0].decode(), AttributesComponent
-                    ).value
-                ]
-        res = [{'entity_id': entity_id, 'data': _parse_data(result[i])} for i, entity_id in enumerate(_exp_res)]
-        return 1, res
+        def load_attributes_or_default(r):
+            if not r[1]:
+                return self.library_repository.get_defaults_for_library_element(
+                    r[0].decode(),
+                    AttributesComponent
+                )
+            return AttributesComponent.from_bytes(r[1])
 
-    async def get_base_components_for_entity_id(self, entity_id):
-        assert entity_id
-        redis = await self.async_redis()
-        data = await redis.hmget(
-            '{}:{}'.format(self._entity_prefix, entity_id),
-            InstanceOfComponent.key,
-            AttributesComponent.key,
-            PosComponent.key,
-            ConnectionComponent.key,
-            CharacterComponent.key
-        )
-        if not data[1]:
-            attributes = self.library_repository.get_defaults_for_library_element(
-                data[0].decode(), AttributesComponent
-            )
-        else:
-            attributes = AttributesComponent.from_bytes(data[1])
-        return {
-            'attributes': attributes,
-            'position': PosComponent.from_bytes(data[2]),
-            'connection': data[3] and ConnectionComponent(data[3].decode()),
-            'is_character': data[4],
-            'instance_of': data[0]
-        }
+        res = [
+            {
+                'entity_id': entity_id,
+                'attrs': load_attributes_or_default(result[i])
+            } for i, entity_id in enumerate(_exp_res)
+        ]
+        return 1, res
 
     async def delete_entity(self, entity_id: int):
         redis = await self.async_redis()

@@ -2,20 +2,27 @@ import typing
 
 from core.src.world.components import ComponentType
 from core.src.world.domain import DomainObject
-from core.src.world.utils.serialization import serialize_system_message_item
 from core.src.world.utils.world_types import Transport, EvaluatedEntity
-
-EntityID = typing.NewType('EntityID', int)
 
 
 class Entity(DomainObject):
     item_type = "entity"
 
-    def __init__(self, entity_id: typing.Optional[EntityID] = None, transport: Transport = None):
+    def __init__(self, entity_id: typing.Optional[int] = None, transport: Transport = None, itsme=False):
         self._entity_id = entity_id
         self._pending_changes = {}
         self.transport = transport
         self._bounds = []
+        self._components = {}
+        self._room = None
+        self.itsme = itsme
+
+    def set_room(self, room):
+        self._room = room
+        return room
+
+    def get_room(self):
+        return self._room
 
     def get_view_size(self):
         return 15
@@ -29,8 +36,9 @@ class Entity(DomainObject):
     async def emit_system_event(self, payload: typing.Dict):
         return await self.transport.transport.send_system_event(self.transport.namespace, payload)
 
-    async def emit_system_message(self, event_type: str, item: (DomainObject, typing.NamedTuple)):
-        assert isinstance(item, (DomainObject, typing.NamedTuple))
+    async def emit_system_message(self, event_type: str, item: DomainObject):
+        assert isinstance(item, DomainObject)
+        from core.src.world.utils.serialization import serialize_system_message_item
         item_type, details = serialize_system_message_item(item)
         payload = {
             "event_type": event_type,
@@ -44,11 +52,11 @@ class Entity(DomainObject):
         return self
 
     @property
-    def entity_id(self) -> EntityID:
-        return EntityID(self._entity_id)
+    def entity_id(self) -> int:
+        return self._entity_id
 
     @entity_id.setter
-    def entity_id(self, value: EntityID):
+    def entity_id(self, value: int):
         assert not self._entity_id
         self._entity_id = value
 
@@ -71,3 +79,13 @@ class Entity(DomainObject):
     def add_bound(self, component):
         self._bounds.append(component)
         return self
+
+    def set_component(self, component: ComponentType):
+        self._components[component.component_enum] = component
+        return self
+
+    def get_component(self, component: typing.Type[ComponentType]):
+        return self._components.get(component.component_enum)
+
+    def load_components(self):
+        raise NotImplementedError

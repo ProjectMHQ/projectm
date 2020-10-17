@@ -3,7 +3,7 @@ import asyncio
 import typing
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.domain.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 
 
@@ -49,7 +49,7 @@ class RedisPubSubEventsSubscriberService:
 
     async def bootstrap_subscribes(self, data: typing.Dict[int, typing.List[int]]):
         for en, pos_val in data.items():
-            await self.subscribe_events(Entity(EntityID(en)))
+            await self.subscribe_events(Entity(en))
 
     async def unsubscribe_all(self, entity: Entity):
         self._transports_by_entity_id.pop(entity.entity_id, None)

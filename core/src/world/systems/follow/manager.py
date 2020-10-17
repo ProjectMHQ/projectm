@@ -4,7 +4,7 @@ import typing
 from core.src.world.actions.movement.follow import do_follow
 from core.src.world.utils.world_types import Transport
 
-from core.src.world.domain.entity import Entity, EntityID
+from core.src.world.domain.entity import Entity
 
 
 class FollowSystemManager:
@@ -54,5 +54,5 @@ class FollowSystemManager:
         if current_followed_id != event['entity']['id']:
             return
         transport: Transport = self.transports_manager.get_transport_by_entity_id(follower_id)
-        entity = Entity(EntityID(follower_id), transport=transport)
+        entity = Entity(follower_id, transport=transport)
         self.loop.create_task(do_follow(entity, event))
