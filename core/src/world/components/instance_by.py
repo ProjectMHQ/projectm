@@ -10,7 +10,7 @@ class InstanceByComponent(ComponentType):
     component_type = int
     libname = "instance_by"
 
-    def __init__(self, value: str):
+    def __init__(self, value: int):
         super().__init__(value)
 
     @property

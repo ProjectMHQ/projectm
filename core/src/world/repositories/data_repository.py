@@ -1,7 +1,6 @@
 import asyncio
 import binascii
 import typing
-from ast import literal_eval
 from collections import OrderedDict
 
 import aioredis
@@ -437,7 +436,6 @@ class RedisDataRepository:
                     bits_by_entity[ent] = _ent_v
                 i += 1
         return bits_by_entity
-
 
     async def _get_components_statuses_by_components(
             self,

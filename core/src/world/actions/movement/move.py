@@ -3,13 +3,14 @@ import asyncio
 import typing
 
 from core.src.world import exceptions
-from core.src.world.actions.movement._utils_ import DirectionEnum, direction_to_coords_delta, apply_delta_to_position
+from core.src.world.utils.world_types import DirectionEnum
 from core.src.world.actions_scheduler.tools import singleton_action, cancellable_scheduled_action_factory
 from core.src.world.actions.system.cast import cast_entity
 from core.src.world.actions.system.getmap import getmap
 from core.src.world.actions.look.look import look
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
+from core.src.world.utils.world_utils import direction_to_coords_delta, apply_delta_to_position
 
 
 def get_broadcast_msg_movement(status, direction):

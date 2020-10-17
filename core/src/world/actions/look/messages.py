@@ -1,4 +1,4 @@
-from core.src.world.actions.movement._utils_ import DirectionEnum
+from core.src.world.utils.world_types import DirectionEnum
 
 
 class LookMessages:

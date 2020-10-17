@@ -63,12 +63,12 @@ async def pick(entity: Entity, *targets):
         await entity.emit_msg(get_pick_at_no_target_to_msg(targets[0]))
         return
     try:
-        await room.populate_room_content_for_look(entity)
+        await room.populate_content(entity)
         totals, raw_room_content = await world_repository.get_raw_content_for_room_interaction(
             entity.entity_id, room
         )
         index, target = get_index_from_text(targets[0])
-        found_entity = get_entity_id_from_raw_data_input(target, totals, raw_room_content, index=index)
+        found_entity = get_entity_id_from_raw_data_input(target, raw_room_content, index=index)
         if not found_entity:
             await entity.emit_msg(get_pick_at_no_target_to_msg(targets[0]))
             return

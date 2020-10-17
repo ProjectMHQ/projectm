@@ -1,6 +1,5 @@
 import typing
 
-from core.src.world.actions.movement._utils_ import direction_to_coords_delta, apply_delta_to_position
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
@@ -61,7 +60,7 @@ async def search_entity_by_keyword(entity, keyword, include_self=True) -> typing
     )
     pos = PosComponent(data[entity.entity_id][PosComponent.component_enum])
     attrs_value = data[entity.entity_id][AttributesComponent.component_enum]
-    room = await map_repository.get_room(PosComponent([pos.x, pos.y, pos.z]))
+    room = await map_repository.get_room(pos)
     entity.set_component(AttributesComponent(attrs_value)).set_component(pos).set_room(room)
     all_but_me = [eid for eid in room.entity_ids if eid != entity.entity_id]
     target_data = (
@@ -95,22 +94,3 @@ async def search_entity_by_keyword(entity, keyword, include_self=True) -> typing
     else:
         target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.component_enum])
     return Entity(found_entity_id).set_component(pos).set_component(target_attributes)
-
-
-async def get_current_room(entity: Entity, populate=True):
-    from core.src.world.builder import world_repository
-    from core.src.world.builder import map_repository
-    pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-    room = await map_repository.get_room(pos, populate=populate)
-    return room
-
-
-async def get_room_at_direction(entity: Entity, direction_enum, populate=True):
-    from core.src.world.builder import map_repository, world_repository
-    delta = direction_to_coords_delta(direction_enum)
-    if not delta:
-        return
-    pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-    look_cords = apply_delta_to_position(pos, delta)
-    room = await map_repository.get_room(look_cords, populate=populate)
-    return room

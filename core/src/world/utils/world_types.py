@@ -1,5 +1,4 @@
 import enum
-
 import typing
 
 
@@ -33,16 +32,6 @@ Transport = typing.NamedTuple(
     )
 )
 
-
-def is_terrain_walkable(terrain_type: TerrainEnum):
-    return {
-        TerrainEnum.NULL: False,
-        TerrainEnum.WALL_OF_BRICKS: False,
-        TerrainEnum.PATH: True,
-        TerrainEnum.GRASS: True
-    }[terrain_type]
-
-
 EvaluatedEntity = typing.NamedTuple(
     'EvaluatedEntity',
     (
@@ -54,3 +43,12 @@ EvaluatedEntity = typing.NamedTuple(
         ('entity_id', int)
     )
 )
+
+
+class DirectionEnum(enum.Enum):
+    NORTH = 'n'
+    SOUTH = 's'
+    EAST = 'e'
+    WEST = 'w'
+    UP = 'u'
+    DOWN = 'd'

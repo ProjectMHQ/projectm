@@ -1,5 +1,4 @@
 import asyncio
-import typing
 
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.connection import ConnectionComponent
@@ -42,7 +41,7 @@ async def emit_msg(entity, message: str, strict=True):
     return True
 
 
-async def emit_system_message(entity, event_type: str, item: (DomainObject, Entity)):
+async def emit_sys_msg(entity, event_type: str, item: (DomainObject, Entity)):
     from core.src.world.builder import transport
     item_type, details = serialize_system_message_item(item)
     payload = {
@@ -53,7 +52,7 @@ async def emit_system_message(entity, event_type: str, item: (DomainObject, Enti
     return await transport.send_system_event(entity.get_component(ConnectionComponent).value, payload)
 
 
-async def emit_room_msg(origin: Entity, target: Entity, message_template):
+async def emit_room_msg(origin: Entity, message_template, target: Entity = None):
     from core.src.world.builder import world_repository
     from core.src.world.builder import transport
     room = origin.get_room()
@@ -69,7 +68,7 @@ async def emit_room_msg(origin: Entity, target: Entity, message_template):
             # TODO - Evaluate VS entity memory
             msg_template_arguments = {
                 'origin': origin.get_component(AttributesComponent).keyword,
-                'target': target.get_component(AttributesComponent).keyword
+                'target': target and target.get_component(AttributesComponent).keyword
             }
             futures.append(
                 transport.send_message(

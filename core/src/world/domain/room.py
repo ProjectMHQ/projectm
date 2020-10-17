@@ -2,7 +2,8 @@ import typing
 
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain import DomainObject
-from core.src.world.utils.world_types import TerrainEnum, is_terrain_walkable, EvaluatedEntity
+from core.src.world.utils.world_types import TerrainEnum, EvaluatedEntity
+from core.src.world.utils.world_utils import is_terrain_walkable
 
 
 class Room(DomainObject):
@@ -93,7 +94,7 @@ class Room(DomainObject):
     async def walkable_by(self, entity):
         return is_terrain_walkable(self.terrain)
 
-    async def populate_room_content_for_look(self, entity):
+    async def populate_content(self, entity):
         from core.src.world.builder import world_repository
-        await world_repository.populate_room_content_for_look(entity, self)
+        await world_repository.populate_content(entity)
         return self

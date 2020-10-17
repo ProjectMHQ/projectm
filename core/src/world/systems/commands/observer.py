@@ -23,9 +23,8 @@ class CommandsObserver:
             if not data:
                 raise TypeError('Empty command?')
 
-            entity = Entity(
-                message['e_id'], transport=Transport(message['n'], self.transport), itsme=True
-            ).set_component(ConnectionComponent(message['n']))
+            entity = Entity(message['e_id'], transport=Transport(message['n'], self.transport), itsme=True)
+            entity.set_component(ConnectionComponent(message['n']))
 
             command = self._commands[data[0].lower()]
             if getattr(command, 'get_self', False):

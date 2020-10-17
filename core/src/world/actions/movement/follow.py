@@ -3,7 +3,7 @@ import itertools
 import typing
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.actions.movement._utils_ import DirectionEnum
+from core.src.world.utils.world_types import DirectionEnum
 from core.src.world.actions.movement.move import do_move_entity
 from core.src.world.actions_scheduler.tools import singleton_action
 from core.src.world.components.attributes import AttributesComponent
@@ -89,7 +89,7 @@ async def follow(
         await entity.emit_msg(get_follow_failure_to_msg('not_found'))
         return
     try:
-        await room.populate_room_content_for_look(entity)
+        await room.populate_content(entity)
         totals, raw_room_content = await world_repository.get_raw_content_for_room_interaction(entity.entity_id, room)
         raw_room_content = itertools.chain(
             raw_room_content,

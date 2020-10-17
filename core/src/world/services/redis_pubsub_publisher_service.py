@@ -17,7 +17,6 @@ class RedisPubSubEventsPublisherService:
     def __init__(self, pubsub: PubSubManager):
         self.pubsub = pubsub
         self._redis = None
-        self._rooms_events_prefix = 'ev:r'
 
     def _eid_to_key(self, entity_id: int):
         return 'chan:{}'.format(entity_id)

@@ -1,9 +1,7 @@
 import asyncio
 from enum import IntEnum
-
-import typing
-
 import aioredis
+import typing
 
 
 class DescriptionType(IntEnum):
