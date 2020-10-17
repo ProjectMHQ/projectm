@@ -1,10 +1,10 @@
 import asyncio
 import typing
 
-from core.src.world.actions.cast import cast_entity
-from core.src.world.actions.disconnect import disconnect_entity
-from core.src.world.actions.getmap import getmap
-from core.src.world.actions.look import look
+from core.src.world.actions.system.cast import cast_entity
+from core.src.world.actions.system.disconnect import disconnect_entity
+from core.src.world.actions.system.getmap import getmap
+from core.src.world.actions.look.look import look
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity, EntityID

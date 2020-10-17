@@ -1,6 +1,6 @@
 import typing
 
-from core.src.world.actions.utils.utils import DirectionEnum
+from core.src.world.actions.movement._utils_ import DirectionEnum
 
 
 class TranslatorLookItalian:

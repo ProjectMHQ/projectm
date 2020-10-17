@@ -743,7 +743,7 @@ class RedisDataRepository:
         result = await pipeline.execute()
         return [bool(x) for x in result]
 
-    async def get_positions_of_living_entity_ids_in_area(self, area, entity):
+    async def get_elegible_listeners_for_area(self, area):
         """
         fixme switch to LUA proc
         """
@@ -751,12 +751,7 @@ class RedisDataRepository:
         characters = entities_rooms and await self._filter_entities_with_active_component(
             CharacterComponent, *entities_rooms
         )
-        positions = characters and await self.map_repository.get_positions_for_entity_ids(*characters)
-        return positions and [
-            PosComponent.from_bytes(positions[i])
-            for i, c in enumerate(characters)
-            if (c != entity.entity_id and positions[i])
-        ] or []
+        return characters
 
     async def _filter_entities_with_active_component(self, component, *entities):
         redis = await self.async_redis()

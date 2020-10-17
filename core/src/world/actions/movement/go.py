@@ -1,7 +1,7 @@
 from core.src.world import exceptions
-from core.src.world.actions.move import get_movement_message_no_walkable_direction, get_movement_message_payload, \
+from core.src.world.actions.movement.move import get_movement_message_no_walkable_direction, get_movement_message_payload, \
     ScheduledMovement, speed_component_to_movement_waiting_time
-from core.src.world.actions.utils.utils import DirectionEnum, direction_to_coords_delta, apply_delta_to_position
+from core.src.world.actions.movement._utils_ import DirectionEnum, direction_to_coords_delta, apply_delta_to_position
 from core.src.world.actions_scheduler.tools import singleton_action, looped_cancellable_scheduled_action_factory
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition

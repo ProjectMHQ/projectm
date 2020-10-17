@@ -3,9 +3,9 @@ import itertools
 import typing
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.actions.look import get_look_at_no_target_to_msg
-from core.src.world.actions.move import do_move_entity
-from core.src.world.actions.utils.utils import DirectionEnum
+from core.src.world.actions.look.look import get_look_at_no_target_to_msg
+from core.src.world.actions.movement._utils_ import DirectionEnum
+from core.src.world.actions.movement.move import do_move_entity
 from core.src.world.actions_scheduler.tools import singleton_action
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent

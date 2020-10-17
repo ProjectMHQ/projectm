@@ -3,7 +3,7 @@ import os
 import socketio
 
 from core.src.world.actions_scheduler.singleton_actions_scheduler import SingletonActionsScheduler
-from core.src.world.messages_translators.builder import get_messages_translator
+from core.src.world.services.translators_factory import get_messages_translator
 from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
 from core.src.world.repositories.library_repository import RedisLibraryRepository
 from core.src.world.services.redis_pubsub_interface import PubSubManager

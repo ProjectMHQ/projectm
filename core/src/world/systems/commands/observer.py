@@ -28,14 +28,16 @@ class CommandsObserver:
                 await self._commands[data[0]](entity, *data)
             else:
                 await self._commands[data[0]](entity, *data[1:])
-        except KeyError:
+        except KeyError as exc:
             if settings.RUNNING_TESTS:
                 raise
             await self._on_error(message, "Command not found: %s" % data[0])
+            LOGGER.core.exception('Unhandled exception %s', exc)
         except TypeError as exc:
             if settings.RUNNING_TESTS:
                 raise
             await self._on_error(message, "Command error: %s" % str(exc))
+            LOGGER.core.exception('Unhandled exception %s', exc)
         except Exception as exc:
             LOGGER.core.exception('Unhandled exception %s', exc)
             print(exc)

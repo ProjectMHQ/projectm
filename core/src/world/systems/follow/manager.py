@@ -1,7 +1,7 @@
 import asyncio
 import typing
 
-from core.src.world.actions.follow import do_follow
+from core.src.world.actions.movement.follow import do_follow
 from core.src.world.utils.world_types import Transport
 
 from core.src.world.domain.entity import Entity, EntityID

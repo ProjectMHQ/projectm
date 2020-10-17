@@ -1,7 +1,7 @@
 import typing
 import itertools
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.actions.utils.utils import DirectionEnum, direction_to_coords_delta, apply_delta_to_position
+from core.src.world.actions.movement._utils_ import DirectionEnum, direction_to_coords_delta, apply_delta_to_position
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.room import RoomPosition
