@@ -1,21 +1,16 @@
 import typing
 
-from core.src.world.domain.entity import Entity
+from core.src.world.components.pos import PosComponent
+from core.src.world.domain import DomainObject
 from core.src.world.utils.world_types import TerrainEnum, is_terrain_walkable, EvaluatedEntity
 
-RoomPosition = typing.NamedTuple(
-    'RoomPosition', (
-        ('x', int),
-        ('y', int),
-        ('z', int)
-    )
-)
 
+class Room(DomainObject):
+    item_type = "room"
 
-class Room:
     def __init__(
         self,
-        position: RoomPosition = None,
+        position: PosComponent = None,
         terrain: TerrainEnum = TerrainEnum.NULL,
         entity_ids: typing.List[int] = list()
     ):
@@ -25,7 +20,7 @@ class Room:
         self._content: typing.Set[EvaluatedEntity] = set()
 
     @property
-    def position(self) -> RoomPosition:
+    def position(self) -> PosComponent:
         return self._position
 
     @property
@@ -58,8 +53,7 @@ class Room:
     def has_entities(self):
         return bool(self._entity_ids)
 
-    @property
-    def json_content(self) -> typing.List[typing.Dict]:
+    def serialize(self) -> typing.Dict:
         res = []
         for e in self.content:
             data = {
@@ -71,7 +65,10 @@ class Room:
             if e.known:
                 data['name'] = e.name
             res.append(data)
-        return res
+        return {
+            "position": [self._position.x, self._position.y, self._position.z],
+            "content": res
+        }
 
     def add_evaluated_entity(self, evaluated_entity: EvaluatedEntity):
         self._content.add(evaluated_entity)
@@ -96,7 +93,7 @@ class Room:
     async def walkable_by(self, entity):
         return is_terrain_walkable(self.terrain)
 
-    async def populate_room_content_for_look(self, entity: Entity):
+    async def populate_room_content_for_look(self, entity):
         from core.src.world.builder import world_repository
         await world_repository.populate_room_content_for_look(entity, self)
         return self

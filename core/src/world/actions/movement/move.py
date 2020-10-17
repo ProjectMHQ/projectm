@@ -9,7 +9,6 @@ from core.src.world.actions.system.cast import cast_entity
 from core.src.world.actions.system.getmap import getmap
 from core.src.world.actions.look.look import look
 from core.src.world.components.pos import PosComponent
-from core.src.world.domain.room import RoomPosition
 from core.src.world.domain.entity import Entity
 
 
@@ -54,7 +53,7 @@ async def move_entity(entity: Entity, direction: str):
     direction = DirectionEnum(direction.lower())
     pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     delta = direction_to_coords_delta(direction)
-    where = apply_delta_to_position(RoomPosition(pos.x, pos.y, pos.z), delta)
+    where = apply_delta_to_position(pos, delta)
     try:
         room = await map_repository.get_room(where)
     except exceptions.RoomError:
@@ -110,7 +109,7 @@ class ScheduledMovement:
         coords = {}
         for escape in escapes:
             delta = direction_to_coords_delta(escape)
-            where = apply_delta_to_position(RoomPosition(self.pos.x, self.pos.y, self.pos.z), delta)
+            where = apply_delta_to_position(self.pos, delta)
             try:
                 _room = await map_repository.get_room(where)
                 if await _room.walkable_by(self.entity):
@@ -123,7 +122,7 @@ class ScheduledMovement:
 
     async def do(self) -> bool:
         delta = direction_to_coords_delta(self.direction)
-        where = apply_delta_to_position(RoomPosition(self.pos.x, self.pos.y, self.pos.z), delta)
+        where = apply_delta_to_position(self.pos, delta)
         from core.src.world.builder import map_repository
         try:
             room = await map_repository.get_room(where)

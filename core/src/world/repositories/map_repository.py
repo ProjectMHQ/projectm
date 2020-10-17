@@ -9,7 +9,7 @@ import aioredis
 from core.src.auth.logging_factory import LOGGER
 from core.src.world import exceptions
 from core.src.world.components.pos import PosComponent
-from core.src.world.domain.room import Room, RoomPosition
+from core.src.world.domain.room import Room
 from core.src.world.utils.world_types import TerrainEnum
 
 
@@ -60,6 +60,10 @@ class RedisMapRepository:
     def _get_room_content(self, pipeline, x: int, y: int, z: int):
         pipeline.zrange(self.get_room_key(x, y, z))
 
+    async def get_room_content(self, position):
+        redis = await self.redis()
+        return [int(x.decode()) for x in await redis.zrange(self.get_room_key(position.x, position.y, position.z))]
+
     def _get_rooms_content(self, pipeline, x: int, from_y: int, to_y: int, z: int):
         key = 'temp:rmc:{}'.format(binascii.unhexlify(os.urandom(8)).decode())
         pipeline.zunionstore(
@@ -95,7 +99,7 @@ class RedisMapRepository:
         not external_pipeline and await pipeline.execute()
         return room
 
-    async def get_room(self, position: RoomPosition) -> typing.Optional[Room]:
+    async def get_room(self, position: PosComponent, populate=True) -> typing.Optional[Room]:
         if (self.min_y > position.y) or (self.max_y < position.y):
             raise exceptions.RoomError
         if (self.min_x > position.x) or (self.max_x < position.x):
@@ -111,7 +115,7 @@ class RedisMapRepository:
         else:
             k = self._coords_to_int(position.x, position.y)
             pipeline.getrange(self.terrains_bitmap_key, k, k)
-        self._get_room_content(pipeline, position.x, position.y, position.z)
+        populate and self._get_room_content(pipeline, position.x, position.y, position.z)
         result = await pipeline.execute()
         if not result or not result[0]:
             LOGGER.core.error('Room Error. Request: %s, Result: %s', position, result)
@@ -120,7 +124,7 @@ class RedisMapRepository:
             terrain = int(result[0])
         else:
             terrain = int(struct.unpack('B', result[0])[0])
-        content = [int(x) for x in result[1]]
+        content = populate and [int(x) for x in result[1]] or []
 
         return Room(
             position=position,
@@ -135,7 +139,7 @@ class RedisMapRepository:
         await pipeline.execute()
         return response
 
-    async def get_rooms(self, *positions: RoomPosition, get_content=True):
+    async def get_rooms(self, *positions: PosComponent, get_content=True):
         redis = await self.redis()
         pipeline = redis.pipeline()
         for position in positions:
@@ -194,7 +198,7 @@ class RedisMapRepository:
                 terrain = int(value)
                 response.append(
                     Room(
-                        position=RoomPosition(from_x + d, y, z),
+                        position=PosComponent([from_x + d, y, z]),
                         terrain=TerrainEnum(terrain),
                     )
                 )
@@ -206,7 +210,7 @@ class RedisMapRepository:
             for d in range(0, to_x - from_x):
                 response.append(
                     Room(
-                        position=RoomPosition(from_x + d, y, z),
+                        position=PosComponent([from_x + d, y, z]),
                         terrain=TerrainEnum(terrains[d]),
                         entity_ids=get_content and [int(x) for x in result[d+1]] or []
                     )

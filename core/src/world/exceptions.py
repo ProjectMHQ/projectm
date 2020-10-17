@@ -20,3 +20,7 @@ class FollowSystemLoopError(WorldException):
 
 class FollowSystemRepeatError(WorldException):
     pass
+
+
+class TargetInconsistency(WorldException):
+    pass

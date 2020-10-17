@@ -3,13 +3,11 @@ import itertools
 import typing
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.actions.look.look import get_look_at_no_target_to_msg
 from core.src.world.actions.movement._utils_ import DirectionEnum
 from core.src.world.actions.movement.move import do_move_entity
 from core.src.world.actions_scheduler.tools import singleton_action
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
-from core.src.world.domain.room import RoomPosition
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import get_index_from_text, get_entity_data_from_raw_data_input
 
@@ -78,7 +76,7 @@ async def follow(
     )
     pos = PosComponent(data[entity.entity_id][PosComponent.component_enum])
     attributes_value = data[entity.entity_id][AttributesComponent.component_enum]
-    room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
+    room = await map_repository.get_room(pos)
 
     if not len(target):
         return await _handle_defollow(entity, pos)
@@ -102,7 +100,7 @@ async def follow(
         index, target = get_index_from_text(target)
         entity_data = get_entity_data_from_raw_data_input(target, totals, raw_room_content, index=index)
         if not entity_data:
-            await entity.emit_msg(get_look_at_no_target_to_msg())
+            await entity.emit_msg('Non lo vedi qui')  # todo fixme
             return
         if entity.entity_id == entity_data['entity_id']:
             await _handle_defollow(entity, pos)

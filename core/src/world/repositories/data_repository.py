@@ -693,12 +693,16 @@ class RedisDataRepository:
         res = [{'entity_id': entity_id, 'data': _parse_data(result[i])} for i, entity_id in enumerate(_exp_res)]
         return 1, res
 
-    async def get_look_components_for_entity_id(self, entity_id):
+    async def get_base_components_for_entity_id(self, entity_id):
         assert entity_id
         redis = await self.async_redis()
         data = await redis.hmget(
             '{}:{}'.format(self._entity_prefix, entity_id),
-            InstanceOfComponent.key, AttributesComponent.key
+            InstanceOfComponent.key,
+            AttributesComponent.key,
+            PosComponent.key,
+            ConnectionComponent.key,
+            CharacterComponent.key
         )
         if not data[1]:
             attributes = self.library_repository.get_defaults_for_library_element(
@@ -707,11 +711,11 @@ class RedisDataRepository:
         else:
             attributes = AttributesComponent.from_bytes(data[1])
         return {
-            'name': attributes.name,
-            'known': True,
-            'type': 0,
-            'status': 0,
-            'description': attributes.description
+            'attributes': attributes,
+            'position': PosComponent.from_bytes(data[2]),
+            'connection': data[3] and ConnectionComponent(data[3].decode()),
+            'is_character': data[4],
+            'instance_of': data[0]
         }
 
     async def delete_entity(self, entity_id: int):
@@ -753,13 +757,23 @@ class RedisDataRepository:
         )
         return characters
 
+    async def get_elegible_listeners_for_room(self, room):
+        """
+        fixme switch to LUA proc
+        """
+        entities_room = await self.map_repository.get_room_content(room.position)
+        characters = entities_room and await self._filter_entities_with_active_component(
+            CharacterComponent, *entities_room
+        )
+        return characters
+
     async def _filter_entities_with_active_component(self, component, *entities):
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         for entity in entities:
             pipeline.getbit(
                 '{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix),
-                int(entity.decode())
+                int(entity)
             )
         result = await pipeline.execute()
         return [int(entities[i]) for i, v in enumerate(result) if v]

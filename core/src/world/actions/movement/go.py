@@ -4,7 +4,6 @@ from core.src.world.actions.movement.move import get_movement_message_no_walkabl
 from core.src.world.actions.movement._utils_ import DirectionEnum, direction_to_coords_delta, apply_delta_to_position
 from core.src.world.actions_scheduler.tools import singleton_action, looped_cancellable_scheduled_action_factory
 from core.src.world.components.pos import PosComponent
-from core.src.world.domain.room import RoomPosition
 from core.src.world.domain.entity import Entity
 
 
@@ -32,7 +31,7 @@ async def go_entity(entity: Entity, direction: str):
 
     pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     delta = direction_to_coords_delta(direction)
-    where = apply_delta_to_position(RoomPosition(pos.x, pos.y, pos.z), delta)
+    where = apply_delta_to_position(pos, delta)
     try:
         room = await map_repository.get_room(where)
     except exceptions.RoomError:

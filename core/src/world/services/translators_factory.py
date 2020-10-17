@@ -1,6 +1,5 @@
 import typing
 
-from core.src.world.actions.look.look_translator import TranslatorLookItalian
 from core.src.world.actions.movement.follow_translator import TranslatorFollowItalian
 from core.src.world.actions.movement.movement_translator import TranslatorMovementsItalian
 
@@ -37,7 +36,6 @@ TRANSLATORS = {
     'it': {
         'msg': [
             TranslatorMovementsItalian,
-            TranslatorLookItalian,
             TranslatorFollowItalian
         ],
     }

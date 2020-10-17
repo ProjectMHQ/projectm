@@ -4,7 +4,6 @@ from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.parent_of import ParentOfComponent
 from core.src.world.components.pos import PosComponent
-from core.src.world.domain.room import RoomPosition
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import get_entity_id_from_raw_data_input, get_index_from_text
 
@@ -59,7 +58,7 @@ async def pick(entity: Entity, *targets):
         [PosComponent, AttributesComponent]
     )
     pos = PosComponent(data[entity.entity_id][PosComponent.component_enum])
-    room = await map_repository.get_room(RoomPosition(x=pos.x, y=pos.y, z=pos.z))
+    room = await map_repository.get_room(pos)
     if not room.has_entities:
         await entity.emit_msg(get_pick_at_no_target_to_msg(targets[0]))
         return

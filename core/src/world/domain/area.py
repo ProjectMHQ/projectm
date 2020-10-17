@@ -4,12 +4,15 @@ import time
 
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
+from core.src.world.domain import DomainObject
 
 from core.src.world.domain.room import Room
 from core.src.world.domain.entity import Entity
 
 
-class Area:
+class Area(DomainObject):
+    item_type = "area"
+
     def __init__(self, center: PosComponent, square_size=9):
         self.center = center
         self.size = square_size

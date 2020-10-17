@@ -1,12 +1,16 @@
 import typing
 
 from core.src.world.components import ComponentType
+from core.src.world.domain import DomainObject
+from core.src.world.utils.serialization import serialize_system_message_item
 from core.src.world.utils.world_types import Transport, EvaluatedEntity
 
 EntityID = typing.NewType('EntityID', int)
 
 
-class Entity:
+class Entity(DomainObject):
+    item_type = "entity"
+
     def __init__(self, entity_id: typing.Optional[EntityID] = None, transport: Transport = None):
         self._entity_id = entity_id
         self._pending_changes = {}
@@ -23,6 +27,16 @@ class Entity:
         return await self.transport.transport.send_message(self.transport.namespace, message)
 
     async def emit_system_event(self, payload: typing.Dict):
+        return await self.transport.transport.send_system_event(self.transport.namespace, payload)
+
+    async def emit_system_message(self, event_type: str, item: (DomainObject, typing.NamedTuple)):
+        assert isinstance(item, (DomainObject, typing.NamedTuple))
+        item_type, details = serialize_system_message_item(item)
+        payload = {
+            "event_type": event_type,
+            "target": item_type,
+            "details": details
+        }
         return await self.transport.transport.send_system_event(self.transport.namespace, payload)
 
     def set(self, component: ComponentType):

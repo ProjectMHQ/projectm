@@ -1,6 +1,11 @@
+import itertools
 import typing
+
+from core.src.world.actions.movement._utils_ import direction_to_coords_delta, apply_delta_to_position
+from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
+from core.src.world.utils.world_types import SearchResponse
 
 
 def get_base_room_for_entity(entity: Entity):
@@ -52,35 +57,58 @@ def get_entity_data_from_raw_data_input(
                 i += 1
 
 
-if __name__ == '__main__':
-    room_data = [
-        {'entity_id': 3, 'data': ['nome1']},
-        {'entity_id': 4, 'data': ['nome2']},
-        {'entity_id': 6, 'data': ['nome3']},
-        {'entity_id': 213, 'data': ['nome4']},
-        {'entity_id': 1235, 'data': ['nome5']},
-        {'entity_id': 12, 'data': ['']}
-    ]
-    equipment_data = [
-        {'entity_id': 3664, 'data': ['nomaz1']},
-        {'entity_id': 345,  'data': ['']},
-        {'entity_id': 2136, 'data': ['']},
-        {'entity_id': 3337, 'data': ['']}
-    ]
-    inventory_data = [
-        {'entity_id': 3623, 'data': ['']},
-    ]
+async def search_entity_by_keyword(entity, keyword, include_self=True) -> SearchResponse:
+    from core.src.world.builder import world_repository, map_repository
+    data = await world_repository.get_components_values_by_entities(
+        [entity],
+        [PosComponent, AttributesComponent]
+    )
+    pos = PosComponent(data[entity.entity_id][PosComponent.component_enum])
+    attrs_value = data[entity.entity_id][AttributesComponent.component_enum]
+    room = await map_repository.get_room(PosComponent([pos.x, pos.y, pos.z]))
+    if not room.has_entities:
+        return
+    await room.populate_room_content_for_look(entity)
+    totals, raw_room_content = await world_repository.get_raw_content_for_room_interaction(entity.entity_id, room)
+    if include_self:
+        personal_data = [
+            {
+                'entity_id': entity.entity_id, 'data': [attrs_value, *('' for _ in range(1, totals))]
+            },
+            {
+                'entity_id': entity.entity_id, 'data': [{'keyword': attrs_value['name']}]
+            },
+        ]
 
-    for ___x in range(0, 20100):
-        room_data.append({'entity_id': 10 + ___x, 'data': ['nome{}'.format(100 + ___x)]})
+        raw_room_content = itertools.chain(raw_room_content, personal_data)
+    index, target = get_index_from_text(keyword)
+    found_entity = get_entity_id_from_raw_data_input(target, totals, raw_room_content, index=index)
+    if found_entity and found_entity[0]:
+        found_entity_id, keyword = found_entity
+    else:
+        return
+    return SearchResponse(
+        search_origin_attributes=AttributesComponent(attrs_value),
+        room=room,
+        entity_id=found_entity_id,
+        keyword=keyword
+    )
 
-    DATA = [*equipment_data, *inventory_data, *room_data]
 
-    import time
-    s = time.time()
-    key_to_search = '11111.nom'
-    print('Key to search:', key_to_search)
-    print('Entries to search:', len(DATA) * len(DATA[0]['data']))
-    print('Entity id:', get_entity_id_from_raw_data_input(key_to_search, DATA))
-    e = time.time()
-    print('Execution time: {:.10f}'.format(e-s))
+async def get_current_room(entity: Entity, populate=True):
+    from core.src.world.builder import world_repository
+    from core.src.world.builder import map_repository
+    pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
+    room = await map_repository.get_room(pos, populate=populate)
+    return room
+
+
+async def get_room_at_direction(entity: Entity, direction_enum, populate=True):
+    from core.src.world.builder import map_repository, world_repository
+    delta = direction_to_coords_delta(direction_enum)
+    if not delta:
+        return
+    pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
+    look_cords = apply_delta_to_position(pos, delta)
+    room = await map_repository.get_room(look_cords, populate=populate)
+    return room
