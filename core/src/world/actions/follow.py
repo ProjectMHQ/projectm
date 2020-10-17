@@ -130,7 +130,7 @@ async def _handle_follow(entity: Entity, followed_data: typing.Dict, room):
     if follow_system_manager.is_follow_loop(entity.entity_id, followed_data['entity_id']):
         return await entity.emit_msg(get_follow_failure_to_msg('loop'))
     follow_system_manager.follow_entity(entity.entity_id, followed_data['entity_id'])
-    alias = followed_data['data'][0]  # Name FIXME TODO - Evaluate data, known, excerpt, etc.
+    alias = followed_data['data'][0]['keyword']
     await entity.emit_msg(get_follow_target_to_msg(alias))
     payload = {"action": "follow"}
     await events_publisher_service.on_entity_do_public_action(

@@ -46,7 +46,7 @@ def get_entity_data_from_raw_data_input(
     i = 0
     for x in range(0, totals):
         for entry in data:
-            if entry['data'][x].startswith(text):
+            if entry['data'][x]['keyword'].startswith(text):
                 if i == index:
                     return entry
                 i += 1
