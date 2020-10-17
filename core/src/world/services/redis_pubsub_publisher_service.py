@@ -31,38 +31,34 @@ class RedisPubSubEventsPublisherService:
             "entity_type": 0,
             "reason": reason,
             "ev": PubSubEventType.ENTITY_CHANGE_POS.value,
-            "curr": [room_position.x, room_position.y, room_position.z],
-            "prev": [
-                room_position.previous_position.x,
-                room_position.previous_position.y,
-                room_position.previous_position.z
-            ]
+            "curr": room_position.value,
+            "prev": room_position.previous_position.value
         }
         for target in targets:
             room_key = self.pos_to_key(target)
             LOGGER.core.debug('Publishing Message %s on channel %s', msg, room_key)
             await self.pubsub.publish(room_key, msg)
 
-    async def on_entity_appear_position(self, entity, room_position, reason, targets=[]):
+    async def on_entity_appear_position(self, entity, room_position, reason, targets):
         msg = {
             "en": entity.entity_id,
             "entity_type": 0,
             "reason": reason,
             "ev": PubSubEventType.ENTITY_APPEAR.value,
-            "curr": [room_position.x, room_position.y, room_position.z],
+            "curr": room_position.value
         }
         for target in targets:
             room_key = self.pos_to_key(target)
             LOGGER.core.debug('Publishing Message %s on channels %s', msg, room_key)
             await self.pubsub.publish(room_key, msg)
 
-    async def on_entity_disappear_position(self, entity, room_position, reason, targets=[]):
+    async def on_entity_disappear_position(self, entity, room_position, reason, targets):
         msg = {
             "en": entity.entity_id,
             "entity_type": 0,
             "reason": reason,
             "ev": PubSubEventType.ENTITY_DISAPPEAR.value,
-            "curr": [room_position.x, room_position.y, room_position.z],
+            "curr": room_position.value
         }
         for target in targets:
             room_key = self.pos_to_key(target)
@@ -70,7 +66,7 @@ class RedisPubSubEventsPublisherService:
             await self.pubsub.publish(room_key, msg)
 
     async def on_entity_do_public_action(
-            self, entity, room_position, action_public_payload: typing.Dict, target: int, targets=[]
+            self, entity, room_position, action_public_payload: typing.Dict, target: int
     ):
         msg = {
             "p": action_public_payload,
@@ -78,18 +74,16 @@ class RedisPubSubEventsPublisherService:
             "en": entity.entity_id,
             "ev": PubSubEventType.ENTITY_DO_PUBLIC_ACTION.value,
             "target": target,
-            "curr": room_position
+            "curr": room_position.value
         }
-        for t in targets:
-            room_key = self.pos_to_key(t)
-            LOGGER.core.debug('Publishing Message %s on channel %s', msg, room_key)
-            await self.pubsub.publish(room_key, msg)
+        room_key = self.pos_to_key(room_position)
+        LOGGER.core.debug('Publishing Message %s on channel %s', msg, room_key)
+        await self.pubsub.publish(room_key, msg)
 
-    async def on_entity_quit_world(self, entity, room_position):
+    async def on_entity_quit_world(self, entity):
         msg = {
             "en": entity.entity_id,
             "ev": PubSubEventType.ENTITY_QUIT.value,
-            "curr": room_position
         }
         LOGGER.core.debug('Publishing Message %s on system queue', msg)
         await self.pubsub.publish('system.transport', msg)

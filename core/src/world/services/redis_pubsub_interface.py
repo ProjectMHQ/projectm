@@ -10,6 +10,8 @@ import async_generator
 import aioredis
 import typing
 
+from core.src.auth.logging_factory import LOGGER
+
 
 class PubSubManager:
     # pylint: disable=R0902, too-many-instance-attributes
@@ -44,8 +46,12 @@ class PubSubManager:
         return self._redis
 
     async def start(self):
-        self._reader_fut = asyncio.ensure_future(self.reader())
-        return self
+        try:
+            self._reader_fut = asyncio.ensure_future(self.reader())
+            return self
+        except Exception:
+            LOGGER.core.exception('Exception on pubsub interface')
+            raise
 
     async def stop(self) -> None:
         if not self._reader_fut:

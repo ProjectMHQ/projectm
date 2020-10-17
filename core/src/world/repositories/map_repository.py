@@ -216,11 +216,13 @@ class RedisMapRepository:
     async def remove_entity_from_map(self, entity_id: int, position: PosComponent, pipeline=None):
         if not pipeline:
             redis = await self.redis()
-            pipeline = redis.pipeline()
-        pipeline.zrem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id))
-        pipeline.hdel('positions', entity_id)
+            p = redis.pipeline()
+        else:
+            p = pipeline
+        p.zrem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id))
+        p.hdel('positions', entity_id)
         if not pipeline:
-            res = await pipeline.execute()
+            res = await p.execute()
             return bool(res[1])
 
     def update_map_position_for_entity(self, position: PosComponent, entity, pipeline):

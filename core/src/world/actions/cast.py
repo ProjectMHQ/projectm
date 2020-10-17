@@ -30,13 +30,13 @@ async def cast_entity(
                     entity.entity_id, where.previous_position, where
                 ))
             return
-    area = Area(center=where).make_coordinates()
+    area = Area(where).make_coordinates()
     interested_pos = await world_repository.get_positions_of_living_entity_ids_in_area(area, entity)
     if on_connect:
         await events_publisher_service.on_entity_appear_position(entity, where, reason, targets=interested_pos)
     else:
         await events_publisher_service.on_entity_change_position(entity, where, reason, targets=interested_pos)
     loop.create_task(
-        events_subscriber_service.subscribe_area(entity, Area(where).make_coordinates())
+        events_subscriber_service.subscribe_area(entity, area)
     )
     return True

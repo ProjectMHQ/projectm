@@ -60,6 +60,7 @@ ENABLE_CORS = config['settings']['enable_cors']
 REDIS_HOST = config['database']['redis_host']
 REDIS_PORT = int(config['database']['redis_port'] or 0)
 REDIS_DB = int(config['database']['redis_db'] or 0)
+REDIS_SIO_DB = 2
 
 FLUENTD_HANDLER_HOST = config['logging']['fluentd_host']
 FLUENTD_HANDLER_PORT = config['logging']['fluentd_port']

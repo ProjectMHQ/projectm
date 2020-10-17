@@ -89,13 +89,13 @@ class RedisPubSubEventsSubscriberService:
 
     async def subscribe_area(self, entity: Entity, area: Area):
         self._transports_by_entity_id[entity.entity_id] = entity.transport
-        LOGGER.core.debug(
-            'Entity %s subscribed Area with center %s - Total %s subs',
-            entity.entity_id, area.center, len(area.rooms_and_peripherals_coordinates)
-        )
         current_rooms = self._get_current_rooms_by_entity_id(entity.entity_id)
         rooms_to_unsubscribe = current_rooms - {(area.center.x, area.center.y, area.center.z)}
         rooms_to_subscribe = {(area.center.x, area.center.y, area.center.z)} - current_rooms
+        LOGGER.core.debug(
+            'Entity %s subscribed Area with center %s. Rooms to subscribe: %s, rooms to unsubscribe: %s',
+            entity.entity_id, area.center, rooms_to_subscribe, rooms_to_unsubscribe
+        )
         await asyncio.gather(
             self._subscribe_rooms(entity, rooms_to_subscribe),
             self._unsubscribe_rooms(entity, rooms_to_unsubscribe)

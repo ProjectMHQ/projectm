@@ -8,7 +8,9 @@ from core.src.world.services.transport.websocket_system_events_observer import T
 from etc import settings
 
 
-mgr = socketio.AsyncRedisManager('redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT))
+mgr = socketio.AsyncRedisManager('redis://{}:{}/{}'.format(
+    settings.REDIS_HOST, settings.REDIS_PORT, settings.REDIS_SIO_DB)
+)
 sio_settings = dict(client_manager=mgr, async_mode='aiohttp')
 if settings.ENABLE_CORS:
     sio_settings['cors_allowed_origins'] = '*'

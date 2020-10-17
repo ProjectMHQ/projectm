@@ -56,7 +56,7 @@ events_subscriber_service = RedisPubSubEventsSubscriberService(pubsub_manager)
 events_publisher_service = RedisPubSubEventsPublisherService(pubsub_manager)
 
 mgr = socketio.AsyncRedisManager(
-    'redis://{}:{}'.format(settings.REDIS_HOST, settings.REDIS_PORT)
+    'redis://{}:{}/{}'.format(settings.REDIS_HOST, settings.REDIS_PORT, settings.REDIS_SIO_DB)
 )
 transport = SocketioTransportInterface(socketio.AsyncServer(client_manager=mgr))
 

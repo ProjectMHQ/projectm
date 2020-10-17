@@ -353,7 +353,7 @@ class RedisDataRepository:
         response = []
         for result in results:
             if result[1] or not component.has_default:
-                response.append(result[1].decode())
+                response.append(result[1] and result[1].decode())
             else:
                 v = self.library_repository.get_defaults_for_library_element(
                     result[0].decode(), component
