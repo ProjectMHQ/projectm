@@ -1,7 +1,7 @@
 from core.src.world.actions.look.messages import LookMessages
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.entity_utils import search_entity_by_keyword
+from core.src.world.utils.entity_utils import search_entity_by_keyword, ensure_same_position
 from core.src.world.utils.messaging import emit_sys_msg, emit_msg, emit_room_msg
 from core.src.world.utils.world_types import DirectionEnum
 from core.src.world.utils.world_utils import get_direction, get_current_room, get_room_at_direction
@@ -21,7 +21,7 @@ async def look(entity: Entity, *arguments: str):
 
 async def look_at_direction(entity: Entity, direction: DirectionEnum):
     room = await get_room_at_direction(entity, direction)
-    await emit_msg(entity, messages.look_at_direction(direction)),
+    await emit_msg(entity, messages.look_at_direction(direction))
     await emit_sys_msg(entity, "look", room)
 
 
@@ -35,17 +35,21 @@ async def look_at_target(entity: Entity, *arguments: str):
     elif entity.entity_id == target_entity.entity_id:
         await emit_msg(entity, messages.self_look())
     else:
-        if not await emit_msg(
-            target_entity,
-            messages.entity_looks_at_you(entity.get_component(AttributesComponent).keyword)
-        ):
+        if not await ensure_same_position(entity, target_entity):
+            # With a lot of data to check, the search can be "slow" and may bring to race conditions.
+            # It's better to re-ensure the entity is still in the room before emitting messages.
             await emit_msg(entity, messages.missing_target())
             return
 
+        target_entity.can_receive_messages() and await emit_msg(
+            target_entity,
+            messages.entity_looks_at_you(entity.get_component(AttributesComponent).keyword)
+        )  # Avoid to send messages to... knives, for example :-)
+
         await emit_room_msg(
-                origin=entity,
-                target=target_entity,
-                message_template=messages.entity_looks_at_entity_template()
-            )
+            origin=entity,
+            target=target_entity,
+            message_template=messages.entity_looks_at_entity_template()
+        )
         await emit_msg(entity, messages.look_at_entity(target_entity.get_component(AttributesComponent).keyword)),
         await emit_sys_msg(entity, "look", target_entity)

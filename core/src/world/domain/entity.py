@@ -89,3 +89,8 @@ class Entity(DomainObject):
 
     def load_components(self):
         raise NotImplementedError
+
+    def can_receive_messages(self) -> bool:
+        from core.src.world.components.character import CharacterComponent
+        v = self._components.get(CharacterComponent.component_enum, None)
+        return bool(v and v.value)

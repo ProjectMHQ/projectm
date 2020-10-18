@@ -4,7 +4,6 @@ import socketio
 
 from core.src.world.actions_scheduler.singleton_actions_scheduler import SingletonActionsScheduler
 from core.src.world.services.translators_factory import get_messages_translator
-from core.src.world.repositories.descriptions_repository import RedisDescriptionsRepository
 from core.src.world.repositories.library_repository import RedisLibraryRepository
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 from core.src.world.services.redis_pubsub_publisher_service import RedisPubSubEventsPublisherService
@@ -39,7 +38,6 @@ WORLD_SYSTEM_PATH = os.getcwd()
 
 library_repository = RedisLibraryRepository(async_redis_data)
 map_repository = RedisMapRepository(async_redis_data)
-descriptions_repository = RedisDescriptionsRepository(async_redis_data)
 world_repository = RedisDataRepository(async_redis_data, library_repository, map_repository)
 channels_repository = WebsocketChannelsRepository(strict_redis)
 redis_queues_service = RedisMultipleQueuesPublisher(async_redis_queue, num_queues=settings.WORKERS)

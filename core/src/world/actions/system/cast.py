@@ -34,7 +34,8 @@ async def cast_entity(
     listeners = await world_repository.get_elegible_listeners_for_area(area)
     if on_connect:
         await events_publisher_service.on_entity_appear_position(entity, where, reason, targets=listeners)
-        loop.create_task(events_subscriber_service.subscribe_events(entity))
+        loop.create_task(events_subscriber_service.subscribe_events(entity)
+)
     else:
         await events_publisher_service.on_entity_change_position(entity, where, reason, targets=listeners)
     return True

@@ -44,10 +44,15 @@ def is_terrain_walkable(terrain_type: TerrainEnum):
 async def get_current_room(entity: Entity, populate=True):
     from core.src.world.builder import world_repository
     from core.src.world.builder import map_repository
-    pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-    entity.set_component(pos)
-    room = await map_repository.get_room(pos, populate=populate)
+    if not entity.get_component(PosComponent):
+        pos = await world_repository.get_components_values_by_entities_ids(
+            [entity.entity_id],
+            [PosComponent]
+        )
+        entity.set_component(PosComponent(pos[entity.entity_id][PosComponent.component_enum]))
+    room = await map_repository.get_room(entity.get_component(PosComponent), populate=populate)
     populate and await room.populate_content(entity)
+    entity.set_room(room)
     return room
 
 

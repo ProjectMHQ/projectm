@@ -96,5 +96,5 @@ class Room(DomainObject):
 
     async def populate_content(self, entity):
         from core.src.world.builder import world_repository
-        await world_repository.populate_content(entity)
+        await world_repository.populate_room_content_for_look(entity, self)
         return self

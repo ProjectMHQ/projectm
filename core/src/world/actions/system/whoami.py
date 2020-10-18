@@ -15,5 +15,4 @@ async def whoami(entity: Entity):
                 "name": attributes.name
             }
         )
-
     )

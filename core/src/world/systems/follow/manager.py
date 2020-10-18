@@ -1,9 +1,7 @@
 import asyncio
 import typing
 
-from core.src.world.actions.movement.follow import do_follow
-from core.src.world.utils.world_types import Transport
-
+from core.src.world.actions.movement.follow import unfollow
 from core.src.world.domain.entity import Entity
 
 
@@ -13,6 +11,10 @@ class FollowSystemManager:
         self._follows_by_target: typing.Dict[int, typing.List] = {}
         self._follow_by_follower: typing.Dict[int, int] = {}
         self.loop = loop
+
+    def get_follow_target(self, follower_id: int):
+        response = self._follow_by_follower.get(follower_id)
+        return response and Entity(response)
 
     def stop_following(self, follower_id: int):
         followed_id = self._follow_by_follower.get(follower_id)
@@ -53,6 +55,4 @@ class FollowSystemManager:
         current_followed_id = self._follow_by_follower.get(follower_id)
         if current_followed_id != event['entity']['id']:
             return
-        transport: Transport = self.transports_manager.get_transport_by_entity_id(follower_id)
-        entity = Entity(follower_id, transport=transport)
-        self.loop.create_task(do_follow(entity, event))
+        self.loop.create_task(unfollow(Entity(follower_id)))

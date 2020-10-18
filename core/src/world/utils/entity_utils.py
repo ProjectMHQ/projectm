@@ -1,6 +1,8 @@
 import typing
 
 from core.src.world.components.attributes import AttributesComponent
+from core.src.world.components.character import CharacterComponent
+from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
 
@@ -25,17 +27,13 @@ def get_entity_id_from_raw_data_input(text: str, data: typing.List, index: int =
     if not data:
         return
     i = 0
-    entity_id = None
-    res = None
     for entry in data:
         for x in entry['data']:
+            print('Looking for %s at index %s, Examining %s' % (text, index, x))
             if x['keyword'].startswith(text):
                 if i == index:
-                    entity_id = entry['entity_id']
-                    res = x
-                    break
-        i += 1
-    return entity_id, res
+                    return entry['entity_id'], x
+                i += 1
 
 
 def get_entity_data_from_raw_data_input(
@@ -62,10 +60,12 @@ async def search_entity_by_keyword(entity, keyword, include_self=True) -> typing
     attrs_value = data[entity.entity_id][AttributesComponent.component_enum]
     room = await map_repository.get_room(pos)
     entity.set_component(AttributesComponent(attrs_value)).set_component(pos).set_room(room)
+    if not room.has_entities:
+        return
     all_but_me = [eid for eid in room.entity_ids if eid != entity.entity_id]
     target_data = (
         await world_repository.get_components_values_by_entities_ids(all_but_me, [PosComponent, AttributesComponent])
-    ) if room.has_entities else {}
+    )
     search_data = []
     include_self and search_data.extend(
         [
@@ -94,3 +94,25 @@ async def search_entity_by_keyword(entity, keyword, include_self=True) -> typing
     else:
         target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.component_enum])
     return Entity(found_entity_id).set_component(pos).set_component(target_attributes)
+
+
+async def ensure_same_position(itsme_entity: Entity, *entities: Entity):
+    assert itsme_entity.itsme
+    pos0_value = itsme_entity.get_component(PosComponent).value
+    assert pos0_value
+    from core.src.world.builder import world_repository
+    target_data = (
+        await world_repository.get_components_values_by_entities_ids(
+            list((e.entity_id for e in entities)),
+            [PosComponent, ConnectionComponent, CharacterComponent]
+        )
+    )
+    for e in entities:
+        p_value = target_data[e.entity_id][PosComponent.component_enum]
+        if p_value != pos0_value:
+            return False
+        e.set_component(PosComponent(p_value))
+        e.set_component(CharacterComponent(
+            target_data[e.entity_id][CharacterComponent.component_enum]
+        ))
+    return True
