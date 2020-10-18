@@ -5,14 +5,12 @@ from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.utils.messaging import emit_msg, emit_room_msg
-from core.src.world.actions_scheduler.tools import singleton_action
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import search_entity_by_keyword, ensure_same_position, batch_load_components
 
 messages = FollowMessages()
 
 
-@singleton_action
 async def follow(entity: Entity, *arguments: str):
     from core.src.world.builder import follow_system_manager
     if not len(arguments):
@@ -39,6 +37,7 @@ async def follow(entity: Entity, *arguments: str):
                 await emit_msg(previous_target, messages.entity_stop_following_you(
                     entity.get_component(AttributesComponent).keyword
                 ))
+                follow_system_manager.stop_following(entity.entity_id)
             follow_system_manager.follow_entity(entity.entity_id, target_entity.entity_id)
             await asyncio.gather(
                 emit_msg(entity, messages.follow_entity(target_entity.get_component(AttributesComponent).keyword)),

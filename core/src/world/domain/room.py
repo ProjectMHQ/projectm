@@ -19,6 +19,14 @@ class Room(DomainObject):
         self._terrain = terrain
         self._entity_ids = entity_ids
         self._content: typing.Set[EvaluatedEntity] = set()
+        self._pov_direction = None
+
+    def set_pov_direction(self, value):
+        self._pov_direction = value
+        return self
+
+    def pov_direction(self):
+        return self._pov_direction
 
     @property
     def position(self) -> PosComponent:
@@ -97,4 +105,11 @@ class Room(DomainObject):
     async def populate_content(self, entity):
         from core.src.world.builder import world_repository
         await world_repository.populate_room_content_for_look(entity, self)
+        return self
+
+    async def refresh(self, populate=False):
+        from core.src.world.builder import map_repository
+        room = await map_repository.get_room(self.position, populate=populate)
+        self._terrain = room.terrain
+        # FIXME TODO
         return self

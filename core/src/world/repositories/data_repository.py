@@ -707,7 +707,7 @@ class RedisDataRepository:
         entities_room = await self.map_repository.get_room_content(room.position)
         characters = entities_room and await self._filter_entities_with_active_component(
             CharacterComponent, *entities_room
-        )
+        ) or []
         return characters
 
     async def _filter_entities_with_active_component(self, component, *entities):

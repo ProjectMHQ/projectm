@@ -9,7 +9,7 @@ from core.src.world.utils.serialization import serialize_system_message_item
 from core.src.world.utils.world_utils import get_current_room
 
 
-async def emit_msg(entity, message: str, strict=True):
+async def emit_msg(entity, message: str):
     from core.src.world.builder import transport
     from core.src.world.builder import world_repository
     if entity.itsme:
@@ -50,7 +50,9 @@ async def emit_room_msg(origin: Entity, message_template, target: Entity = None)
     from core.src.world.builder import transport
     room = origin.get_room() or await get_current_room(origin)
     elegible_listeners = await world_repository.get_elegible_listeners_for_room(room)
-    elegible_listeners = [l for l in elegible_listeners if l not in (origin.entity_id, target.entity_id)]
+    elegible_listeners = [l for l in elegible_listeners if l not in (
+        origin and origin.entity_id, target and target.entity_id
+    )]
     components_data = await world_repository.get_components_values_by_components(
         elegible_listeners, [ConnectionComponent, PosComponent]
     )

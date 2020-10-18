@@ -4,6 +4,7 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.entity import Entity
+from core.src.world.domain.room import Room
 
 
 async def cast_entity(
@@ -20,7 +21,7 @@ async def cast_entity(
         await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     )
     if update:
-        entity = entity.set(where)
+        entity = entity.set(where).set_room(Room(where))
         if not override and where.previous_position:
             entity.add_bound(where.previous_position)
         update_response = await world_repository.update_entities(entity.set(where))
@@ -38,4 +39,5 @@ async def cast_entity(
 )
     else:
         await events_publisher_service.on_entity_change_position(entity, where, reason, targets=listeners)
+    entity.set_component(where)
     return True

@@ -16,11 +16,10 @@ class InterestType(Enum):
 
 
 class PubSubObserver:
-    def __init__(self, repository, transport, translator, loop=asyncio.get_event_loop()):
+    def __init__(self, repository, transport, loop=asyncio.get_event_loop()):
         self.loop = loop
         self.repository = repository
         self.transport = transport
-        self.messages_translator = translator
         self.postprocessed_events_observers = {}
 
     def add_observer_for_pov_event(self, event_type: str, observer):
@@ -119,21 +118,9 @@ class PubSubObserver:
                 payload = await self._get_character_movement_message(
                     entity, message, interest_type, curr_pos
                 )
-                message = self.messages_translator.event_msg_to_string(payload, 'msg')
-                self.loop.create_task(entity.emit_msg(message))
                 if payload['action'] == 'leave':
                     for observer in self.postprocessed_events_observers.get('follow', []):
                         self.loop.create_task(observer.on_event(payload))
-        elif self._is_public_action(message):
-            if interest_type != InterestType.LOCAL:
-                return
-            payload = await self._get_public_action_message(
-                entity, message, interest_type
-            )
-            if not payload:
-                return
-            message = self.messages_translator.event_msg_to_string(payload, 'msg')
-            self.loop.create_task(entity.emit_msg(message))
         elif self._is_appearance_message(message):
             print('TODO DO CONNECT ACTION MESSAGE')
         else:
@@ -201,56 +188,4 @@ class PubSubObserver:
             payload['direction'] = self._gather_movement_direction(message, "leave")
         else:
             raise ValueError('This should not be here: %s (%s)' % (message, curr_pos.value))
-        return payload
-
-    async def _get_public_action_message(self, entity, message, interest_type):
-        assert interest_type.LOCAL
-        if message['p']['action'] == 'look':
-            return await self._get_public_look_message(entity, message)
-        elif message['p']['action'] in ('follow', 'unfollow'):
-            if message['target'] == entity.entity_id:
-                return await self._get_public_follow_message(entity, message)
-
-    async def _get_public_look_message(self, entity, message):
-        evaluated_emitter_entity = (
-            await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
-        )[0]
-        payload = {
-            "event": "look",
-            "origin": {
-                "excerpt": evaluated_emitter_entity.excerpt,
-                "name": evaluated_emitter_entity.known and evaluated_emitter_entity.name,
-                "id": message['en'],
-                "known": True
-            }
-        }
-        if message['target'] == entity.entity_id:
-            payload['target'] = 'self'
-        else:
-            evaluated_target_entity = (
-                await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['target'])
-            )[0]
-            payload['target'] = {
-                "excerpt": evaluated_target_entity.excerpt,
-                "name": evaluated_target_entity.known and evaluated_target_entity.name,
-                "id": message['target'],
-                "known": True
-            }
-        return payload
-
-    async def _get_public_follow_message(self, entity, message):
-        evaluated_emitter_entity = (
-            await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
-        )[0]
-        payload = {
-            "event": "follow",
-            "action": message['p']['action'],
-            "origin": {
-                "excerpt": evaluated_emitter_entity.excerpt,
-                "name": evaluated_emitter_entity.known and evaluated_emitter_entity.name,
-                "id": message['en'],
-                "known": True
-            },
-            "target": "self"
-        }
         return payload

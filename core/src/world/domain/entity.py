@@ -19,7 +19,7 @@ class Entity(DomainObject):
 
     def set_room(self, room):
         self._room = room
-        return room
+        return self
 
     def get_room(self):
         return self._room
