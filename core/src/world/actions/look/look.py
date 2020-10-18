@@ -36,8 +36,6 @@ async def look_at_target(entity: Entity, *arguments: str):
         await emit_msg(entity, messages.self_look())
     else:
         if not await ensure_same_position(entity, target_entity):
-            # With a lot of data to check, the search can be "slow" and may bring to race conditions.
-            # It's better to re-ensure the entity is still in the room before emitting messages.
             await emit_msg(entity, messages.missing_target())
             return
 

@@ -116,3 +116,15 @@ async def ensure_same_position(itsme_entity: Entity, *entities: Entity):
             target_data[e.entity_id][CharacterComponent.component_enum]
         ))
     return True
+
+
+async def batch_load_components(*components, entities=()):
+    """
+    Load multiple components on multiple entities.
+    Useful to load multiple components with a single DB interaction, and reduce DB load.
+    """
+    from core.src.world.builder import world_repository
+    data = await world_repository.get_components_values_by_entities_ids([e.entity_id for e in entities], components)
+    for entity in entities:
+        for c in components:
+            entity.set_component(c(data[entity.entity_id][c.component_enum]))

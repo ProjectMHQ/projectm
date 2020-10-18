@@ -6,9 +6,10 @@ from core.src.world.components.pos import PosComponent
 from core.src.world.domain import DomainObject
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.serialization import serialize_system_message_item
+from core.src.world.utils.world_utils import get_current_room
 
 
-async def emit_msg(entity, message: str):
+async def emit_msg(entity, message: str, strict=True):
     from core.src.world.builder import transport
     from core.src.world.builder import world_repository
     if entity.itsme:
@@ -23,13 +24,14 @@ async def emit_msg(entity, message: str):
                 [entity.entity_id], [ConnectionComponent]
             )
             connection_id = components_data[ConnectionComponent.component_enum][entity.entity_id]
-            assert connection_id
-            entity.set_component(ConnectionComponent(connection_id))
-            await transport.send_message(
-                entity.get_component(ConnectionComponent).value,
-                message
-            )
-    return True
+            if connection_id:
+                entity.set_component(ConnectionComponent(connection_id))
+                await transport.send_message(
+                    entity.get_component(ConnectionComponent).value,
+                    message
+                )
+                return True
+    return False
 
 
 async def emit_sys_msg(entity, event_type: str, item: (DomainObject, Entity)):
@@ -46,7 +48,7 @@ async def emit_sys_msg(entity, event_type: str, item: (DomainObject, Entity)):
 async def emit_room_msg(origin: Entity, message_template, target: Entity = None):
     from core.src.world.builder import world_repository
     from core.src.world.builder import transport
-    room = origin.get_room()
+    room = origin.get_room() or await get_current_room(origin)
     elegible_listeners = await world_repository.get_elegible_listeners_for_room(room)
     elegible_listeners = [l for l in elegible_listeners if l not in (origin.entity_id, target.entity_id)]
     components_data = await world_repository.get_components_values_by_components(

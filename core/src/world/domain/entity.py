@@ -87,10 +87,8 @@ class Entity(DomainObject):
     def get_component(self, component: typing.Type[ComponentType]):
         return self._components.get(component.component_enum)
 
-    def load_components(self):
-        raise NotImplementedError
-
     def can_receive_messages(self) -> bool:
+        assert not self.itsme, 'Requested if your own entity can receive messages.. well, it can.'
         from core.src.world.components.character import CharacterComponent
         v = self._components.get(CharacterComponent.component_enum, None)
         return bool(v and v.value)

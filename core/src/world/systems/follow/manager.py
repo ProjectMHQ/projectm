@@ -2,6 +2,7 @@ import asyncio
 import typing
 
 from core.src.world.actions.movement.follow import unfollow
+from core.src.world.components.character import CharacterComponent
 from core.src.world.domain.entity import Entity
 
 
@@ -14,7 +15,7 @@ class FollowSystemManager:
 
     def get_follow_target(self, follower_id: int):
         response = self._follow_by_follower.get(follower_id)
-        return response and Entity(response)
+        return response and Entity(response).set_component(CharacterComponent(True))
 
     def stop_following(self, follower_id: int):
         followed_id = self._follow_by_follower.get(follower_id)
@@ -31,6 +32,12 @@ class FollowSystemManager:
             self._follows_by_target[target_id] = [follower_id]
         else:
             self._follows_by_target[target_id].append(follower_id)
+
+    def is_following_someone(self, follower):
+        return bool(self._follow_by_follower.get(follower))
+
+    def is_followed(self, target):
+        return bool(self._follows_by_target.get(target))
 
     def is_follow_repetition(self, follower, target) -> bool:
         return self._follow_by_follower.get(follower) == target
