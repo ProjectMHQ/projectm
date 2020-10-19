@@ -4,6 +4,7 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.entity import Entity
+from core.src.world.utils.messaging import emit_sys_msg
 
 
 async def getmap(entity: Entity):
@@ -13,7 +14,9 @@ async def getmap(entity: Entity):
     assert pos
     area = Area(pos)
     area_map = await area.get_map_for_entity(entity)
-    await entity.emit_system_event(
+    await emit_sys_msg(
+        entity,
+        "map",
         {
             "event": "map",
             "base": area_map["base"],

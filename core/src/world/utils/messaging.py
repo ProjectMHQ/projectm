@@ -36,19 +36,22 @@ async def emit_msg(entity, message: str):
 
 async def emit_sys_msg(entity, event_type: str, item: (DomainObject, Entity)):
     from core.src.world.builder import transport
-    item_type, details = serialize_system_message_item(item)
-    payload = {
-        "event": event_type,
-        "target": item_type,
-        "details": details
-    }
+    if event_type == 'map':
+        payload = item  # fixme need client cooperation to fix this.
+    else:
+        item_type, details = serialize_system_message_item(item)
+        payload = {
+            "event": event_type,
+            "target": item_type,
+            "details": details
+        }
     return await transport.send_system_event(entity.get_component(ConnectionComponent).value, payload)
 
 
-async def emit_room_msg(origin: Entity, message_template, target: Entity = None):
+async def emit_room_msg(origin: Entity, message_template, target: Entity = None, room=None):
     from core.src.world.builder import world_repository
     from core.src.world.builder import transport
-    room = origin.get_room() or await get_current_room(origin)
+    room = room or (origin.get_room() or await get_current_room(origin))
     elegible_listeners = await world_repository.get_elegible_listeners_for_room(room)
     elegible_listeners = [l for l in elegible_listeners if l not in (
         origin and origin.entity_id, target and target.entity_id
@@ -60,14 +63,13 @@ async def emit_room_msg(origin: Entity, message_template, target: Entity = None)
     for entity_id, value in components_data[PosComponent.component_enum].items():
         if value == room.position.value and components_data[ConnectionComponent.component_enum][entity_id]:
             # TODO - Evaluate VS entity memory
-            msg_template_arguments = {
-                'origin': origin.get_component(AttributesComponent).keyword,
-                'target': target and target.get_component(AttributesComponent).keyword
-            }
             futures.append(
                 transport.send_message(
                     components_data[ConnectionComponent.component_enum][entity_id],
-                    message_template.format(**msg_template_arguments)
+                    message_template.format(
+                        origin=origin.get_component(AttributesComponent).keyword,
+                        target=target and target.get_component(AttributesComponent).keyword
+                    )
                 )
             )
     await asyncio.gather(*futures)

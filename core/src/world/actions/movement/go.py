@@ -27,7 +27,7 @@ async def go_entity(entity: Entity, direction: str):
     await emit_msg(entity, messages.movement_begins(direction))
     await emit_room_msg(
         origin=entity,
-        message_template=messages.entity_begin_movement_template(direction)
+        message_template=messages.entity_movement_begin_template(direction)
     )
     action = looped_cancellable_scheduled_action_factory(
         entity,

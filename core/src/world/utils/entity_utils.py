@@ -128,3 +128,14 @@ async def batch_load_components(*components, entities=()):
     for entity in entities:
         for c in components:
             entity.set_component(c(data[entity.entity_id][c.component_enum]))
+
+
+async def load_components(entity, *components):
+    """
+    Load multiple components on multiple entities.
+    Useful to load multiple components with a single DB interaction, and reduce DB load.
+    """
+    from core.src.world.builder import world_repository
+    data = await world_repository.get_components_values_by_entities_ids([entity.entity_id], components)
+    for c in components:
+        entity.set_component(c(data[entity.entity_id][c.component_enum]))

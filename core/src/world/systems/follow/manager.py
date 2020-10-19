@@ -1,9 +1,13 @@
 import asyncio
 import typing
 
-from core.src.world.actions.movement.follow import unfollow
+from core.src.world.actions.movement.move import do_move_entity
 from core.src.world.components.character import CharacterComponent
+from core.src.world.components.connection import ConnectionComponent
+from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
+from core.src.world.domain.room import Room
+from core.src.world.utils.entity_utils import load_components
 
 
 class FollowSystemManager:
@@ -62,4 +66,12 @@ class FollowSystemManager:
         current_followed_id = self._follow_by_follower.get(follower_id)
         if current_followed_id != event['entity']['id']:
             return
-        self.loop.create_task(unfollow(Entity(follower_id)))
+        entity = Entity(follower_id)
+        await load_components(entity, ConnectionComponent)
+        await do_move_entity(
+            entity,
+            Room(PosComponent(event['to'])),
+            None,
+            reason="movement",
+            emit_message=False
+        )

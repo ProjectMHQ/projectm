@@ -13,5 +13,7 @@ def serialize_system_message_item(item):
         return "entity", {
             "attributes": item.get_component(AttributesComponent).value,
         }
+    elif isinstance(item, dict):
+        return item
     else:
         raise ValueError
