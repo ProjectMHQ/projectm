@@ -1,5 +1,7 @@
 import asyncio
 
+import typing
+
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
@@ -34,9 +36,9 @@ async def emit_msg(entity, message: str):
     return False
 
 
-async def emit_sys_msg(entity, event_type: str, item: (DomainObject, Entity)):
+async def emit_sys_msg(entity, event_type: str, item: (DomainObject, Entity, typing.Dict)):
     from core.src.world.builder import transport
-    if event_type == 'map':
+    if isinstance(item, dict):
         payload = item  # fixme need client cooperation to fix this.
     else:
         item_type, details = serialize_system_message_item(item)
