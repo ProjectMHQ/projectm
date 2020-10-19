@@ -1,6 +1,7 @@
 import asyncio
 import typing
 
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.actions.movement.move import do_move_entity
 from core.src.world.components.character import CharacterComponent
 from core.src.world.components.connection import ConnectionComponent
@@ -65,9 +66,12 @@ class FollowSystemManager:
     async def _do_follow(self, follower_id: int, event: typing.Dict):
         current_followed_id = self._follow_by_follower.get(follower_id)
         if current_followed_id != event['entity']['id']:
+            LOGGER.core.error('Error on follow system')
             return
-        entity = Entity(follower_id)
-        await load_components(entity, ConnectionComponent)
+        entity = await load_components(Entity(follower_id), ConnectionComponent, PosComponent)
+        if entity.get_component(PosComponent).value != event['from']:
+            LOGGER.core.error('Error on follow system')
+            return
         await do_move_entity(
             entity,
             Room(PosComponent(event['to'])),

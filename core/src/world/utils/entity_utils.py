@@ -139,3 +139,4 @@ async def load_components(entity, *components):
     data = await world_repository.get_components_values_by_entities_ids([entity.entity_id], components)
     for c in components:
         entity.set_component(c(data[entity.entity_id][c.component_enum]))
+    return entity
