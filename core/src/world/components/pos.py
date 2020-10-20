@@ -1,15 +1,11 @@
-import json
 import typing
-from ast import literal_eval
-
-from core.src.world.components import ComponentType
 from core.src.world.components._types_ import ComponentTypeEnum
+from core.src.world.components.base.listcomponent import ListComponent
 
 
-class PosComponent(ComponentType):
+class PosComponent(ListComponent):
     component_enum = ComponentTypeEnum.POS
     key = ComponentTypeEnum.POS.value
-    component_type = list
     libname = "pos"
 
     def __init__(self, value: (list, tuple) = None):
@@ -26,20 +22,6 @@ class PosComponent(ComponentType):
         return 'x: {}, y:{}, z: {}'.format(self.x, self.y, self.z)
 
     @property
-    def value(self) -> typing.List[int]:
-        return self._value
-
-    @classmethod
-    async def get(cls, entity_id: int, repo=None) -> typing.Optional['PosComponent']:
-        if not repo:
-            from core.src.world.builder import world_repository as repo
-        return await repo.get_entity_position(entity_id)
-
-    @property
-    def serialized(self):
-        return json.dumps(self.value)
-
-    @property
     def x(self):
         return self._value[0]
 
@@ -51,9 +33,6 @@ class PosComponent(ComponentType):
     def z(self):
         return self._value[2]
 
-    def as_tuple(self):
-        return tuple(self.value)
-
     def has_previous_position(self):
         return bool(self._prev_pos)
 
@@ -64,11 +43,6 @@ class PosComponent(ComponentType):
     @property
     def previous_position(self) -> typing.Optional['PosComponent']:
         return self._prev_pos
-
-    @classmethod
-    def from_bytes(cls, value: bytes):
-        instance = value and cls(literal_eval(value.decode()))
-        return instance
 
     @classmethod
     def is_array(cls):

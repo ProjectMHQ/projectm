@@ -1,6 +1,5 @@
 import typing
 
-from core.src.world.builder import world_repository
 from core.src.world.components import ComponentType
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.character import CharacterComponent
@@ -227,4 +226,5 @@ def update_entities(*entities, apply_bounds=True):
     Batch updates all the entities passed.
     By default it uses Component Type specs to ensure critical bounds are set.
     """
+    from core.src.world.builder import world_repository
     return world_repository.update_entities(entities)

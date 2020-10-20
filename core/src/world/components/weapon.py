@@ -1,8 +1,7 @@
-import typing
 from enum import Enum
 
-from core.src.world.components import ComponentType
 from core.src.world.components._types_ import ComponentTypeEnum
+from core.src.world.components.base.stringcomponent import StringComponent
 
 
 class WeaponType(Enum):
@@ -11,10 +10,9 @@ class WeaponType(Enum):
     BROADSWORD = 'broadsword'
 
 
-class WeaponComponent(ComponentType):
+class WeaponComponent(StringComponent):
     component_enum = ComponentTypeEnum.WEAPON
     key = ComponentTypeEnum.WEAPON.value
-    component_type = str
     libname = "weapon"
     has_default = True
 
@@ -23,8 +21,4 @@ class WeaponComponent(ComponentType):
 
     @property
     def value(self) -> WeaponType:
-        return self._value
-
-    @classmethod
-    async def get(cls, entity_id: int, repo=None) -> typing.Optional['WeaponComponent']:
-        return await super().get(entity_id, repo)
+        return WeaponType(self._value)

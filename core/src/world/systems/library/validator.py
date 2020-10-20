@@ -39,7 +39,7 @@ WeaponComponentValidator = combinators.subtype(
 
 LibraryWeaponValidator = combinators.struct(
     {
-        "alias": combinators.subtype(
+        "libname": combinators.subtype(
             combinators.String,
             lambda x: string_size(x, 16)
         ),

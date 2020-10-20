@@ -1,7 +1,8 @@
 {
-  "alias": "spadone",
+  "libname": "spadone",
   "components": {
     "collectible": true,
+    "weight": 12,
     "attributes": {
       "keyword": "spadone",
       "name": "Uno spadone ammaccato",

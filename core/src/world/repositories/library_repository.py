@@ -31,27 +31,27 @@ class RedisLibraryRepository:
             self.async_lock.release()
         return self._redis
 
-    async def exists(self, alias: str):
+    async def exists(self, libname: str):
         redis = await self.redis()
-        res = await redis.hexists(self._library_prefix, alias)
+        res = await redis.hexists(self._library_prefix, libname)
         return res
 
     async def save_library_item(self, data):
         redis = await self.redis()
         data['created_at'] = int(time.time())
-        assert not await redis.hexists(self._library_prefix, data['alias'])
+        assert not await redis.hexists(self._library_prefix, data['libname'])
         pipeline = redis.pipeline()
-        pipeline.hset(self._library_prefix, data['alias'], json.dumps(data))
-        pipeline.zadd(self._library_index, int(time.time()), data['alias'])
+        pipeline.hset(self._library_prefix, data['libname'], json.dumps(data))
+        pipeline.zadd(self._library_index, int(time.time()), data['libname'])
         await pipeline.execute()
         await self._on_item_added(data)
 
     async def update_library_item(self, data):
         redis = await self.redis()
-        assert await redis.hexists(self._library_prefix, data['alias'])
+        assert await redis.hexists(self._library_prefix, data['libname'])
         pipeline = redis.pipeline()
-        pipeline.hset(self._library_prefix, data['alias'], json.dumps(data))
-        pipeline.zadd(self._library_index, int(time.time()), data['alias'], exist=True)
+        pipeline.hset(self._library_prefix, data['libname'], json.dumps(data))
+        pipeline.zadd(self._library_index, int(time.time()), data['libname'], exist=True)
         await pipeline.execute()
         await self._on_item_updated(data)
 
@@ -76,13 +76,13 @@ class RedisLibraryRepository:
         return self
 
     async def _on_item_added(self, data: typing.Dict):
-        assert data['alias'] not in self._local_copy
-        self._local_copy[data['alias']] = data
-        self._sorted_library_keys.append(data['alias'])
+        assert data['libname'] not in self._local_copy
+        self._local_copy[data['libname']] = data
+        self._sorted_library_keys.append(data['libname'])
 
     async def _on_item_updated(self, data: typing.Dict):
-        assert data['alias'] in self._local_copy
-        self._local_copy[data['alias']] = data
+        assert data['libname'] in self._local_copy
+        self._local_copy[data['libname']] = data
 
     async def _on_item_removed(self, name: str):
         self._local_copy.pop(name)
@@ -106,7 +106,7 @@ class RedisLibraryRepository:
         data = self._local_copy.get(name)
         if not data:
             return
-        e.set_for_update(InstanceOfComponent(data['alias']))
+        e.set_for_update(InstanceOfComponent(data['libname']))
         e.set_for_update(CreatedAtComponent(int(time.time())))
         for component in data['components']:
             e.set_for_update(get_component_by_type(component)(None).activate())

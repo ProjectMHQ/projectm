@@ -1,7 +1,8 @@
 {
-  "alias": "coltello",
+  "libname": "coltello",
   "components": {
     "collectible": true,
+    "weight": 2,
     "attributes": {
       "keyword": "coltello",
       "name": "il coltello del potere",

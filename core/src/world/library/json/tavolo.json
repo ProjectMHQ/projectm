@@ -3,8 +3,8 @@
   "components": {
     "collectible": true,
     "mountable": true,
-    "inventory": ["piatto", "bicchiere"],
-    "max_weight": 100,
+    "inventory": [],
+    "max_weight": 200,
     "weight": 30,
     "attributes": {
       "keyword": "tavolo",
