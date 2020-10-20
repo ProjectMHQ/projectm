@@ -56,8 +56,3 @@ def get_component_by_enum_value(enum_value: ComponentTypeEnum):
         ComponentTypeEnum.PARENT_OF: ParentOfComponent,
         ComponentTypeEnum.INSTANCE_BY: InstanceByComponent
     }[enum_value]
-
-
-COLLECTIBLE_COMPONENTS = [
-    WeaponComponent
-]

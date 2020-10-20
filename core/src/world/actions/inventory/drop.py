@@ -1,33 +1,44 @@
-import asyncio
-
+from core.src.world.actions.inventory.inventory_messages import InventoryMessages
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.entity_utils import load_components
-from core.src.world.utils.messaging import emit_msg, emit_room_msg, emit_sys_msg
+from core.src.world.utils.entity_utils import load_components, update_entities, \
+    search_entities_in_container_by_keyword, remove_entity_from_container
+from core.src.world.utils.messaging import emit_msg, emit_room_msg, emit_sys_msg, emit_room_sys_msg, \
+    get_stacker
+
+messages = InventoryMessages()
 
 
-async def drop(entity: Entity, *targets):
-    from core.src.world.builder import world_repository
-    if len(targets) > 1:
-        await entity.emit_msg('Command error - Multi targets not implemented yet')
-        return
+async def drop(entity: Entity, keyword: str):
     await load_components(entity, PosComponent, InventoryComponent)
     inventory = entity.get_component(InventoryComponent)
-    items = inventory.search_by_keyword(targets[0])
+    items = await search_entities_in_container_by_keyword(inventory, keyword)
     position = entity.get_component(PosComponent)
+    msgs_stack = get_stacker()
     items_to_drop = []
     for item in items:
-        items_to_drop.append(inventory.move(item, position))
-    if not items:
+        items_to_drop.append(remove_entity_from_container(item, target=position))
+    if not items_to_drop:
         await entity.emit_msg(messages.target_not_found())
+        return
+
+    msgs_stack.add(
+        emit_sys_msg(entity, 'remove_items', messages.items_to_message(items_to_drop)),
+        emit_room_sys_msg(entity, 'add_items', messages.items_to_message(items_to_drop))
+    )
+    if len(items_to_drop) == 1:
+        msgs_stack.add(
+            emit_msg(entity, messages.on_drop_item(items[0])),
+            emit_room_msg(origin=entity, message_template=messages.on_entity_drop_item(items[0]))
+        )
     else:
-        if world_repository.update_entities(entity, *items_to_drop):
-            await asyncio.gather(
-                emit_msg(entity, messages.on_drop_items(items_to_drop)),
-                emit_room_msg(origin=entity, message_template=messages.on_entity_drop_items(items_to_drop)),
-                emit_sys_msg(entity, 'inventory_remove', messages.remove_items_from_inventory(items_to_drop)),
-                emit_room_sys_msg(entity, messages.add_items_to_room(items_to_drop))
-            )
-        else:
-            await entity.emit_msg(messages.target_not_found())
+        msgs_stack.add(
+            emit_msg(entity, messages.on_drop_multiple_items()),
+            emit_room_msg(origin=entity, message_template=messages.on_entity_drops_multiple_items())
+        )
+    if not update_entities(entity, *items_to_drop):
+        await entity.emit_msg(messages.target_not_found())
+        msgs_stack.cancel()
+    else:
+        await msgs_stack.execute()

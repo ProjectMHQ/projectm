@@ -1,14 +1,12 @@
 import asyncio
 
 from core.src.world.actions.movement.follow_messages import FollowMessages
-from core.src.world.actions.movement.move import do_move_entity
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.utils.messaging import emit_msg, emit_room_msg
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.entity_utils import search_entity_by_keyword, ensure_same_position, batch_load_components
-from core.src.world.utils.world_types import DirectionEnum
+from core.src.world.utils.entity_utils import search_entity_in_sight_by_keyword, ensure_same_position, batch_load_components
 
 messages = FollowMessages()
 
@@ -18,7 +16,7 @@ async def follow(entity: Entity, *arguments: str):
     if not len(arguments):
         return await unfollow(entity)
     assert len(arguments) == 1
-    target_entity = await search_entity_by_keyword(entity, arguments[0])
+    target_entity = await search_entity_in_sight_by_keyword(entity, arguments[0])
     if not target_entity:
         await emit_msg(entity, messages.target_not_found())
     elif entity.entity_id == target_entity.entity_id:

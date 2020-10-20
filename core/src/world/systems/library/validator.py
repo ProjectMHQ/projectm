@@ -46,7 +46,8 @@ LibraryWeaponValidator = combinators.struct(
         "components": combinators.struct(
             {
                 "attributes": AttributesComponentValidator,
-                "weapon": WeaponComponentValidator
+                "weapon": WeaponComponentValidator,
+                "collectible": combinators.Boolean
             }
         )
     },

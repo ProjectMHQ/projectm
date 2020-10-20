@@ -1,0 +1,15 @@
+{
+  "libname": "tavolo",
+  "components": {
+    "collectible": true,
+    "mountable": true,
+    "inventory": ["piatto", "bicchiere"],
+    "max_weight": 100,
+    "weight": 30,
+    "attributes": {
+      "keyword": "tavolo",
+      "name": "un tavolo",
+      "description": "Quello che vedi è un tavolo"
+    }
+  }
+}

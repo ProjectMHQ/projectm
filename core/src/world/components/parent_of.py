@@ -9,7 +9,7 @@ from core.src.world.components._types_ import ComponentTypeEnum
 class ParentOfComponent(ComponentType):
     component_enum = ComponentTypeEnum.PARENT_OF
     key = ComponentTypeEnum.PARENT_OF.value
-    component_type = dict
+    component_type = list
     libname = "parent_of"
 
     @classmethod
@@ -17,18 +17,21 @@ class ParentOfComponent(ComponentType):
         assert data
         return cls(literal_eval(data.decode()))
 
-    def __init__(self, value: dict = None):
+    def __init__(self, entity=None, location: typing.Optional[ComponentType] = None):
+        from core.src.world.domain.entity import Entity
+        assert isinstance(entity, Entity)
+        assert bool(entity) == bool(location)
+        if entity and location:
+            value = [entity.entity_id, location.component_enum]
+        else:
+            value = None
         super().__init__(value)
-        self._prev_pos = None
-        self._component_values = {
-            'parent_id', 'location'
-        }
 
     def __str__(self):
         return str(self.value)
 
     @property
-    def value(self) -> typing.List[dict]:
+    def value(self) -> typing.List[list]:
         return self._value
 
     @classmethod
@@ -43,8 +46,8 @@ class ParentOfComponent(ComponentType):
 
     @property
     def parent_id(self):
-        return self._value.get('parent_id')
+        return self._value[0]
 
     @property
     def location(self):
-        return self._value.get('location')
+        return self._value[1]

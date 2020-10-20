@@ -27,13 +27,13 @@ async def _create_instance(entity: Entity, parent_alias: str, *args):
     if not instanced:
         await entity.emit_msg('Cannot obtain instance of {}'.format(parent_alias))
         return
-    instanced.set(InstanceByComponent(entity.entity_id))
+    instanced.set_for_update(InstanceByComponent(entity.entity_id))
     if args:
         location = args[0]
         if location not in ('.', '@here'):
             await entity.emit_msg('Error, location {} invalid (allowed location: ".")'.format(location))
         pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-        instanced.set(pos)
+        instanced.set_for_update(pos)
     else:
         await entity.emit_msg('Inventory not implemented, please specify a location')
     await world_repository.save_entity(instanced)

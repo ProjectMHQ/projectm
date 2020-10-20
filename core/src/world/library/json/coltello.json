@@ -1,6 +1,7 @@
 {
   "alias": "coltello",
   "components": {
+    "collectible": true,
     "attributes": {
       "keyword": "coltello",
       "name": "il coltello del potere",

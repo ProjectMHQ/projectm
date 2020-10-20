@@ -24,9 +24,9 @@ def build_public_namespace(sio, world_repository, websocket_channels_service):
         token = auth_service.decode_session_token(payload['token'])
         assert token['context'] == 'world:create'
         entity = Entity() \
-            .set(CharacterComponent(True))\
-            .set(CreatedAtComponent(int(time.time()))) \
-            .set(AttributesComponent(
+            .set_for_update(CharacterComponent(True))\
+            .set_for_update(CreatedAtComponent(int(time.time()))) \
+            .set_for_update(AttributesComponent(
                 {
                     "name": payload["name"],
                     "keyword": "uomo"  # FIXME TODO Race

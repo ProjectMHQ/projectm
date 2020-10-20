@@ -1,4 +1,5 @@
 import typing
+
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.world_types import DirectionEnum, TerrainEnum

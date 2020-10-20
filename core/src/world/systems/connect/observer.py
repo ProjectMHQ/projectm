@@ -59,7 +59,7 @@ class ConnectionsObserver:
 
     async def on_connect(self, entity: Entity):
         await self.world_repository.update_entities(
-            entity.set(ConnectionComponent(entity.transport.namespace))
+            entity.set_for_update(ConnectionComponent(entity.transport.namespace))
         )
         self.events_subscriber_service.add_observer_for_entity_id(entity.entity_id, self.pubsub_observer)
         pos = await self.world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)

@@ -18,6 +18,13 @@ class ComponentType(metaclass=abc.ABCMeta):
         self._value = value
         self._component_values = set()
         self._is_active = False
+        self._owner = None
+
+    def set_owner(self, entity_id: int):
+        self._owner = entity_id
+
+    def owned_by(self):
+        return self._owner
 
     def activate(self):
         self._is_active = True

@@ -106,10 +106,10 @@ class RedisLibraryRepository:
         data = self._local_copy.get(name)
         if not data:
             return
-        e.set(InstanceOfComponent(data['alias']))
-        e.set(CreatedAtComponent(int(time.time())))
+        e.set_for_update(InstanceOfComponent(data['alias']))
+        e.set_for_update(CreatedAtComponent(int(time.time())))
         for component in data['components']:
-            e.set(get_component_by_type(component)(None).activate())
+            e.set_for_update(get_component_by_type(component)(None).activate())
         return e
 
     def get_libraries(self, pattern: str, offset=0, limit=20):

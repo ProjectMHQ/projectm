@@ -40,7 +40,7 @@ async def check_entities_connection_status():
         channels = channels_repository.get_many(*components_values)
         for i, ch in enumerate(channels.values()):
             if not ch:
-                to_update.append(Entity(connected_entity_ids[i]).set(ConnectionComponent("")))
+                to_update.append(Entity(connected_entity_ids[i]).set_for_update(ConnectionComponent("")))
             else:
                 _transport_item = Transport(ch.id, transport)
                 online.append(

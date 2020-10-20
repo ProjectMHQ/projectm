@@ -17,3 +17,4 @@ class ComponentTypeEnum(enum.IntEnum):
     INSTANCE_OF = 8
     PARENT_OF = 9
     INSTANCE_BY = 10
+    COLLECTIBLE = 11

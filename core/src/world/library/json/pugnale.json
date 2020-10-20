@@ -2,6 +2,7 @@
   "alias": "pugnale",
   "components": {
     "attributes": {
+      "collectible": true,
       "keyword": "pugnale",
       "name": "pugnale",
       "description": "Quello che vedi è un pugnale molto affilatone"

@@ -21,10 +21,10 @@ async def cast_entity(
         await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
     )
     if update:
-        entity = entity.set(where).set_room(Room(where))
+        entity = entity.set_for_update(where).set_room(Room(where))
         if not override and where.previous_position:
             entity.add_bound(where.previous_position)
-        update_response = await world_repository.update_entities(entity.set(where))
+        update_response = await world_repository.update_entities(entity.set_for_update(where))
         if not update_response:
             LOGGER.core.error(
                 'Impossible to cast entity {}, from {} to {}, bounds changed'.format(
@@ -32,7 +32,7 @@ async def cast_entity(
                 ))
             return
     area = Area(where).make_coordinates()
-    listeners = await world_repository.get_elegible_listeners_for_area(area)
+    listeners = await world_repository.get_eligible_listeners_for_area(area)
     if on_connect:
         await events_publisher_service.on_entity_appear_position(entity, where, reason, targets=listeners)
         loop.create_task(events_subscriber_service.subscribe_events(entity)

@@ -1,6 +1,7 @@
 {
   "alias": "spadone",
   "components": {
+    "collectible": true,
     "attributes": {
       "keyword": "spadone",
       "name": "Uno spadone ammaccato",

@@ -120,6 +120,8 @@ class RedisDataRepository:
             for c in entity.pending_changes.values():
                 if c.component_enum == ComponentTypeEnum.POS:
                     self.map_repository.update_map_position_for_entity(c, entity, pipeline)
+                if c.value is None:
+                    await self.map_repository.remove_entity_from_map(entity.entity_id, pipeline=pipeline)
             for c in entity.pending_changes.values():
                 pipeline.setbit(
                     '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
@@ -690,27 +692,7 @@ class RedisDataRepository:
         result = await pipeline.execute()
         return [bool(x) for x in result]
 
-    async def get_elegible_listeners_for_area(self, area):
-        """
-        fixme switch to LUA proc
-        """
-        entities_rooms = await self.map_repository.get_all_entity_ids_in_area(area)
-        characters = entities_rooms and await self._filter_entities_with_active_component(
-            CharacterComponent, *entities_rooms
-        )
-        return characters
-
-    async def get_elegible_listeners_for_room(self, room) -> typing.List[int]:
-        """
-        fixme switch to LUA proc
-        """
-        entities_room = await self.map_repository.get_room_content(room.position)
-        characters = entities_room and await self._filter_entities_with_active_component(
-            CharacterComponent, *entities_room
-        ) or []
-        return characters
-
-    async def _filter_entities_with_active_component(self, component, *entities):
+    async def filter_entities_with_active_component(self, component, *entities):
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         for entity in entities:

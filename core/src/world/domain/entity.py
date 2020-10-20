@@ -47,7 +47,7 @@ class Entity(DomainObject):
         }
         return await self.transport.transport.send_system_event(self.transport.namespace, payload)
 
-    def set(self, component: ComponentType):
+    def set_for_update(self, component: ComponentType):
         self._pending_changes[component.key] = component
         return self
 

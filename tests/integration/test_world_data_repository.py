@@ -45,7 +45,7 @@ class TestWorldDataRepository(TestCase):
         redis = await self.redis()
         _entity_name = 'Billy Zinna'
         entity = Entity()
-        entity.set(AttributesComponent({'name': _entity_name}))
+        entity.set_for_update(AttributesComponent({'name': _entity_name}))
 
         data = await redis.hget('c:2:d', 1)
         self.assertIsNone(data)
@@ -90,7 +90,7 @@ class TestWorldDataRepository(TestCase):
             },
             response_by_components
         )
-        entity.set(CharacterComponent(True))
+        entity.set_for_update(CharacterComponent(True))
         await self.sut.update_entities(entity)
         self.assertTrue(await redis.getbit('c:{}:m'.format(CharacterComponent.key), 1))
         self.assertIsNone(await redis.hget('c:{}:d'.format(CharacterComponent.key), 1))
@@ -135,7 +135,7 @@ class TestWorldDataRepository(TestCase):
             },
             response
         )
-        await self.sut.update_entities(entity.set(CharacterComponent(False)))
+        await self.sut.update_entities(entity.set_for_update(CharacterComponent(False)))
         response = await self.sut.get_components_values_by_entities([entity], [CharacterComponent])
 
         self.assertEqual(
@@ -162,9 +162,9 @@ class TestWorldDataRepository(TestCase):
         """
         _entity_2_name = 'Donna Arcama'
         entity_2 = Entity()
-        entity_2.set(AttributesComponent({'name': _entity_2_name}))
+        entity_2.set_for_update(AttributesComponent({'name': _entity_2_name}))
         await self.sut.save_entity(entity_2)
-        await self.sut.update_entities(entity.set(CharacterComponent(True)), entity_2)
+        await self.sut.update_entities(entity.set_for_update(CharacterComponent(True)), entity_2)
         response = await self.sut.get_components_values_by_entities(
             [entity, entity_2],
             [CharacterComponent, AttributesComponent, PosComponent]
