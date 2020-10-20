@@ -79,7 +79,7 @@ class Area(DomainObject):
                     if pov and entry.entity_id == pov.entity_id:
                         continue
                     payload = {
-                        'type': entry.type,
+                        'type': 0,
                         'pos': index,
                         'e_id': entry.entity_id
                     }

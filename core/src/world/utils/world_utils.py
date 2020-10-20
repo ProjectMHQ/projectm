@@ -52,7 +52,7 @@ async def get_current_room(entity: Entity, populate=True):
         )
         entity.set_component(PosComponent(pos[entity.entity_id][PosComponent.component_enum]))
     room = await map_repository.get_room(entity.get_component(PosComponent), populate=populate)
-    populate and await room.populate_content(entity)
+    populate and await room.populate_content()
     entity.set_room(room)
     return room
 
@@ -66,5 +66,5 @@ async def get_room_at_direction(entity: Entity, direction_enum, populate=True):
     entity.set_component(pos)
     look_cords = apply_delta_to_position(pos, delta)
     room = await map_repository.get_room(look_cords, populate=populate)
-    populate and await room.populate_content(entity)
+    populate and await room.populate_content()
     return room

@@ -24,6 +24,9 @@ class LibrarySystemService:
 
         if location == 'json':
             data = await self._import_json_library(libname)
+            if not data:
+                await self.entity.emit_msg('Cannot load json')
+                return
             if not overwrite:
                 await self.repository.save_library_item(data)
             else:

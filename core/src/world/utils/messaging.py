@@ -25,7 +25,7 @@ async def emit_msg(entity, message: str):
     else:
         assert entity.can_receive_messages()
         if not entity.get_component(ConnectionComponent):
-            components_data = await world_repository.get_components_values_by_components(
+            components_data = await world_repository.get_components_values_by_components_storage(
                 [entity.entity_id], [ConnectionComponent]
             )
             connection_id = components_data[ConnectionComponent.component_enum][entity.entity_id]
@@ -64,10 +64,10 @@ async def emit_room_sys_msg(entity: Entity, event_type: str, details: typing.Dic
     from core.src.world.builder import transport
     assert isinstance(details, dict)
     room = room or (entity.get_room() or await get_current_room(entity))
-    elegible_listeners = await world_repository.get_eligible_listeners_for_room(room)
+    elegible_listeners = await get_eligible_listeners_for_room(room)
     if not include_origin:
         elegible_listeners.remove(entity.entity_id)
-    components_data = await world_repository.get_components_values_by_components(
+    components_data = await world_repository.get_components_values_by_components_storage(
         elegible_listeners, [ConnectionComponent, PosComponent]
     )
     futures = []
@@ -106,7 +106,7 @@ async def emit_room_msg(origin: Entity, message_template, target: Entity = None,
     elegible_listeners = [l for l in elegible_listeners if l not in (
         origin and origin.entity_id, target and target.entity_id
     )]
-    components_data = await world_repository.get_components_values_by_components(
+    components_data = await world_repository.get_components_values_by_components_storage(
         elegible_listeners, [ConnectionComponent, PosComponent]
     )
     futures = []

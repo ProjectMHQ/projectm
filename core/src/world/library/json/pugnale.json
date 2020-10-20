@@ -1,10 +1,12 @@
 {
   "libname": "pugnale",
   "components": {
+    "collectible": true,
     "attributes": {
       "keyword": "pugnale",
       "name": "pugnale",
       "description": "Quello che vedi è un pugnale molto affilatone"
-    }
+    },
+    "weapon": "knife"
   }
 }

@@ -109,7 +109,8 @@ class RedisLibraryRepository:
         e.set_for_update(InstanceOfComponent(data['libname']))
         e.set_for_update(CreatedAtComponent(int(time.time())))
         for component in data['components']:
-            e.set_for_update(get_component_by_type(component)(None).activate())
+            comp_type = get_component_by_type(component)
+            comp_type.has_data() and e.set_for_update(comp_type().activate())
         return e
 
     def get_libraries(self, pattern: str, offset=0, limit=20):

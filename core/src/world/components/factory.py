@@ -3,6 +3,7 @@ import typing
 from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.character import CharacterComponent
+from core.src.world.components.collectible import CollectibleComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.components.instance_of import InstanceOfComponent
@@ -24,7 +25,8 @@ def get_component_by_type(component_type_string) -> typing.Type[ComponentType]:
         'weapon': WeaponComponent,
         'inventory': InventoryComponent,
         'parent_of': ParentOfComponent,
-        'instance_by': InstanceByComponent
+        'instance_by': InstanceByComponent,
+        'collectible': CollectibleComponent
     }[component_type_string]
 
 
@@ -39,7 +41,8 @@ def get_component_alias_by_enum_value(enum_value: ComponentTypeEnum):
         ComponentTypeEnum.WEAPON: 'weapon',
         ComponentTypeEnum.INVENTORY: 'inventory',
         ComponentTypeEnum.PARENT_OF: 'parent_of',
-        ComponentTypeEnum.INSTANCE_BY: 'instance_by'
+        ComponentTypeEnum.INSTANCE_BY: 'instance_by',
+        ComponentTypeEnum.COLLECTIBLE: 'collectible'
     }[enum_value]
 
 
@@ -54,5 +57,6 @@ def get_component_by_enum_value(enum_value: ComponentTypeEnum):
         ComponentTypeEnum.WEAPON: WeaponComponent,
         ComponentTypeEnum.INVENTORY: InventoryComponent,
         ComponentTypeEnum.PARENT_OF: ParentOfComponent,
-        ComponentTypeEnum.INSTANCE_BY: InstanceByComponent
+        ComponentTypeEnum.INSTANCE_BY: InstanceByComponent,
+        ComponentTypeEnum.COLLECTIBLE: CollectibleComponent
     }[enum_value]

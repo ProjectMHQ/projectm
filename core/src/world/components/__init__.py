@@ -14,7 +14,7 @@ class ComponentType(metaclass=abc.ABCMeta):
     has_default = False
     subtype = None
 
-    def __init__(self, value):
+    def __init__(self, value=None):
         self._value = value
         self._component_values = set()
         self._is_active = False
@@ -51,8 +51,9 @@ class ComponentType(metaclass=abc.ABCMeta):
     def has_value(self):
         return bool(self.value)
 
-    def has_data(self):
-        return self.component_type != bool
+    @classmethod
+    def has_data(cls):
+        return cls.component_type != bool
 
     def has_operation(self):
         return False

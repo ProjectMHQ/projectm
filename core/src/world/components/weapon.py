@@ -21,4 +21,4 @@ class WeaponComponent(StringComponent):
 
     @property
     def value(self) -> WeaponType:
-        return WeaponType(self._value)
+        return self._value and WeaponType(self._value)

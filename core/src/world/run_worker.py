@@ -14,7 +14,7 @@ worker_queue_manager.add_queue_observer('cmd', cmds_observer)
 async def main(entities):
     await library_repository.build()
     if entities:
-        data = (await world_repository.get_components_values_by_components(
+        data = (await world_repository.get_components_values_by_components_storage(
             [x['entity_id'] for x in entities], [PosComponent]
         ))[PosComponent.component_enum]
         await events_subscriber_service.bootstrap_subscribes(data)

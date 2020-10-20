@@ -119,8 +119,6 @@ class RedisDataRepository:
             for c in entity.pending_changes.values():
                 if c.component_enum == ComponentTypeEnum.POS:
                     self.map_repository.update_map_position_for_entity(c, entity, pipeline)
-                if c.value is None:
-                    await self.map_repository.remove_entity_from_map(entity.entity_id, pipeline=pipeline)
             for c in entity.pending_changes.values():
                 pipeline.setbit(
                     '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
@@ -293,7 +291,7 @@ class RedisDataRepository:
                 response.append(v and v.value or v)
         return response
 
-    async def get_components_values_by_components(
+    async def get_components_values_by_components_storage(
             self,
             entity_ids: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
@@ -515,26 +513,31 @@ class RedisDataRepository:
                         comp_key for comp_key, status_and_querable in value.items() if all(status_and_querable)
                     ]
                     pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
+                elif not status_and_querable[1]:
+                    pipeline.hget('{}:{}'.format(self._entity_prefix, entity_id), InstanceOfComponent.key)
         response = await pipeline.execute()
         data = {}
         i = 0
         for entity_id, value in filtered_query.items():
             c_i = 1   # 1-based cause the element 0 is InstanceOf
-            for c_key, status in value.items():
+            for c_key, status_and_querable in value.items():
                 component = get_component_by_enum_value(ComponentTypeEnum(c_key))
-                if not status[1]:
+                if not status_and_querable[1]:
                     if component.has_default:
-                        value = status[0] or self.library_repository.get_defaults_for_library_element(
-                            response[i][0].decode(), component.libname
-                        )
-                        value = value.value if (not status[0] and value) else value
+                        if response[i]:
+                            value = status_and_querable[0] or self.library_repository.get_defaults_for_library_element(
+                                response[i].decode(), component
+                            )
+                            value = value.value if (not status_and_querable[0] and value) else value
+                        else:
+                            value = status_and_querable[0]
                     else:
-                        value = status[0]
+                        value = status_and_querable[0]
                     try:
                         data[entity_id].update({ComponentTypeEnum(c_key): value})
                     except KeyError:
                         data[entity_id] = {ComponentTypeEnum(c_key): value}
-                elif all(status):
+                elif all(status_and_querable):
                     if component.has_default:
                         value = response[i][c_i] or self.library_repository.get_defaults_for_library_element(
                             response[i][0].decode(), get_component_by_enum_value(ComponentTypeEnum(c_key))
@@ -586,17 +589,9 @@ class RedisDataRepository:
         for _room in area.rooms:
             if _room:
                 for _entity_id in _room.entity_ids:
-                    evaluated_entity = EvaluatedEntity(
-                        type=0,
-                        status=0,
-                        entity_id=_entity_id,
-                        name='',
-                        excerpt='',
-                        known=False
-                    )
-                    entity.can_see_evaluated_entity(evaluated_entity) and _room.add_evaluated_entity(evaluated_entity)
+                    _room.add_entity(Entity(_entity_id))
 
-    async def populate_room_content_for_look(self, entity: Entity, room: Room):
+    async def populate_room_content_for_look(self, room: Room):
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         _exp_res = []
@@ -622,15 +617,8 @@ class RedisDataRepository:
                         )
             except Exception as e:
                 raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _entity_id)) from e
-            evaluated_entity = EvaluatedEntity(
-                name=attrs and attrs.name,
-                type=0,
-                status=0,
-                entity_id=_entity_id,
-                known=True,
-                excerpt="<placeholder for short description>"
-            )
-            entity.can_see_evaluated_entity(evaluated_entity) and room.add_evaluated_entity(evaluated_entity)
+
+            room.add_entity(Entity(_entity_id).set_component(attrs))
 
     async def get_raw_content_for_room_interaction(self, entity_id: int, room: Room) -> (int, typing.Generator):
         redis = await self.async_redis()

@@ -1,7 +1,9 @@
 import typing
 
+from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain import DomainObject
+from core.src.world.domain.entity import Entity
 from core.src.world.utils.world_types import TerrainEnum, EvaluatedEntity
 from core.src.world.utils.world_utils import is_terrain_walkable
 
@@ -18,7 +20,7 @@ class Room(DomainObject):
         self._position = position
         self._terrain = terrain
         self._entity_ids = entity_ids
-        self._content: typing.Set[EvaluatedEntity] = set()
+        self._content: typing.List[EvaluatedEntity] = list()
         self._pov_direction = None
 
     def set_pov_direction(self, value):
@@ -65,22 +67,22 @@ class Room(DomainObject):
     def serialize(self) -> typing.Dict:
         res = []
         for e in self.content:
-            data = {
-                'type': e.type,
-                'status': e.status,
-                'excerpt': e.excerpt,
-                'e_id': e.entity_id
-            }
-            if e.known:
-                data['name'] = e.name
-            res.append(data)
+            res.append(
+                {
+                    'type': 0,
+                    'status': 0,
+                    'excerpt': 0,
+                    'e_id': e.entity_id,
+                    'name': e.get_component(AttributesComponent).name
+                }
+            )
         return {
             "position": [self._position.x, self._position.y, self._position.z],
             "content": res
         }
 
-    def add_evaluated_entity(self, evaluated_entity: EvaluatedEntity):
-        self._content.add(evaluated_entity)
+    def add_entity(self, entity: Entity):
+        self._content.append(entity)
 
     def __str__(self):
         return '''
@@ -102,9 +104,9 @@ class Room(DomainObject):
     async def walkable_by(self, entity):
         return is_terrain_walkable(self.terrain)
 
-    async def populate_content(self, entity):
+    async def populate_content(self):
         from core.src.world.builder import world_repository
-        await world_repository.populate_room_content_for_look(entity, self)
+        await world_repository.populate_room_content_for_look(self)
         return self
 
     async def refresh(self, populate=False):
@@ -113,3 +115,7 @@ class Room(DomainObject):
         self._terrain = room.terrain
         # FIXME TODO
         return self
+
+    @property
+    def entities(self):
+        return self._content

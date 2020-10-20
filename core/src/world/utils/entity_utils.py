@@ -65,12 +65,13 @@ async def populate_container(container: InventoryComponent, *components):
     return container
 
 
-def remove_entity_from_container(entity: Entity, target: (PosComponent, InventoryComponent)):
+def remove_entity_from_container(entity: Entity, target: (PosComponent, InventoryComponent), current_position=None):
     if isinstance(target, InventoryComponent):
         assert target.owned_by()
+        assert current_position.value
         target.add(entity.entity_id)
         entity \
-            .set_for_update(PosComponent()) \
+            .set_for_update(PosComponent().add_previous_position(current_position)) \
             .set_for_update(ParentOfComponent(entity=target.owned_by(), location=target))
     elif isinstance(target, PosComponent):
         entity \
@@ -127,10 +128,12 @@ async def search_entity_in_sight_by_keyword(entity, keyword, include_self=True) 
     attrs = entity.get_component(AttributesComponent)
     include_self and search_data.extend(
         [
-            {'entity_id': entity.entity_id, 'data': [
-                {'keyword': attrs.name},
-                {'keyword': attrs.keyword}
-            ]},
+            {
+                'entity_id': entity.entity_id, 'data': [
+                    {'keyword': attrs.name},
+                    {'keyword': attrs.keyword}
+                ]
+            }
         ]
     )
     for entity_id in all_but_me:
@@ -159,12 +162,29 @@ async def search_entities_in_room_by_keyword(
     keyword: str,
     filter_by: (ComponentType, typing.Tuple[ComponentType]) = None
 ) -> typing.List[Entity]:
-    """
-    Search entities in the provided room by keyword (type: str).
-    Can return multiple items using the wildcard '*' on the keyword param.
-    filter_by keyword argument accepts a single Component or tuples of Components.
-    """
-    pass
+    if not room.has_entities:
+        return []
+    await room.populate_content()
+    if isinstance(filter_by, ComponentType):
+        filter_by = (filter_by, )
+        ent_filter = (type(x) for x in filter_by)
+        await batch_load_components(*ent_filter, entities=room.entities)
+    multiple_items = False
+    if '*' in keyword:
+        assert '*' not in keyword[1:]
+        multiple_items = True
+        keyword = keyword.replace('*', '')
+    response = []
+    for e in room.entities:
+        if filter_by:
+            for c in filter_by:
+                if e.get_component(type(c)).value != c.value:
+                    continue
+        if multiple_items and e.get_component(AttributesComponent).keyword.startswith(keyword):
+            response.append(e)
+        elif not multiple_items and e.get_component(AttributesComponent).keyword.startswith(keyword):
+            return [e]
+    return response
 
 
 async def ensure_same_position(itsme_entity: Entity, *entities: Entity) -> bool:
@@ -213,9 +233,10 @@ async def load_components(entity, *components):
     Useful to load multiple components with a single DB interaction, and reduce DB load.
     """
     from core.src.world.builder import world_repository
-    data = await world_repository.get_components_values_by_entities_ids([entity.entity_id], components)
+    data = await world_repository.get_components_values_by_components_storage([entity.entity_id], components)
+    #data = await world_repository.get_components_values_by_entities_ids([entity.entity_id], components)
     for c in components:
-        comp = c(data[entity.entity_id][c.component_enum])
+        comp = c(data[c.component_enum][entity.entity_id])
         comp.set_owner(entity)
         entity.set_component(comp)
     return entity
@@ -227,4 +248,4 @@ def update_entities(*entities, apply_bounds=True):
     By default it uses Component Type specs to ensure critical bounds are set.
     """
     from core.src.world.builder import world_repository
-    return world_repository.update_entities(entities)
+    return world_repository.update_entities(*entities)

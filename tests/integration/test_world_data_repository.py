@@ -73,7 +73,7 @@ class TestWorldDataRepository(TestCase):
             },
             response
         )
-        response_by_components = await self.sut.get_components_values_by_components(
+        response_by_components = await self.sut.get_components_values_by_components_storage(
             [entity.entity_id], [AttributesComponent, CharacterComponent, ConnectionComponent]
         )
         self.assertEqual(
@@ -108,7 +108,7 @@ class TestWorldDataRepository(TestCase):
             [entity],
             [CharacterComponent, AttributesComponent, PosComponent]
         )
-        response_by_components = await self.sut.get_components_values_by_components(
+        response_by_components = await self.sut.get_components_values_by_components_storage(
             [entity.entity_id], [AttributesComponent, CharacterComponent, ConnectionComponent]
         )
         self.assertEqual(
@@ -146,7 +146,7 @@ class TestWorldDataRepository(TestCase):
             },
             response
         )
-        response_by_components = await self.sut.get_components_values_by_components(
+        response_by_components = await self.sut.get_components_values_by_components_storage(
             [entity.entity_id], [CharacterComponent]
         )
         self.assertEqual(
@@ -169,7 +169,7 @@ class TestWorldDataRepository(TestCase):
             [entity, entity_2],
             [CharacterComponent, AttributesComponent, PosComponent]
         )
-        response_by_components = await self.sut.get_components_values_by_components(
+        response_by_components = await self.sut.get_components_values_by_components_storage(
             [entity.entity_id, entity_2.entity_id],
             [AttributesComponent, CharacterComponent, ConnectionComponent]
         )
