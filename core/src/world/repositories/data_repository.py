@@ -8,7 +8,6 @@ import os
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.character import CharacterComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.factory import get_component_alias_by_enum_value, get_component_by_enum_value
 from core.src.world.components.instance_of import InstanceOfComponent

@@ -5,6 +5,7 @@ from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.entity import Entity
 from core.src.world.domain.room import Room
+from core.src.world.utils.messaging import get_eligible_listeners_for_area
 
 
 async def cast_entity(
@@ -32,11 +33,10 @@ async def cast_entity(
                 ))
             return
     area = Area(where).make_coordinates()
-    listeners = await world_repository.get_eligible_listeners_for_area(area)
+    listeners = await get_eligible_listeners_for_area(area)
     if on_connect:
         await events_publisher_service.on_entity_appear_position(entity, where, reason, targets=listeners)
-        loop.create_task(events_subscriber_service.subscribe_events(entity)
-)
+        loop.create_task(events_subscriber_service.subscribe_events(entity))
     else:
         await events_publisher_service.on_entity_change_position(entity, where, reason, targets=listeners)
     entity.set_component(where)

@@ -102,7 +102,7 @@ async def emit_room_msg(origin: Entity, message_template, target: Entity = None,
     from core.src.world.builder import world_repository
     from core.src.world.builder import transport
     room = room or (origin.get_room() or await get_current_room(origin))
-    elegible_listeners = await world_repository.get_eligible_listeners_for_room(room)
+    elegible_listeners = await get_eligible_listeners_for_room(room)
     elegible_listeners = [l for l in elegible_listeners if l not in (
         origin and origin.entity_id, target and target.entity_id
     )]
@@ -162,23 +162,25 @@ async def get_eligible_listeners_for_area(area: (PosComponent, Area)) -> typing.
     if isinstance(area, PosComponent):
         area = Area(area)
     from core.src.world.builder import map_repository
+    from core.src.world.builder import world_repository
     entities_rooms = await map_repository.get_all_entity_ids_in_area(area)
-    characters = entities_rooms and await map_repository.filter_entities_with_active_component(
+    characters = entities_rooms and await world_repository.filter_entities_with_active_component(
         CharacterComponent, *entities_rooms
     )
     return characters
 
 
-async def get_eligible_listeners_for_room(room: (Room, PosComponent)) -> typing.List[int]:
+async def get_eligible_listeners_for_room(pos: (Room, PosComponent)) -> typing.List[int]:
     """
     Returns the list of entities ids that are ables to receive messages in the selected room.
     The "room" argument is a PosComponent or a Room Object.
     """
-    if isinstance(room, Room):
-        room = room.position
+    if isinstance(pos, Room):
+        pos = pos.position
     from core.src.world.builder import map_repository
-    entities_room = await map_repository.get_room_content(room.position)
-    characters = entities_room and await map_repository.filter_entities_with_active_component(
+    entities_room = await map_repository.get_room_content(pos)
+    from core.src.world.builder import world_repository
+    characters = entities_room and await world_repository.filter_entities_with_active_component(
         CharacterComponent, *entities_room
     ) or []
     return characters

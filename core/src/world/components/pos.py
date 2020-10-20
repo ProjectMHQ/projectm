@@ -7,6 +7,7 @@ class PosComponent(ListComponent):
     component_enum = ComponentTypeEnum.POS
     key = ComponentTypeEnum.POS.value
     libname = "pos"
+    subtype = int
 
     def __init__(self, value: (list, tuple) = None):
         if value is None:

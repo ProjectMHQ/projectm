@@ -1,10 +1,13 @@
 import sys
+
+from core.src.world.components.pos import PosComponent
+
 sys.path.insert(0, './')
 
 import asyncio
 
 from core.src.world.builder import map_repository
-from core.src.world.domain.room import Room, RoomPosition
+from core.src.world.domain.room import Room
 from core.src.world.utils.world_types import TerrainEnum
 
 terrains = {
@@ -26,7 +29,7 @@ def parse_lines(lines):
             if room_enum:
                 rooms.append(
                     Room(
-                        position=RoomPosition(x=x, y=max_y-y, z=0),
+                        position=PosComponent([x, max_y-y, 0]),
                         terrain=room_enum
                     )
                 )
