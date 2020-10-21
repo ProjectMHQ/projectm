@@ -1,6 +1,6 @@
 import sys
 
-from core.src.world.components import PosComponent
+from core.src.world.components.pos import PosComponent
 
 sys.path.insert(0, './')
 

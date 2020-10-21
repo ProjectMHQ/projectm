@@ -4,6 +4,7 @@ from core.src.world.actions.movement.movement_messages import MovementMessages
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.domain.room import Room
+from core.src.world.utils.messaging import emit_msg
 from core.src.world.utils.world_types import DirectionEnum
 from core.src.world.utils.world_utils import direction_to_coords_delta, apply_delta_to_position, get_room_at_direction
 
@@ -53,7 +54,7 @@ class ScheduledMovement:
             if new_target:
                 self.target_room = new_target
             else:
-                await self.entity.emit_msg(messages.invalid_direction())
+                await emit_msg(self.entity, messages.invalid_direction())
                 return False
         await do_move_entity(self.entity, self.target_room, self.direction, "movement")
         self.target_room = None

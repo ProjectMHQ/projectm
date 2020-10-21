@@ -27,7 +27,7 @@ async def look_at_direction(entity: Entity, direction: DirectionEnum):
 
 async def look_at_target(entity: Entity, *arguments: str):
     if len(arguments) > 1:
-        await entity.emit_msg('Command error - Nested targets not implemented yet')
+        await emit_msg(entity, 'Command error - Nested targets not implemented yet')
         return
     target_entity = await search_entity_in_sight_by_keyword(entity, arguments[0])
     if not target_entity:
