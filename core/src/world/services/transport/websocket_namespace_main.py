@@ -4,9 +4,9 @@ from core.src.auth.business.character import exceptions
 from core.src.auth.builder import auth_service, redis_characters_index_repository, ws_channels_repository, \
     psql_character_repository
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.components import AttributesComponent
-from core.src.world.components import CharacterComponent
-from core.src.world.components import CreatedAtComponent
+from core.src.world.components.attributes import AttributesComponent
+from core.src.world.components.character import CharacterComponent
+from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.domain.entity import Entity
 
 
