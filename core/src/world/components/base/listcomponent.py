@@ -1,7 +1,7 @@
 import json
 import typing
 
-from core.src.world.components import ComponentType
+from core.src.world.components.base import ComponentType
 
 
 class ListComponent(ComponentType):
@@ -55,6 +55,8 @@ class ListComponent(ComponentType):
         for x in entity_ids:
             assert isinstance(x, int)
         self._to_remove.extend(list(entity_ids))
+        for entity_id in entity_ids:
+            self.add_bounded_item_id(entity_id)
         return self
 
     @property

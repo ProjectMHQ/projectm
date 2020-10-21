@@ -2,7 +2,7 @@ import asyncio
 from unittest import TestCase
 
 from core.src.world.builder import map_repository
-from core.src.world.components.pos import PosComponent
+from core.src.world.components import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.services.system_utils import get_redis_factory, RedisType
 from tools.txt_map_to_redis import parse_lines

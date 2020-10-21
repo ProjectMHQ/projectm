@@ -1,6 +1,6 @@
 import typing
 
-from core.src.world.components import ComponentType
+from core.src.world.components.base import ComponentType
 
 
 class StringComponent(ComponentType):

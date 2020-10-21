@@ -4,7 +4,7 @@ from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain import DomainObject
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.world_types import TerrainEnum, EvaluatedEntity
+from core.src.world.utils.world_types import TerrainEnum
 from core.src.world.utils.world_utils import is_terrain_walkable
 
 
@@ -20,7 +20,7 @@ class Room(DomainObject):
         self._position = position
         self._terrain = terrain
         self._entity_ids = entity_ids
-        self._content: typing.List[EvaluatedEntity] = list()
+        self._content: typing.List = list()
         self._pov_direction = None
 
     def set_pov_direction(self, value):
@@ -57,7 +57,7 @@ class Room(DomainObject):
         return "Room Title"  # FIXME TODO
 
     @property
-    def content(self) -> typing.List[EvaluatedEntity]:
+    def content(self) -> typing.List:
         return list(self._content)
 
     @property

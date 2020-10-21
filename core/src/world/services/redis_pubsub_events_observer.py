@@ -2,11 +2,13 @@ import asyncio
 from enum import Enum
 
 import typing
+
+from core.src.world.components.attributes import AttributesComponent
+from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.entity import Entity
 from core.src.world.services.redis_pubsub_publisher_service import PubSubEventType
-from core.src.world.utils.world_types import Transport
 
 
 class InterestType(Enum):
@@ -70,7 +72,7 @@ class PubSubObserver:
         return bool(message['entity_type'] in (0, ))
 
     @staticmethod
-    def _entity_sees_it(message: typing.Dict, current_position: PosComponent):
+    def _entity_sees_it(message: typing.Dict, current_position):
         _pos = [current_position.x, current_position.y, current_position.z]
         return bool(message['curr'] == _pos) or bool(message['prev'] == _pos)
 
@@ -100,8 +102,7 @@ class PubSubObserver:
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
         room = PosComponent(room)
-        entity = Entity(entity_id)
-        entity.transport = Transport(transport_id, self.transport)
+        entity = Entity(entity_id).set_component(ConnectionComponent(transport_id))
         curr_pos = await self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         interest_type = await self._get_message_interest_type(entity, room, curr_pos)
         if not interest_type.value:
@@ -169,8 +170,7 @@ class PubSubObserver:
         payload = {
                 "event": "move",
                 "entity": {
-                    "excerpt": evaluated_emitter_entity.excerpt,
-                    "name": evaluated_emitter_entity.known and evaluated_emitter_entity.name,
+                    "name": evaluated_emitter_entity.get_component(AttributesComponent).name,
                     "id": message['en']
                 },
                 'from': message['prev'],

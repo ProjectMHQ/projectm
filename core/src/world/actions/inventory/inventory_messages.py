@@ -15,7 +15,7 @@ class InventoryMessages:
         return 'Non lo vedi qui'
 
     def on_drop_item(self, item: Entity):
-        return 'Posi {}'.format(item.get_component(AttributesComponent))
+        return 'Posi {}'.format(item.get_component(AttributesComponent).keyword)
 
     def on_entity_drop_item(self, item: Entity):
         return '{origin} posa a terra %s' % item.get_component(AttributesComponent).keyword

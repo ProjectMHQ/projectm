@@ -6,6 +6,7 @@ from core.src.world.actions.movement.move import do_move_entity
 from core.src.world.components.character import CharacterComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
+
 from core.src.world.domain.entity import Entity
 from core.src.world.domain.room import Room
 from core.src.world.utils.entity_utils import load_components

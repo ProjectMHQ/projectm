@@ -1,7 +1,8 @@
 import typing
 
-from core.src.world.components import ComponentType
 from core.src.world.components.attributes import AttributesComponent
+from core.src.world.components.base import ComponentType
+from core.src.world.components.base.listcomponent import ListComponent
 from core.src.world.components.character import CharacterComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.inventory import InventoryComponent
@@ -65,20 +66,31 @@ async def populate_container(container: InventoryComponent, *components):
     return container
 
 
-def remove_entity_from_container(entity: Entity, target: (PosComponent, InventoryComponent), current_position=None):
-    if isinstance(target, InventoryComponent):
+def move_entity_from_container(
+        entity: Entity,
+        target: (PosComponent, ListComponent),
+        current_position=None,
+        parent: Entity = None
+):
+    if isinstance(target, ListComponent) and target.is_array():
         assert target.owned_by()
+        current_position = current_position or entity.get_component(PosComponent)
         assert current_position.value
         target.add(entity.entity_id)
         entity \
             .set_for_update(PosComponent().add_previous_position(current_position)) \
             .set_for_update(ParentOfComponent(entity=target.owned_by(), location=target))
+        target.owned_by().set_for_update(target)
     elif isinstance(target, PosComponent):
+        assert parent
         entity \
             .set_for_update(target) \
             .set_for_update(ParentOfComponent())
+        parent\
+            .set_component(InventoryComponent().remove(entity.entity_id))
     else:
         raise ValueError('Target must be type PosComponent or ContainerComponent')
+    return entity
 
 
 async def search_entities_in_container_by_keyword(container: InventoryComponent, keyword: str) -> typing.List:
@@ -164,7 +176,8 @@ async def search_entities_in_room_by_keyword(
 ) -> typing.List[Entity]:
     if not room.has_entities:
         return []
-    await room.populate_content()
+    if not room.content:
+        await room.populate_content()  # Use the filter here
     if isinstance(filter_by, ComponentType):
         filter_by = (filter_by, )
         ent_filter = (type(x) for x in filter_by)
@@ -177,9 +190,12 @@ async def search_entities_in_room_by_keyword(
     response = []
     for e in room.entities:
         if filter_by:
+            filtered = False
             for c in filter_by:
                 if e.get_component(type(c)).value != c.value:
-                    continue
+                    filtered = True
+            if filtered:
+                continue
         if multiple_items and e.get_component(AttributesComponent).keyword.startswith(keyword):
             response.append(e)
         elif not multiple_items and e.get_component(AttributesComponent).keyword.startswith(keyword):

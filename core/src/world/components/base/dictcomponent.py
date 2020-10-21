@@ -1,7 +1,7 @@
 import json
 from ast import literal_eval
 import typing
-from core.src.world.components import ComponentType
+from core.src.world.components.base import ComponentType
 
 
 class DictComponent(ComponentType):

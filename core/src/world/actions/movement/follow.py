@@ -6,7 +6,8 @@ from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.utils.messaging import emit_msg, emit_room_msg
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.entity_utils import search_entity_in_sight_by_keyword, ensure_same_position, batch_load_components
+from core.src.world.utils.entity_utils import search_entity_in_sight_by_keyword, ensure_same_position, \
+    batch_load_components
 
 messages = FollowMessages()
 

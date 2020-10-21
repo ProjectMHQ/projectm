@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from core.src.world.components.pos import PosComponent
+from core.src.world.components import PosComponent
 from core.src.world.domain.area import Area
 
 

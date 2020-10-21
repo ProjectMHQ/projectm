@@ -7,9 +7,9 @@ from core.src.world.actions.system.getmap import getmap
 from core.src.world.actions.look.look import look
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
+
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import get_base_room_for_entity
-from core.src.world.utils.world_types import Transport
 
 
 class ConnectionsObserver:
@@ -35,9 +35,7 @@ class ConnectionsObserver:
 
     async def on_message(self, message: typing.Dict):
         entity = Entity(
-            message['e_id'],
-            transport=Transport(message['n'], self.transport),
-            itsme=True
+            message['e_id'], itsme=True
         ).set_component(ConnectionComponent(message['n']))
         if message['c'] == 'connected':
             await self.on_connect(entity)
@@ -50,7 +48,7 @@ class ConnectionsObserver:
         current_connection = list(await self.world_repository.get_raw_component_value_by_entity_ids(
             ConnectionComponent, entity.entity_id
         ))
-        if current_connection and current_connection[0] != entity.transport.namespace:
+        if current_connection and current_connection[0] != entity.get_component(ConnectionComponent).value:
             return
         await disconnect_entity(entity)
         self.events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
@@ -59,7 +57,7 @@ class ConnectionsObserver:
 
     async def on_connect(self, entity: Entity):
         await self.world_repository.update_entities(
-            entity.set_for_update(ConnectionComponent(entity.transport.namespace))
+            entity.set_for_update(ConnectionComponent(entity.get_component(ConnectionComponent).value))
         )
         self.events_subscriber_service.add_observer_for_entity_id(entity.entity_id, self.pubsub_observer)
         pos = await self.world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
@@ -68,7 +66,7 @@ class ConnectionsObserver:
             self.loop.create_task(self.greet(entity))
         else:
             await cast_entity(entity, pos, update=False, on_connect=True, reason="connect")
-        self.manager.set_transport(entity.entity_id, entity.transport)
+        self.manager.set_transport(entity.entity_id, entity.get_component(ConnectionComponent).value)
         self.loop.create_task(look(entity))
         self.loop.create_task(getmap(entity))
 

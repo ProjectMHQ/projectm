@@ -1,10 +1,8 @@
 from core.src.world.builder import events_subscriber_service, channels_repository, \
     world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub_manager, \
-    transport, connections_manager, library_repository
-from core.src.world.components.pos import PosComponent
+    library_repository
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.world_types import Transport
 
 worker_queue_manager.add_queue_observer('connected', connections_observer)
 worker_queue_manager.add_queue_observer('disconnected', connections_observer)
@@ -14,10 +12,7 @@ worker_queue_manager.add_queue_observer('cmd', cmds_observer)
 async def main(entities):
     await library_repository.build()
     if entities:
-        data = (await world_repository.get_components_values_by_components_storage(
-            [x['entity_id'] for x in entities], [PosComponent]
-        ))[PosComponent.component_enum]
-        await events_subscriber_service.bootstrap_subscribes(data)
+        await events_subscriber_service.bootstrap_subscribes(entities)
         for entity_data in entities:
             events_subscriber_service.add_observer_for_entity_data(entity_data, pubsub_observer)
     await worker_queue_manager.run()
@@ -42,14 +37,7 @@ async def check_entities_connection_status():
             if not ch:
                 to_update.append(Entity(connected_entity_ids[i]).set_for_update(ConnectionComponent("")))
             else:
-                _transport_item = Transport(ch.id, transport)
-                online.append(
-                    {
-                        'entity_id': connected_entity_ids[i],
-                        'transport': _transport_item
-                    }
-                )
-                connections_manager.set_transport(connected_entity_ids[i], _transport_item)
+                online.append({'entity_id': connected_entity_ids[i], 'channel_id': ch.id})
     await world_repository.update_entities(*to_update)
     return online
 

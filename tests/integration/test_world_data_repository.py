@@ -4,10 +4,10 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 from core.src.world.components import ComponentTypeEnum
-from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.character import CharacterComponent
-from core.src.world.components.connection import ConnectionComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components import AttributesComponent
+from core.src.world.components import CharacterComponent
+from core.src.world.components import ConnectionComponent
+from core.src.world.components import PosComponent
 from core.src.world.domain.entity import Entity, EntityID
 from core.src.world.repositories.data_repository import RedisDataRepository
 from core.src.world.services.system_utils import get_redis_factory, RedisType

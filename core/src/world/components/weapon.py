@@ -1,6 +1,6 @@
 from enum import Enum
 
-from core.src.world.components._types_ import ComponentTypeEnum
+from core.src.world.components.base import ComponentTypeEnum
 from core.src.world.components.base.stringcomponent import StringComponent
 
 

@@ -1,4 +1,4 @@
-from core.src.world.components._types_ import ComponentTypeEnum
+from core.src.world.components.base import ComponentTypeEnum
 from core.src.world.components.base.listcomponent import ListComponent
 
 

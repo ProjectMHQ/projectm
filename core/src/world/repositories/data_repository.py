@@ -6,10 +6,10 @@ import aioredis
 import bitarray
 import os
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.components import ComponentType, ComponentTypeEnum
 from core.src.world.components.attributes import AttributesComponent
+from core.src.world.components.base import ComponentType, ComponentTypeEnum
 from core.src.world.components.connection import ConnectionComponent
-from core.src.world.components.factory import get_component_alias_by_enum_value, get_component_by_enum_value
+from core.src.world.components.factory import get_component_by_enum_value, get_component_alias_by_enum_value
 from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
@@ -18,7 +18,7 @@ from core.src.world.domain.entity import Entity
 from core.src.world.repositories.library_repository import RedisLibraryRepository
 from core.src.world.repositories.map_repository import RedisMapRepository
 from core.src.world.repositories.redis_lua_pipeline import RedisLUAPipeline
-from core.src.world.utils.world_types import Bit, EvaluatedEntity
+from core.src.world.utils.world_types import Bit
 
 
 class RedisDataRepository:
@@ -555,7 +555,7 @@ class RedisDataRepository:
 
     async def get_entities_evaluation_by_entity(
             self, entity: Entity, *entity_ids: int
-    ) -> typing.List[EvaluatedEntity]:
+    ) -> typing.List:
         result = []
         redis = await self.async_redis()
         pipeline = redis.pipeline()
@@ -572,16 +572,7 @@ class RedisDataRepository:
                 attrs = self.library_repository.get_defaults_for_library_element(
                     el[0].decode(), AttributesComponent
                 )
-            result.append(
-                EvaluatedEntity(
-                    name=attrs.name,
-                    type=0,
-                    status=0,
-                    known=True,
-                    excerpt="<placeholder for short description>",
-                    entity_id=entity_ids[i]
-                )
-            )
+            result.append(Entity(entity_ids[i]).set_component(attrs))
         return result
 
     async def populate_area_content_for_area(self, entity: Entity, area: Area) -> None:

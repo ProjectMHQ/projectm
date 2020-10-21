@@ -1,6 +1,7 @@
 import asyncio
 import typing
 from core.src.auth.logging_factory import LOGGER
+from core.src.world.components.connection import ConnectionComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 
@@ -37,17 +38,21 @@ class RedisPubSubEventsSubscriberService:
                     entity_id,
                     message,
                     message['curr'],
-                    self._transports_by_entity_id[entity_id].namespace
+                    self._transports_by_entity_id[entity_id]
                 )
             )
 
     async def subscribe_events(self, entity: Entity):
-        self._transports_by_entity_id[entity.entity_id] = entity.transport
+        connection = entity.get_component(ConnectionComponent)
+        assert connection
+        self._transports_by_entity_id[entity.entity_id] = connection.value
         await asyncio.gather(self._subscribe_entity(entity))
 
-    async def bootstrap_subscribes(self, data: typing.Dict[int, typing.List[int]]):
-        for en, pos_val in data.items():
-            await self.subscribe_events(Entity(en))
+    async def bootstrap_subscribes(self, data: typing.List[typing.Dict]):
+        for en in data:
+            await self.subscribe_events(
+                Entity(en['entity_id']).set_component(ConnectionComponent(en['channel_id']))
+            )
 
     async def unsubscribe_all(self, entity: Entity):
         self._transports_by_entity_id.pop(entity.entity_id, None)
@@ -63,7 +68,7 @@ class RedisPubSubEventsSubscriberService:
         self._observers_by_entity_id[entity_id] = [observer]
             
     def add_observer_for_entity_data(self, entity_data: typing.Dict, observer):
-        self._transports_by_entity_id[entity_data['entity_id']] = entity_data['transport']
+        self._transports_by_entity_id[entity_data['entity_id']] = entity_data['channel_id']
         self.add_observer_for_entity_id(entity_data['entity_id'], observer)
 
     def remove_observer_for_entity_id(self, entity_id):

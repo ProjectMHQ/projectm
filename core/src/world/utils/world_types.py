@@ -24,27 +24,6 @@ class TerrainEnum(enum.IntEnum):
     GRASS = 3
 
 
-Transport = typing.NamedTuple(
-    'Transport',
-    (
-        ('namespace', str),
-        ('transport', callable)
-    )
-)
-
-EvaluatedEntity = typing.NamedTuple(
-    'EvaluatedEntity',
-    (
-        ('name', str),
-        ('type', int),
-        ('status', int),
-        ('known', bool),
-        ('excerpt', str),
-        ('entity_id', int)
-    )
-)
-
-
 class DirectionEnum(enum.Enum):
     NORTH = 'n'
     SOUTH = 's'

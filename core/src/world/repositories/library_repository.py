@@ -5,7 +5,7 @@ import time
 import aioredis
 import typing
 
-from core.src.world.components import ComponentType
+from core.src.world.components.base import ComponentType
 from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.components.factory import get_component_by_type
 from core.src.world.components.instance_of import InstanceOfComponent
