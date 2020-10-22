@@ -8,6 +8,7 @@ import typing
 from core.src.world.components.base import ComponentType
 from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.components.factory import get_component_by_type
+from core.src.world.components.instance_by import InstanceByComponent
 from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.domain.entity import Entity
 
@@ -101,16 +102,20 @@ class RedisLibraryRepository:
     async def on_item_remove_received(self, name: str):
         await self._on_item_removed(name)
 
-    def get_instance_of(self, name: str) -> typing.Optional[Entity]:
+    def get_instance_of(self, name: str, entity: Entity) -> typing.Optional[Entity]:
         e = Entity()
         data = self._local_copy.get(name)
         if not data:
             return
         e.set_for_update(InstanceOfComponent(data['libname']))
         e.set_for_update(CreatedAtComponent(int(time.time())))
+        e.set_for_update(InstanceByComponent(entity.entity_id))
         for component in data['components']:
             comp_type = get_component_by_type(component)
-            comp_type.has_data() and e.set_for_update(comp_type().activate())
+            if comp_type.has_data():
+                e.set_for_update(comp_type().activate())
+                if comp_type.is_array():
+                    pass
         return e
 
     def get_libraries(self, pattern: str, offset=0, limit=20):

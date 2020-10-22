@@ -42,7 +42,6 @@ async def pick(entity: Entity, *arguments):
             emit_sys_msg(entity, 'add_items', messages.items_to_message(items_to_pick)),
             emit_room_sys_msg(entity, 'remove_items', messages.items_to_message(items_to_pick))
         )
-
         if not await update_entities(entity, *items_to_pick):
             await emit_msg(entity, messages.cannot_pick_item())
             msgs_stack.cancel()

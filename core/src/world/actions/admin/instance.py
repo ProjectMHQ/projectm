@@ -9,7 +9,10 @@ from core.src.world.utils.messaging import emit_msg
 async def instance(entity: Entity, command: str, parent_alias: str, *args):
     if command == 'create':
         instanced = await _create_instance(entity, parent_alias, *args)
-        await emit_msg(entity, 'Entity type {} instanced - Entity ID: {}'.format(parent_alias, instanced.entity_id))
+        if instanced:
+            await emit_msg(entity, 'Entity type {} instanced - Entity ID: {}'.format(parent_alias, instanced.entity_id))
+        else:
+            await emit_msg(entity, 'Instance failed')
     elif command == 'destroy':
         assert args[0], args
         entity_id_to_delete = int(args[0])
@@ -24,11 +27,10 @@ async def instance(entity: Entity, command: str, parent_alias: str, *args):
 
 async def _create_instance(entity: Entity, parent_alias: str, *args):
     from core.src.world.builder import world_repository, library_repository
-    instanced = library_repository.get_instance_of(parent_alias)
+    instanced = library_repository.get_instance_of(parent_alias, entity)
     if not instanced:
         await emit_msg(entity, 'Cannot obtain instance of {}'.format(parent_alias))
         return
-    instanced.set_for_update(InstanceByComponent(entity.entity_id))
     if args:
         location = args[0]
         if location not in ('.', '@here'):

@@ -2,10 +2,7 @@
   "libname": "tavolo",
   "components": {
     "collectible": true,
-    "mountable": true,
     "inventory": [],
-    "max_weight": 200,
-    "weight": 30,
     "attributes": {
       "keyword": "tavolo",
       "name": "un tavolo",
