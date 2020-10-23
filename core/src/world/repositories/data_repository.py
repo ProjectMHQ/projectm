@@ -260,9 +260,6 @@ class RedisDataRepository:
             entities_ids: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[int, typing.Dict[ComponentTypeEnum, bytes]]:
-        for component in components:
-            assert not component.is_array(), 'At the moment is not possible to use this API with array components'
-
         _bits_statuses = await self._get_components_statuses_by_entities_ids(entities_ids, components)
         _filtered = await self._get_components_values_from_entities_storage(_bits_statuses)
         return {
@@ -503,24 +500,24 @@ class RedisDataRepository:
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         components = {}
-        for entity_id, value in filtered_query.items():
-            for comp_key, status_and_querable in value.items():
+        for entity_id, v in filtered_query.items():
+            for comp_key, status_and_querable in v.items():
                 components[comp_key] = components.get(comp_key, get_component_by_enum_value(comp_key))
-                assert not components[comp_key].is_array(), \
-                    'At the moment is not possible to use this API with array components'
                 if all(status_and_querable):
                     keys = [InstanceOfComponent.key] + [
-                        comp_key for comp_key, status_and_querable in value.items() if all(status_and_querable)
+                        comp_key for comp_key, status_and_querable in v.items() if all(status_and_querable)
                     ]
                     pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
                 elif not status_and_querable[1]:
                     pipeline.hget('{}:{}'.format(self._entity_prefix, entity_id), InstanceOfComponent.key)
+                elif components[comp_key].is_array():
+                    raise ValueError
         response = await pipeline.execute()
         data = {}
         i = 0
-        for entity_id, value in filtered_query.items():
+        for entity_id, vv in filtered_query.items():
             c_i = 1   # 1-based cause the element 0 is InstanceOf
-            for c_key, status_and_querable in value.items():
+            for c_key, status_and_querable in vv.items():
                 component = get_component_by_enum_value(ComponentTypeEnum(c_key))
                 if not status_and_querable[1]:
                     if component.has_default:
@@ -537,6 +534,7 @@ class RedisDataRepository:
                         data[entity_id].update({ComponentTypeEnum(c_key): value})
                     except KeyError:
                         data[entity_id] = {ComponentTypeEnum(c_key): value}
+                    i += 1
                 elif all(status_and_querable):
                     if component.has_default:
                         value = response[i][c_i] or self.library_repository.get_defaults_for_library_element(
@@ -549,8 +547,14 @@ class RedisDataRepository:
                         data[entity_id].update({ComponentTypeEnum(c_key): value})
                     except KeyError:
                         data[entity_id] = {ComponentTypeEnum(c_key): value}
+                    i += 1
                     c_i += 1
-                i += 1
+                else:
+                    assert not component.has_default
+                    try:
+                        data[entity_id].update({ComponentTypeEnum(c_key): None})
+                    except KeyError:
+                        data[entity_id] = {ComponentTypeEnum(c_key): None}
         return data
 
     async def get_entities_evaluation_by_entity(

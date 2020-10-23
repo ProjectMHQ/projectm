@@ -1,6 +1,7 @@
 import inspect
 import typing
 
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.base import ComponentType
 from core.src.world.components.base.listcomponent import ListComponent
@@ -132,20 +133,31 @@ async def search_entity_in_sight_by_keyword(
     if '*' in keyword:
         return
     from core.src.world.builder import world_repository
-    await load_components(entity, PosComponent, AttributesComponent)
+    if include_self:
+        await load_components(entity, PosComponent, AttributesComponent, InventoryComponent)
+    else:
+        await load_components(entity, PosComponent, AttributesComponent)
     room = await get_current_room(entity)
     if not room.has_entities:
         return
     all_but_me = [eid for eid in room.entity_ids if eid != entity.entity_id]
+    self_inventory = entity.get_component(InventoryComponent).content
+    if include_self:
+        all_but_me = all_but_me + self_inventory
 
     # filtering - investigate how to improve it
     target_data = {}
-    filter_by = filter_by if isinstance(filter_by, (tuple, list)) else (filter_by,)
-    component_types_in_filter = [type(comp) for comp in filter_by]
+    components = [PosComponent, AttributesComponent, ParentOfComponent]
     if filter_by:
-        components = [PosComponent, AttributesComponent] + list(component_types_in_filter)
+        filter_by = filter_by if isinstance(filter_by, (tuple, list)) else (filter_by,)
+        component_types_in_filter = [type(comp) for comp in filter_by]
+        components = components + list(component_types_in_filter)
+    else:
+        filter_by = []
     _target_data = (await world_repository.get_components_values_by_entities_ids(all_but_me, components))
     for e_id, comp in _target_data.items():
+        if not filter_by:
+            target_data = _target_data
         for c in filter_by:
             if target_data.get(e_id, None) is None:
                 target_data[e_id] = {}
@@ -188,8 +200,14 @@ async def search_entity_in_sight_by_keyword(
         target_attributes = entity.get_component(AttributesComponent)
     else:
         target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.component_enum])
-    entity = Entity(found_entity_id).set_component(entity.get_component(PosComponent)).set_component(target_attributes)
 
+    entity = Entity(found_entity_id).set_component(target_attributes)
+    if found_entity_id in self_inventory:
+        entity.set_component(
+            ParentOfComponent(target_data[found_entity_id][ParentOfComponent.component_enum])
+        )
+    else:
+        entity.set_component(PosComponent(target_data[found_entity_id][PosComponent.component_enum]))
     # Mount filtered components
     for f in filter_by:
         entity.set_component(type(f)(target_data[found_entity_id][f.component_enum]))
@@ -231,29 +249,35 @@ async def search_entities_in_room_by_keyword(
     return response
 
 
-async def ensure_same_position(itsme_entity: Entity, *entities: Entity) -> bool:
+async def ensure_same_position(self_entity: Entity, *entities: Entity) -> bool:
     """
     Ensures two or more entities are in the same position.
     Return a boolean.
     """
-    assert itsme_entity.itsme
-    pos0_value = itsme_entity.get_component(PosComponent).value
+    assert self_entity.itsme
+    pos0_value = self_entity.get_component(PosComponent).value
     assert pos0_value
     from core.src.world.builder import world_repository
     target_data = (
         await world_repository.get_components_values_by_entities_ids(
             list((e.entity_id for e in entities)),
-            [PosComponent, ConnectionComponent, CharacterComponent]
+            [PosComponent, ConnectionComponent, ParentOfComponent]
         )
     )
     for e in entities:
-        p_value = target_data[e.entity_id][PosComponent.component_enum]
-        if p_value != pos0_value:
+        if e.get_component(PosComponent):
+            assert not e.get_component(ParentOfComponent)
+            p_value = target_data[e.entity_id][PosComponent.component_enum]
+            if p_value != pos0_value:
+                return False
+        elif e.get_component(ParentOfComponent):
+            assert not e.get_component(PosComponent)
+            p_value = target_data[e.entity_id][ParentOfComponent.component_enum]
+            if p_value[0] != self_entity.entity_id:
+                return False
+        else:
+            LOGGER.core.error('Cannot determinate if an item is in the same position as previous declared')
             return False
-        e.set_component(PosComponent(p_value))
-        e.set_component(CharacterComponent(
-            target_data[e.entity_id][CharacterComponent.component_enum]
-        ))
     return True
 
 

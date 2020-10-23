@@ -10,7 +10,7 @@ from core.src.world.utils.messaging import emit_msg, emit_room_msg, emit_sys_msg
 messages = InventoryMessages()
 
 
-async def drop(entity: Entity, keyword: str, target: str):
+async def put(entity: Entity, keyword: str, target: str):
     await load_components(entity, PosComponent, InventoryComponent)
     inventory = entity.get_component(InventoryComponent)
     items = await search_entities_in_container_by_keyword(inventory, keyword)

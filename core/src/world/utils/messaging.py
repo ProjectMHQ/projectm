@@ -50,7 +50,7 @@ async def emit_sys_msg(entity, event_type: str, item: (DomainObject, Entity, typ
             "details": item
         }
     else:
-        item_type, details = serialize_system_message_item(item)
+        item_type, details = serialize_system_message_item(item, entity)
         payload = {
             "event": event_type,
             "target": item_type,

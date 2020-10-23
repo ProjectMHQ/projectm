@@ -9,9 +9,11 @@ class ParentOfComponent(ListComponent):
     libname = "parent_of"
     subtype = int
 
-    def __init__(self, entity=None, location: typing.Optional[ComponentType] = None):
+    def __init__(self, *a, entity=None, location: typing.Optional[ComponentType] = None):
         assert bool(entity) == bool(location)
-        if entity and location:
+        if a and isinstance(a[0], list):
+            value = [self.subtype(a[0][0]), self.subtype(a[0][1])]
+        elif entity and location:
             value = [entity.entity_id, location.component_enum]
         else:
             value = None
@@ -24,3 +26,7 @@ class ParentOfComponent(ListComponent):
     @property
     def location(self):
         return self._value[1]
+
+    @classmethod
+    def is_array(cls):
+        return False
