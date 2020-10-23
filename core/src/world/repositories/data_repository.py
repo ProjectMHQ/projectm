@@ -503,15 +503,20 @@ class RedisDataRepository:
         for entity_id, v in filtered_query.items():
             for comp_key, status_and_querable in v.items():
                 components[comp_key] = components.get(comp_key, get_component_by_enum_value(comp_key))
-                if all(status_and_querable):
+                if components[comp_key].is_array() and all(status_and_querable):
+                    key = '{}:{}:{}:{}'.format(
+                        self._component_prefix, comp_key, self._zset_suffix, entity_id
+                    )
+                    pipeline.zscan(key, 0, -1)
+                elif all(status_and_querable):
                     keys = [InstanceOfComponent.key] + [
                         comp_key for comp_key, status_and_querable in v.items() if all(status_and_querable)
                     ]
                     pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
                 elif not status_and_querable[1]:
                     pipeline.hget('{}:{}'.format(self._entity_prefix, entity_id), InstanceOfComponent.key)
-                elif components[comp_key].is_array():
-                    raise ValueError
+                else:
+                    print(components[comp_key])
         response = await pipeline.execute()
         data = {}
         i = 0
@@ -519,7 +524,12 @@ class RedisDataRepository:
             c_i = 1   # 1-based cause the element 0 is InstanceOf
             for c_key, status_and_querable in vv.items():
                 component = get_component_by_enum_value(ComponentTypeEnum(c_key))
-                if not status_and_querable[1]:
+                if component.is_array() and all(status_and_querable):
+                    try:
+                        data[entity_id].update({ComponentTypeEnum(c_key): response[i][1]})
+                    except KeyError:
+                        data[entity_id] = {ComponentTypeEnum(c_key): response[i][1]}
+                elif not status_and_querable[1]:
                     if component.has_default:
                         if response[i]:
                             value = status_and_querable[0] or self.library_repository.get_defaults_for_library_element(

@@ -7,3 +7,8 @@ class InventoryComponent(ListComponent):
     key = ComponentTypeEnum.INVENTORY.value
     libname = "inventory"
     subtype = int
+
+    @classmethod
+    def is_active(cls):
+        return True
+

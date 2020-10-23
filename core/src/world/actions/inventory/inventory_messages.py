@@ -50,3 +50,25 @@ class InventoryMessages:
 
     def cannot_pick_item(self):
         return 'Non puoi farlo!'
+
+    def on_put_item(self, item, target):
+        return 'Metti {} su {}'.format(
+            item.get_component(AttributesComponent).keyword,
+            target.get_component(AttributesComponent).keyword
+        )
+
+    def on_entity_put_item(self, item, target):
+        return '{origin} mette %s su %s' % (
+            item.get_component(AttributesComponent).keyword,
+            target.get_component(AttributesComponent).keyword
+        )
+
+    def on_put_multiple_items(self, target):
+        return 'Metti diversi oggetti su {}'.format(
+            target.get_component(AttributesComponent).keyword
+        )
+
+    def on_entity_put_multiple_items(self, target):
+        return '{origin} mette diversi oggetti su %s' % (
+            target.get_component(AttributesComponent).keyword
+        )

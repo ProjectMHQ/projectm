@@ -5,7 +5,6 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.base import ComponentType
 from core.src.world.components.base.listcomponent import ListComponent
-from core.src.world.components.character import CharacterComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.parent_of import ParentOfComponent
@@ -74,23 +73,25 @@ def move_entity_from_container(
         current_position=None,
         parent: Entity = None
 ):
-    if isinstance(target, ListComponent) and target.is_array():
+    if entity.get_component(PosComponent):
         current_position = current_position or entity.get_component(PosComponent)
+        entity.set_for_update(PosComponent().add_previous_position(current_position))
+    elif entity.get_component(ParentOfComponent):
+        assert entity.get_component(ParentOfComponent).parent_id == parent.entity_id
+        parent.set_for_update(InventoryComponent().remove(entity.entity_id))
+    else:
+        raise ValueError('Cannot recognize target original position data')
+
+    if isinstance(target, ListComponent) and target.is_array():
         target.add(entity.entity_id)
-        if entity.get_component(PosComponent):
-            entity.set_for_update(PosComponent().add_previous_position(current_position))
         target.owned_by().set_for_update(target)
         entity.set_for_update(ParentOfComponent(entity=target.owned_by(), location=target))
-
     elif isinstance(target, PosComponent):
-        assert parent
         entity \
             .set_for_update(target) \
             .set_for_update(ParentOfComponent())
-        parent.set_for_update(InventoryComponent().remove(entity.entity_id))
-
     else:
-        raise ValueError('Target must be type PosComponent or ContainerComponent')
+        raise ValueError('Target must be type PosComponent or ContainerComponent, is: %s' % target)
     return entity
 
 
@@ -104,7 +105,12 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
         for i, v in enumerate(container.populated):
             attr_comp_value = v[AttributesComponent.component_enum]
             if attr_comp_value['keyword'].startswith(keyword):
-                return [Entity(entity_id=container.content[i]).set_component(AttributesComponent(attr_comp_value))]
+                entity = Entity(entity_id=container.content[i])\
+                    .set_component(AttributesComponent(attr_comp_value))\
+                    .set_component(
+                    ParentOfComponent(entity=container.owned_by(), location=InventoryComponent)
+                )
+                return [entity]
         return []
     else:
         res = []
@@ -113,7 +119,12 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
         for i, v in enumerate(container.populated):
             attr_comp_value = v[AttributesComponent.component_enum]
             if attr_comp_value['keyword'].startswith(keyword):
-                res.append(Entity(entity_id=container.content[i]).set_component(AttributesComponent(attr_comp_value)))
+                entity = Entity(entity_id=container.content[i])\
+                    .set_component(AttributesComponent(attr_comp_value))\
+                    .set_component(
+                    ParentOfComponent(entity=container.owned_by(), location=InventoryComponent)
+                )
+                res.append(entity)
         return res
 
 
@@ -141,8 +152,9 @@ async def search_entity_in_sight_by_keyword(
     if not room.has_entities:
         return
     all_but_me = [eid for eid in room.entity_ids if eid != entity.entity_id]
-    self_inventory = entity.get_component(InventoryComponent).content
+    self_inventory = []
     if include_self:
+        self_inventory = entity.get_component(InventoryComponent).content
         all_but_me = all_but_me + self_inventory
 
     # filtering - investigate how to improve it
@@ -150,11 +162,12 @@ async def search_entity_in_sight_by_keyword(
     components = [PosComponent, AttributesComponent, ParentOfComponent]
     if filter_by:
         filter_by = filter_by if isinstance(filter_by, (tuple, list)) else (filter_by,)
-        component_types_in_filter = [type(comp) for comp in filter_by]
+        component_types_in_filter = [comp for comp in filter_by]
         components = components + list(component_types_in_filter)
     else:
         filter_by = []
     _target_data = (await world_repository.get_components_values_by_entities_ids(all_but_me, components))
+    filtered = []
     for e_id, comp in _target_data.items():
         if not filter_by:
             target_data = _target_data
@@ -163,11 +176,14 @@ async def search_entity_in_sight_by_keyword(
                 target_data[e_id] = {}
             if inspect.isclass(c):
                 if comp[c.component_enum] is None:
-                    continue
+                    filtered.append(e_id)
             else:
                 if comp[c.component_enum] != c.value:
-                    continue
-            target_data[e_id][c.component_enum] = comp[c.component_enum]
+                    filtered.append(e_id)
+        if e_id in filtered:
+            continue
+        target_data[e_id] = {c: v for c, v in comp.items()}
+
     # end filtering
 
     search_data = []
@@ -183,6 +199,8 @@ async def search_entity_in_sight_by_keyword(
         ]
     )
     for entity_id in all_but_me:
+        if entity_id in filtered:
+            continue
         search_data.append(
             {'entity_id': entity_id, 'data': [
                 {'keyword': target_data[entity_id][AttributesComponent.component_enum]['keyword']}
@@ -210,7 +228,7 @@ async def search_entity_in_sight_by_keyword(
         entity.set_component(PosComponent(target_data[found_entity_id][PosComponent.component_enum]))
     # Mount filtered components
     for f in filter_by:
-        entity.set_component(type(f)(target_data[found_entity_id][f.component_enum]))
+        entity.set_component(f(target_data[found_entity_id][f.component_enum]))
     # End
     return entity
 

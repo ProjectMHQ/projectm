@@ -114,8 +114,6 @@ class RedisLibraryRepository:
             comp_type = get_component_by_type(component)
             if comp_type.has_data():
                 e.set_for_update(comp_type().activate())
-                if comp_type.is_array():
-                    pass
         return e
 
     def get_libraries(self, pattern: str, offset=0, limit=20):

@@ -24,26 +24,30 @@ async def put(entity: Entity, keyword: str, target: str):
     items_to_drop = []
     for item in items:
         items_to_drop.append(
-            move_entity_from_container(item,  target=target_entity,  parent=entity.get_component(InventoryComponent))
+            move_entity_from_container(
+                item,
+                target=target_entity.get_component(InventoryComponent),
+                parent=entity
+            )
         )
     if not items_to_drop:
         await emit_msg(entity, messages.target_not_found())
         return
     msgs_stack.add(
         emit_sys_msg(entity, 'remove_items', messages.items_to_message(items_to_drop)),
-        emit_room_sys_msg(entity, 'add_items', messages.items_to_message(items_to_drop))
+        #emit_room_sys_msg(entity, 'add_items', messages.items_to_message(items_to_drop)) # todo event for container
     )
     if len(items_to_drop) == 1:
         msgs_stack.add(
-            emit_msg(entity, messages.on_drop_item(items[0])),
-            emit_room_msg(origin=entity, message_template=messages.on_entity_drop_item(items[0]))
+            emit_msg(entity, messages.on_put_item(items[0], target_entity)),
+            emit_room_msg(origin=entity, message_template=messages.on_entity_put_item(items[0], target_entity))
         )
     else:
         msgs_stack.add(
-            emit_msg(entity, messages.on_drop_multiple_items()),
-            emit_room_msg(origin=entity, message_template=messages.on_entity_drops_multiple_items())
+            emit_msg(entity, messages.on_put_multiple_items(target_entity)),
+            emit_room_msg(origin=entity, message_template=messages.on_entity_put_multiple_items(target_entity))
         )
-    if not await update_entities(entity, *items_to_drop):
+    if not await update_entities(entity, target_entity, *items_to_drop):
         await emit_msg(entity, messages.target_not_found())
         msgs_stack.cancel()
     else:
