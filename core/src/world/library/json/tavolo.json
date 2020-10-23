@@ -1,7 +1,7 @@
 {
   "libname": "tavolo",
   "components": {
-    "collectible": true,
+    "collectible": false,
     "inventory": [],
     "attributes": {
       "keyword": "tavolo",

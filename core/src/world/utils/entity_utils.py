@@ -142,7 +142,8 @@ async def search_entity_in_sight_by_keyword(
     target_data = {}
     filter_by = filter_by if isinstance(filter_by, (tuple, list)) else (filter_by,)
     component_types_in_filter = [type(comp) for comp in filter_by]
-    components = [PosComponent, AttributesComponent] + list(component_types_in_filter)
+    if filter_by:
+        components = [PosComponent, AttributesComponent] + list(component_types_in_filter)
     _target_data = (await world_repository.get_components_values_by_entities_ids(all_but_me, components))
     for e_id, comp in _target_data.items():
         for c in filter_by:
