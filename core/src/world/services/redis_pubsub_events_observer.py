@@ -9,6 +9,7 @@ from core.src.world.components.pos import PosComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.entity import Entity
 from core.src.world.services.redis_pubsub_publisher_service import PubSubEventType
+from core.src.world.utils.messaging import emit_sys_msg
 
 
 class InterestType(Enum):
@@ -112,7 +113,7 @@ class PubSubObserver:
     async def publish_event(self, entity: Entity, message, room, interest_type, curr_pos):
         if self._is_system_event(message):
             event = self._get_system_event(message, room, curr_pos)
-            self.loop.create_task(entity.emit_system_event(event))
+            self.loop.create_task(emit_sys_msg(entity, event))
 
         if self._is_movement_message(message):
             if self._entity_sees_it(message, curr_pos):

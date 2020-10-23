@@ -1,3 +1,4 @@
+import inspect
 import typing
 
 from core.src.world.components.attributes import AttributesComponent
@@ -73,21 +74,20 @@ def move_entity_from_container(
         parent: Entity = None
 ):
     if isinstance(target, ListComponent) and target.is_array():
-        assert target.owned_by()
         current_position = current_position or entity.get_component(PosComponent)
-        assert current_position.value
         target.add(entity.entity_id)
-        entity \
-            .set_for_update(PosComponent().add_previous_position(current_position)) \
-            .set_for_update(ParentOfComponent(entity=target.owned_by(), location=target))
+        if entity.get_component(PosComponent):
+            entity.set_for_update(PosComponent().add_previous_position(current_position))
         target.owned_by().set_for_update(target)
+        entity.set_for_update(ParentOfComponent(entity=target.owned_by(), location=target))
+
     elif isinstance(target, PosComponent):
         assert parent
         entity \
             .set_for_update(target) \
             .set_for_update(ParentOfComponent())
-        parent\
-            .set_component(InventoryComponent().remove(entity.entity_id))
+        parent.set_for_update(InventoryComponent().remove(entity.entity_id))
+
     else:
         raise ValueError('Target must be type PosComponent or ContainerComponent')
     return entity
@@ -116,7 +116,9 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
         return res
 
 
-async def search_entity_in_sight_by_keyword(entity, keyword, include_self=True) -> typing.Optional[Entity]:
+async def search_entity_in_sight_by_keyword(
+        entity, keyword, filter_by=None, include_self=True
+) -> typing.Optional[Entity]:
     """
     Search entities in sight. By default can search itself (include_self=True)
     and it's containers (Inventory, Equipment): literally anything "in sight".
@@ -127,15 +129,34 @@ async def search_entity_in_sight_by_keyword(entity, keyword, include_self=True) 
 
     Returns a single Entity or a None value.
     """
+    if '*' in keyword:
+        return
     from core.src.world.builder import world_repository
     await load_components(entity, PosComponent, AttributesComponent)
     room = await get_current_room(entity)
     if not room.has_entities:
         return
     all_but_me = [eid for eid in room.entity_ids if eid != entity.entity_id]
-    target_data = (
-        await world_repository.get_components_values_by_entities_ids(all_but_me, [PosComponent, AttributesComponent])
-    )
+
+    # filtering - investigate how to improve it
+    target_data = {}
+    filter_by = filter_by if isinstance(filter_by, (tuple, list)) else (filter_by,)
+    component_types_in_filter = [type(comp) for comp in filter_by]
+    components = [PosComponent, AttributesComponent] + list(component_types_in_filter)
+    _target_data = (await world_repository.get_components_values_by_entities_ids(all_but_me, components))
+    for e_id, comp in _target_data.items():
+        for c in filter_by:
+            if target_data.get(e_id, None) is None:
+                target_data[e_id] = {}
+            if inspect.isclass(c):
+                if comp[c.component_enum] is None:
+                    continue
+            else:
+                if comp[c.component_enum] != c.value:
+                    continue
+            target_data[e_id][c.component_enum] = comp[c.component_enum]
+    # end filtering
+
     search_data = []
     attrs = entity.get_component(AttributesComponent)
     include_self and search_data.extend(
@@ -166,7 +187,13 @@ async def search_entity_in_sight_by_keyword(entity, keyword, include_self=True) 
         target_attributes = entity.get_component(AttributesComponent)
     else:
         target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.component_enum])
-    return Entity(found_entity_id).set_component(entity.get_component(PosComponent)).set_component(target_attributes)
+    entity = Entity(found_entity_id).set_component(entity.get_component(PosComponent)).set_component(target_attributes)
+
+    # Mount filtered components
+    for f in filter_by:
+        entity.set_component(type(f)(target_data[found_entity_id][f.component_enum]))
+    # End
+    return entity
 
 
 async def search_entities_in_room_by_keyword(
@@ -197,9 +224,9 @@ async def search_entities_in_room_by_keyword(
             if filtered:
                 continue
         if multiple_items and e.get_component(AttributesComponent).keyword.startswith(keyword):
-            response.append(e)
+            response.append(e.set_component(room.position))
         elif not multiple_items and e.get_component(AttributesComponent).keyword.startswith(keyword):
-            return [e]
+            return [e.set_component(room.position)]
     return response
 
 
@@ -250,7 +277,6 @@ async def load_components(entity, *components):
     """
     from core.src.world.builder import world_repository
     data = await world_repository.get_components_values_by_components_storage([entity.entity_id], components)
-    #data = await world_repository.get_components_values_by_entities_ids([entity.entity_id], components)
     for c in components:
         comp = c(data[c.component_enum][entity.entity_id])
         comp.set_owner(entity)
