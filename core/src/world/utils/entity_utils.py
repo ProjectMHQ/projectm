@@ -76,9 +76,11 @@ def move_entity_from_container(
     if entity.get_component(PosComponent):
         current_position = current_position or entity.get_component(PosComponent)
         entity.set_for_update(PosComponent().add_previous_position(current_position))
+
     elif entity.get_component(ParentOfComponent):
         assert entity.get_component(ParentOfComponent).parent_id == parent.entity_id
         parent.set_for_update(InventoryComponent().remove(entity.entity_id))
+
     else:
         raise ValueError('Cannot recognize target original position data')
 

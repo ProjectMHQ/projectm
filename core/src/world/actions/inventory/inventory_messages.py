@@ -72,3 +72,25 @@ class InventoryMessages:
         return '{origin} mette diversi oggetti su %s' % (
             target.get_component(AttributesComponent).keyword
         )
+
+    def item_picked_from_container(self, item, container):
+        return 'Prendi {} da {}'.format(
+            item.get_component(AttributesComponent).keyword,
+            container.get_component(AttributesComponent).keyword
+        )
+
+    def entity_picked_item_from_container(self, item, container):
+        return '{origin} prende %s da %s' % (
+            item.get_component(AttributesComponent).keyword,
+            container.get_component(AttributesComponent).keyword
+        )
+
+    def picked_multiple_items_from_container(self, container):
+        return 'Prendi diversi oggetti da {}'.format(
+            container.get_component(AttributesComponent).keyword
+        )
+
+    def entity_picked_multiple_items_from_container(self, container):
+        return '{origin} prende diversi oggetti da %s' % (
+            container.get_component(AttributesComponent).keyword
+        )
