@@ -8,6 +8,12 @@ class AttributesComponent(DictComponent):
     libname = "attributes"
     has_default = True
 
+    meta = (
+        ('name', str),
+        ('description', str),
+        ('keyword', str),
+    )
+
     @property
     def name(self):
         return self._value.get('name')

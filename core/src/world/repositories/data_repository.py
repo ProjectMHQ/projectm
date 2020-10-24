@@ -162,7 +162,7 @@ class RedisDataRepository:
         assert component.component_type == bool
         LOGGER.core.debug('No data to set, component active')
 
-    def _execute_batch_updates(self, pipeline, entities_updates, components_updates):
+    def _do_batch_updates(self, pipeline, entities_updates, components_updates):
         for up_en_id, _up_values_by_en in entities_updates.items():
             pipeline.hmset_dict('{}:{}'.format(self._entity_prefix, up_en_id), _up_values_by_en)
 
@@ -172,17 +172,17 @@ class RedisDataRepository:
                 _up_values_by_comp
             )
 
-    def _execute_batch_deletes(self, pipeline, deletions_by_entity, deletions_by_component):
+    def _do_batch_deletes(self, pipeline, deletions_by_entity, deletions_by_component):
         for del_c_key, _del_entities in deletions_by_component.items():
             pipeline.hdel('{}:{}:{}'.format(self._component_prefix, del_c_key, self._data_suffix), *_del_entities)
 
         for _del_en_id, _del_components in deletions_by_entity.items():
             pipeline.hdel('{}:{}'.format(self._entity_prefix, _del_en_id), *_del_components)
 
+    def _update_component_indexes(self, pipeline, entity, component):
+        pass
+
     async def update_entities(self, *entities: Entity) -> Entity:
-        """
-        This must be the only writing point of the entire ECS.
-        """
         redis = await self.async_redis()
         pipeline = RedisLUAPipeline(redis)
         entities_updates_queue = {}
@@ -194,23 +194,24 @@ class RedisDataRepository:
             self._check_bounds_for_update(pipeline, entity)
         for entity in entities:
             for component in entity.pending_changes.values():
-                if component.component_enum == ComponentTypeEnum.POS:
-                    self.map_repository.update_map_position_for_entity(component, entity, pipeline)
-            for component in entity.pending_changes.values():
+                if component.has_index():
+                    self._update_component_indexes(pipeline, entity, component)
                 pipeline.setbit(
                     '{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix),
                     entity.entity_id, Bit.ON.value if component.is_active() else Bit.OFF.value
                 )
-                if component.is_array():
+                if component.component_enum == ComponentTypeEnum.POS:
+                    self.map_repository.update_map_position_for_entity(component, entity, pipeline)
+                elif component.is_array():
                     self._update_array_for_entity(pipeline, entity, component)
-                elif component.has_data() and not component.has_operation() and component.has_value():
-                    self._batch_component_for_update(
-                        components_updates_queue, entities_updates_queue, entity, component
-                    )
                 elif component.has_data() and component.has_value() and component.has_operation():
                     self._update_relative_value_for_numeric_component(pipeline, entity, component)
                 elif not component.has_data() and component.is_active():
                     self._update_boolean_component(pipeline, entity, component)
+                elif component.has_data() and not component.has_operation() and component.has_value():
+                    self._batch_component_for_update(
+                        components_updates_queue, entities_updates_queue, entity, component
+                    )
                 else:
                     self._batch_component_for_delete(components_delete_queue, entities_delete_queue, entity, component)
                 LOGGER.core.debug(
@@ -219,8 +220,8 @@ class RedisDataRepository:
                     entities_updates_queue.get(entity.entity_id),
                     entities_delete_queue.get(entity.entity_id)
                 )
-        self._execute_batch_updates(pipeline, entities_updates_queue, components_updates_queue)
-        self._execute_batch_deletes(pipeline, entities_delete_queue, components_delete_queue)
+        self._do_batch_updates(pipeline, entities_updates_queue, components_updates_queue)
+        self._do_batch_deletes(pipeline, entities_delete_queue, components_delete_queue)
         response = await pipeline.execute()
         for entity in entities:
             entity.clear_bounds().pending_changes.clear()
