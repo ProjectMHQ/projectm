@@ -86,97 +86,83 @@ class RedisDataRepository:
         await self.update_entities(entity)
         return entity
 
-    async def update_entities(self, *entities: Entity) -> Entity:
-        """
-        This must be the only writing point of the entire ECS.
-        """
-        redis = await self.async_redis()
-        pipeline = RedisLUAPipeline(redis)
-        entities_updates = {}
-        components_updates = {}
-        deletions_by_component = {}
-        deletions_by_entity = {}
-        for entity in entities:
-            assert entity.entity_id
-            for bound in entity.bounds():
-                if bound.is_array():
-                    assert bound.bounds
-                    key = '{}:{}:{}:{}'.format(
-                        self._component_prefix, bound.key, self._zset_suffix, entity.entity_id
-                    )
-                    if len(bound.bounds) == 1:
-                        pipeline.allocate_value().zscan(key, cursor=0, match=bound.bounds[0])
-                        v, check = "[2][1]", str(bound.bounds[0])
-                    else:
-                        inter_seed = pipeline.zprepareinter(key, bound.bounds)
-                        pipeline.allocate_value().zfetchinter(inter_seed)
-                        v, check = "", bound.bounds
-                    pipeline.add_if_equal(check, value_selector=v)
-                else:
-                    pipeline.allocate_value().hget('e:{}'.format(entity.entity_id), bound.key)
-                    pipeline.add_if_equal(str(bound.value))
-        for entity in entities:
-            for c in entity.pending_changes.values():
-                if c.component_enum == ComponentTypeEnum.POS:
-                    self.map_repository.update_map_position_for_entity(c, entity, pipeline)
-            for c in entity.pending_changes.values():
-                pipeline.setbit(
-                    '{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix),
-                    entity.entity_id, Bit.ON.value if c.is_active() else Bit.OFF.value
+    def _check_bounds_for_update(self, pipeline, entity):
+        for bound in entity.bounds():
+            if bound.is_array():
+                assert bound.bounds
+                key = '{}:{}:{}:{}'.format(
+                    self._component_prefix, bound.key, self._zset_suffix, entity.entity_id
                 )
-                if c.is_array():
-                    payload = []
-                    if c.to_add:
-                        for x in c.to_add:
-                            payload.extend([0, x])
-                        pipeline.zadd(
-                            '{}:{}:{}:{}'.format(self._component_prefix, c.key, self._zset_suffix, entity.entity_id),
-                            *payload
-                        )
-                    c.to_remove and pipeline.zrem(
-                        '{}:{}:{}:{}'.format(self._component_prefix, c.key, self._zset_suffix, entity.entity_id),
-                        *c.to_remove
-                    )
-                elif c.has_data() and not c.has_operation() and c.has_value():
-                    LOGGER.core.debug('Absolute value, component data set')
-                    _comp_v = {entity.entity_id: c.serialized}
-                    _ent_v = {c.key: c.serialized}
-                    try:
-                        components_updates[c.key].update(_comp_v)
-                    except KeyError:
-                        components_updates[c.key] = _comp_v
-                    try:
-                        entities_updates[entity.entity_id].update(_ent_v)
-                    except KeyError:
-                        entities_updates[entity.entity_id] = _ent_v
-                elif c.has_data() and c.has_value():
-                    LOGGER.core.debug('Relative value, component data incr')
-                    assert c.component_type == int
-                    pipeline.hincrby(
-                        '{}:{}:{}'.format(self._component_prefix, c.key, self._data_suffix),
-                        entity.entity_id, int(c.operation)
-                    )
-                    pipeline.hincrby(
-                        '{}:{}'.format(self._entity_prefix, entity.entity_id),
-                        c.key, int(c.operation)
-                    )
-                elif not c.has_data() and c.is_active():
-                    assert c.component_type == bool
-                    LOGGER.core.debug('No data to set, component active')
+                if len(bound.bounds) == 1:
+                    pipeline.allocate_value().zscan(key, cursor=0, match=bound.bounds[0])
+                    v, check = "[2][1]", str(bound.bounds[0])
                 else:
-                    LOGGER.core.debug('Data to delete')
-                    try:
-                        deletions_by_component[c.key].append(entity.entity_id)
-                    except KeyError:
-                        deletions_by_component[c.key] = [entity.entity_id]
-                    try:
-                        deletions_by_entity[entity.entity_id].append(c.key)
-                    except KeyError:
-                        deletions_by_entity[entity.entity_id] = [c.key]
-                LOGGER.core.debug(
-                    'EntityRepository.update_entity_components. ids: %s, updates: %s, deletions: %s)',
-                    entity.entity_id, entities_updates.get(entity.entity_id), deletions_by_entity.get(entity.entity_id)
-                )
+                    inter_seed = pipeline.zprepareinter(key, bound.bounds)
+                    pipeline.allocate_value().zfetchinter(inter_seed)
+                    v, check = "", bound.bounds
+                pipeline.add_if_equal(check, value_selector=v)
+            else:
+                pipeline.allocate_value().hget('e:{}'.format(entity.entity_id), bound.key)
+                pipeline.add_if_equal(str(bound.value))
+
+    def _update_array_for_entity(self, pipeline, entity, component):
+        payload = []
+        if component.to_add:
+            for x in component.to_add:
+                payload.extend([0, x])
+            pipeline.zadd(
+                '{}:{}:{}:{}'.format(self._component_prefix, component.key, self._zset_suffix, entity.entity_id),
+                *payload
+            )
+        component.to_remove and pipeline.zrem(
+            '{}:{}:{}:{}'.format(self._component_prefix, component.key, self._zset_suffix, entity.entity_id),
+            *component.to_remove
+        )
+
+    @staticmethod
+    def _batch_component_for_update(components_updates_queue, entities_updates_queue, entity, component):
+        LOGGER.core.debug('Absolute value, component data set')
+        _comp_v = {entity.entity_id: component.serialized}
+        _ent_v = {component.key: component.serialized}
+        try:
+            components_updates_queue[component.key].update(_comp_v)
+        except KeyError:
+            components_updates_queue[component.key] = _comp_v
+        try:
+            entities_updates_queue[entity.entity_id].update(_ent_v)
+        except KeyError:
+            entities_updates_queue[entity.entity_id] = _ent_v
+
+    @staticmethod
+    def _batch_component_for_delete(component_delete_queue, entities_delete_queue, entity, component):
+        LOGGER.core.debug('Data to delete')
+        try:
+            component_delete_queue[component.key].append(entity.entity_id)
+        except KeyError:
+            component_delete_queue[component.key] = [entity.entity_id]
+        try:
+            entities_delete_queue[entity.entity_id].append(component.key)
+        except KeyError:
+            entities_delete_queue[entity.entity_id] = [component.key]
+
+    def _update_relative_value_for_numeric_component(self, pipeline, entity, component):
+        LOGGER.core.debug('Relative value, component data incr')
+        assert component.component_type == int
+        pipeline.hincrby(
+            '{}:{}:{}'.format(self._component_prefix, component.key, self._data_suffix),
+            entity.entity_id, int(component.operation)
+        )
+        pipeline.hincrby(
+            '{}:{}'.format(self._entity_prefix, entity.entity_id),
+            component.key, int(component.operation)
+        )
+
+    @staticmethod
+    def _update_boolean_component(pipeline, entity, component):
+        assert component.component_type == bool
+        LOGGER.core.debug('No data to set, component active')
+
+    def _execute_batch_updates(self, pipeline, entities_updates, components_updates):
         for up_en_id, _up_values_by_en in entities_updates.items():
             pipeline.hmset_dict('{}:{}'.format(self._entity_prefix, up_en_id), _up_values_by_en)
 
@@ -186,12 +172,55 @@ class RedisDataRepository:
                 _up_values_by_comp
             )
 
+    def _execute_batch_deletes(self, pipeline, deletions_by_entity, deletions_by_component):
         for del_c_key, _del_entities in deletions_by_component.items():
             pipeline.hdel('{}:{}:{}'.format(self._component_prefix, del_c_key, self._data_suffix), *_del_entities)
 
         for _del_en_id, _del_components in deletions_by_entity.items():
             pipeline.hdel('{}:{}'.format(self._entity_prefix, _del_en_id), *_del_components)
 
+    async def update_entities(self, *entities: Entity) -> Entity:
+        """
+        This must be the only writing point of the entire ECS.
+        """
+        redis = await self.async_redis()
+        pipeline = RedisLUAPipeline(redis)
+        entities_updates_queue = {}
+        components_updates_queue = {}
+        entities_delete_queue = {}
+        components_delete_queue = {}
+        for entity in entities:
+            assert entity.entity_id
+            self._check_bounds_for_update(pipeline, entity)
+        for entity in entities:
+            for component in entity.pending_changes.values():
+                if component.component_enum == ComponentTypeEnum.POS:
+                    self.map_repository.update_map_position_for_entity(component, entity, pipeline)
+            for component in entity.pending_changes.values():
+                pipeline.setbit(
+                    '{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix),
+                    entity.entity_id, Bit.ON.value if component.is_active() else Bit.OFF.value
+                )
+                if component.is_array():
+                    self._update_array_for_entity(pipeline, entity, component)
+                elif component.has_data() and not component.has_operation() and component.has_value():
+                    self._batch_component_for_update(
+                        components_updates_queue, entities_updates_queue, entity, component
+                    )
+                elif component.has_data() and component.has_value() and component.has_operation():
+                    self._update_relative_value_for_numeric_component(pipeline, entity, component)
+                elif not component.has_data() and component.is_active():
+                    self._update_boolean_component(pipeline, entity, component)
+                else:
+                    self._batch_component_for_delete(components_delete_queue, entities_delete_queue, entity, component)
+                LOGGER.core.debug(
+                    'EntityRepository.update_entity_components. ids: %s, updates: %s, deletions: %s)',
+                    entity.entity_id,
+                    entities_updates_queue.get(entity.entity_id),
+                    entities_delete_queue.get(entity.entity_id)
+                )
+        self._execute_batch_updates(pipeline, entities_updates_queue, components_updates_queue)
+        self._execute_batch_deletes(pipeline, entities_delete_queue, components_delete_queue)
         response = await pipeline.execute()
         for entity in entities:
             entity.clear_bounds().pending_changes.clear()

@@ -1,5 +1,4 @@
 from core.src.world.components.character import CharacterComponent
-from core.src.world.components.instance_by import InstanceByComponent
 from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
