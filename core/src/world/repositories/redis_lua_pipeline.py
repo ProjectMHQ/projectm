@@ -83,4 +83,8 @@ class RedisLUAPipeline:
 
     async def execute(self, return_value_at_exit=1):
         self.return_exit(value_key=return_value_at_exit)
-        return await self.redis.eval(self.value)
+        try:
+            return await self.redis.eval(self.value)
+        except:
+            print('Exception with LUA script: %s' % self.value)
+            raise

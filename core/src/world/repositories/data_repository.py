@@ -10,7 +10,7 @@ from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.base import ComponentType, ComponentTypeEnum
 from core.src.world.components.base.structcomponent import StructSubtypeListAction, StructSubtypeStrSetAction, \
     StructSubtypeIntIncrAction, StructSubtypeIntSetAction, StructSubTypeSetNull, StructSubTypeBoolOn, \
-    StructSubTypeBoolOff, StructSubTypeDictSetAction, StructSubTypeDictSetKeyValueAction, \
+    StructSubTypeBoolOff, StructSubTypeDictSetKeyValueAction, \
     StructSubTypeDictRemoveKeyValueAction
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.factory import get_component_by_enum_value, get_component_alias_by_enum_value
@@ -185,7 +185,7 @@ class RedisDataRepository:
 
     @staticmethod
     def _update_struct_component(pipeline, entity, component):
-        for k, v in component.pending_changes.values():
+        for k, v in component.pending_changes.items():
             comp_key = component.component_enum
             if component.get_subtype(k) == int:
                 for action in v:
@@ -196,8 +196,8 @@ class RedisDataRepository:
                         pipeline.hset('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
                         pipeline.hset('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
                     elif isinstance(action, StructSubTypeSetNull):
-                        pipeline.hdel('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
-                        pipeline.hdel('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
+                        pipeline.hdel('c:{}:d:{}'.format(comp_key, k), entity.entity_id)
+                        pipeline.hdel('e:{}:c:{}'.format(entity.entity_id, comp_key), k)
                     else:
                         raise ValueError('Invalid action type')
             elif component.get_subtype(k) == str:
@@ -206,26 +206,33 @@ class RedisDataRepository:
                         pipeline.hset('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
                         pipeline.hset('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
                     elif isinstance(action, StructSubTypeSetNull):
-                        pipeline.hdel('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
-                        pipeline.hdel('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
+                        pipeline.hdel('c:{}:d:{}'.format(comp_key, k), entity.entity_id)
+                        pipeline.hdel('e:{}:c:{}'.format(entity.entity_id, comp_key), k)
                     else:
                         raise ValueError('Invalid action type')
             elif component.get_subtype(k) == list:
                 for action in v:
                     if isinstance(action, StructSubtypeListAction):
-                        if action.type == 'add':
-                            pipeline.zadd('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *action.value)
+                        payload = []
+                        _ = [payload.extend([0, _v]) for _v in action.values]
+                        if action.type == 'append':
+                            pipeline.zadd('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *payload)
                         elif action.type == 'remove':
-                            pipeline.zrem('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *action.value)
+                            pipeline.zrem('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *action.values)
+                        else:
+                            raise ValueError('Invalid action type')
                     elif isinstance(action, StructSubTypeSetNull):
                         pipeline.delete('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k))
                     else:
                         raise ValueError('Invalid action type')
             elif component.get_subtype(k) == bool:
                 for action in v:
-                    if isinstance(action, (StructSubTypeBoolOn, StructSubTypeBoolOff)):
-                        pipeline.hset('c:{}:d:{}'.format(comp_key, k), entity.entity_id, int(action.value))
-                        pipeline.hset('e:{}:c:{}'.format(entity.entity_id, comp_key), k, int(action.value))
+                    if isinstance(action, StructSubTypeBoolOff):
+                        pipeline.hset('c:{}:d:{}'.format(comp_key, k), entity.entity_id, 0)
+                        pipeline.hset('e:{}:c:{}'.format(entity.entity_id, comp_key), k, 0)
+                    elif isinstance(action, StructSubTypeBoolOn):
+                        pipeline.hset('c:{}:d:{}'.format(comp_key, k), entity.entity_id, 1)
+                        pipeline.hset('e:{}:c:{}'.format(entity.entity_id, comp_key), k, 1)
                     elif isinstance(action, StructSubTypeSetNull):
                         pipeline.hdel('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
                         pipeline.hdel('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
@@ -238,13 +245,14 @@ class RedisDataRepository:
                             action.value = int(action.value)
                         pipeline.hset('c:{}:d:{}:{}'.format(comp_key, k, action.key), entity.entity_id, action.value)
                         pipeline.hset('e:{}:c:{}:{}'.format(entity.entity_id, comp_key, k), action.key, action.value)
-                    if isinstance(action, StructSubTypeDictRemoveKeyValueAction):
+                    elif isinstance(action, StructSubTypeDictRemoveKeyValueAction):
                         pipeline.hdel('c:{}:d:{}:{}'.format(comp_key, k, action.key), entity.entity_id)
                         pipeline.hdel('e:{}:c:{}:{}'.format(entity.entity_id, comp_key, k), action.key)
                     else:
-                        raise ValueError('Invalid action type')
+                        raise ValueError('Invalid action type %s' % str(action))
             else:
                 raise ValueError('Invalid type')
+        component.pending_changes = {}
 
     async def update_entities(self, *entities: Entity) -> Entity:
         redis = await self.async_redis()
@@ -262,7 +270,7 @@ class RedisDataRepository:
                     '{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix),
                     entity.entity_id, Bit.ON.value if component.is_active() else Bit.OFF.value
                 )
-                if component.is_struct():
+                if component.is_struct:
                     self._update_struct_component(pipeline, entity, component)
                 elif component.component_enum == ComponentTypeEnum.POS:
                     self.map_repository.update_map_position_for_entity(component, entity, pipeline)
