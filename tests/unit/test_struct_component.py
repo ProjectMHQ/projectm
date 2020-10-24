@@ -45,11 +45,15 @@ class TestStructComponent(unittest.TestCase):
         self.assertEqual(inventory.pending_changes, expected_pending_changes)
         inventory.weight.incr(-3)
         self.assertEqual(inventory.weight, 40)
-        expected_pending_changes = {'weight': [StructSubtypeIntIncrAction(value=10), StructSubtypeIntIncrAction(value=-3)]}
+        expected_pending_changes = {'weight': [
+            StructSubtypeIntIncrAction(value=10), StructSubtypeIntIncrAction(value=-3)
+        ]}
         self.assertEqual(inventory.pending_changes, expected_pending_changes)
         inventory.weight.set(42)
         expected_pending_changes = {'weight': [
-            StructSubtypeIntIncrAction(value=10), StructSubtypeIntIncrAction(value=-3), StructSubtypeIntSetAction(value=42)
+            StructSubtypeIntIncrAction(value=10),
+            StructSubtypeIntIncrAction(value=-3),
+            StructSubtypeIntSetAction(value=42)
         ]}
         self.assertEqual(inventory.pending_changes, expected_pending_changes)
         self.assertEqual(inventory.weight, 42)

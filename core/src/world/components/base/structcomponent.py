@@ -304,20 +304,6 @@ class StructComponent(ComponentType):
             msg = "'{0}' object has no attribute '{1}'.\nvalid attributes: {2}"
             raise AttributeError(msg.format(type(self).__name__, name, ', '.join(self._current_values.keys())))
 
-    def _getter(self, name, value):
-        expected_type = self.meta[self.meta_enum(name).value][1]
-        assert type(value) == expected_type
-        if expected_type == int:
-            return self._current_values.get(name, _StructIntType(self, name, value))
-        elif expected_type == list:
-            return self._current_values.get(name, _StructListType(self, name, value))
-        elif expected_type == str:
-            return self._current_values.get(name, _StructStrType(self, name, value))
-        elif expected_type == bool:
-            return self._current_values.get(name, _StructBoolType(self, name, value))
-        elif expected_type == dict:
-            return self._current_values.get(name, _StructDictType(self, name, value))
-
     def has_index(self, key):
         return key in self.indexes
 
