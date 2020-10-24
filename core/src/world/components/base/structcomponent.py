@@ -1,43 +1,80 @@
+import copy
 import enum
 import typing
 from core.src.world.components.base import ComponentType
 
 
-_ListAction = typing.NamedTuple(
-    '_ListAction',
+StructSubtypeListAction = typing.NamedTuple(
+    'StructSubtypeListAction',
     (
-        ('action_type', str),
+        ('type', str),
         ('values', list)
     )
 )
 
-_IntIncrAction = typing.NamedTuple(
-    '_IncrAction',
+StructSubtypeIntIncrAction = typing.NamedTuple(
+    'StructSubtypeIntIncrAction',
     (
         ('value', int),
     )
 )
 
-_IntSetAction = typing.NamedTuple(
-    '_IntSetAction',
+StructSubtypeIntSetAction = typing.NamedTuple(
+    'StructSubtypeIntSetAction',
     (
         ('value', int),
     )
 )
 
-_StrSetAction = typing.NamedTuple(
-    '_StrSetAction',
+StructSubtypeStrSetAction = typing.NamedTuple(
+    'StructSubtypeStrSetAction',
     (
         ('value', str),
     )
 )
 
+StructSubtypeBoolSetAction = typing.NamedTuple(
+    'StructSubtypeBoolSetAction',
+    (
+        ('value', bool),
+    )
+)
 
-class _StructStrType:
-    def __init__(self, owner, key, value=""):
-        self.value = value
-        self.owner = owner
-        self.key = key
+StructSubTypeSetNull = typing.NamedTuple(
+    'StructSubTypeSetNull',
+    ()
+)
+
+StructSubTypeBoolOn = typing.NamedTuple(
+    'StructSubTypeBoolOn',
+    ()
+)
+
+StructSubTypeBoolOff = typing.NamedTuple(
+    'StructSubTypeBoolOff',
+    ()
+)
+
+StructSubtypeDictSetAction = typing.NamedTuple(
+    'StructSubtypeDictSetAction',
+    (
+        ('value', dict),
+    )
+)
+
+StructSubtypeDictSetKeyValueAction = typing.NamedTuple(
+    'StructSubtypeDictSetKeyValueAction',
+    (
+        ('key', str),
+        ('value', typing.Union[int, str]),
+    )
+)
+
+
+class _BasicStructType:
+    value = None
+    owner = None
+    key = None
 
     def __str__(self):
         return str(self.value)
@@ -45,16 +82,83 @@ class _StructStrType:
     def __eq__(self, v):
         return self.value == v
 
+    def __bool__(self):
+        return bool(self.value)
+
+    def null(self):
+        self.value = None
+        if not self.owner.pending_changes.get(self.key):
+            self.owner.pending_changes[self.key] = []
+        self.owner.pending_changes[self.key].append(StructSubTypeSetNull())
+        return self.owner
+
+
+class _StructDictType(_BasicStructType):
+
+    def __dict__(self):
+        return self.value
+
+    def __getitem__(self, key):
+        return self.value[key]
+
+    def __init__(self, owner, key, value=None):
+        self.value = value or {}
+        self.owner = owner
+        self.key = key
+
+    def set(self, value):
+        assert isinstance(value, dict)
+        self.value = value
+        if not self.owner.pending_changes.get(self.key):
+            self.owner.pending_changes[self.key] = []
+        self.owner.pending_changes[self.key].append(StructSubtypeDictSetAction(copy.copy(value)))
+        return self.owner
+
+    def get(self, key):
+        return self.value[key]
+
+    def set_value(self, key, value):
+        assert isinstance(key, str)
+        assert isinstance(value, (str, value))
+        self.value[key] = value
+        if not self.owner.pending_changes.get(self.key):
+            self.owner.pending_changes[self.key] = []
+        self.owner.pending_changes[self.key].append(StructSubtypeDictSetKeyValueAction(key, value))
+        return self.owner
+
+
+class _StructStrType(_BasicStructType):
+    def __init__(self, owner, key, value=""):
+        self.value = value
+        self.owner = owner
+        self.key = key
+
     def set(self, value):
         assert isinstance(value, str)
         self.value = value
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
-        self.owner.pending_changes[self.key].append(_StrSetAction(value))
+        self.owner.pending_changes[self.key].append(StructSubtypeStrSetAction(value))
         return self.owner
 
 
-class _StructIntType:
+class _StructBoolType(_BasicStructType):
+    def __init__(self, owner, key, value=False):
+        self.value = value
+        self.owner = owner
+        self.key = key
+
+    def set(self, value: bool):
+        assert isinstance(value, bool)
+        self.value = value
+        if not self.owner.pending_changes.get(self.key):
+            self.owner.pending_changes[self.key] = []
+        action = StructSubTypeBoolOff() if not value else StructSubTypeBoolOn()
+        self.owner.pending_changes[self.key].append(action)
+        return self.owner
+
+
+class _StructIntType(_BasicStructType):
     def __init__(self, owner, key, value=0):
         self.value = value
         self.owner = owner
@@ -63,18 +167,12 @@ class _StructIntType:
     def __int__(self):
         return self.value
 
-    def __str__(self):
-        return str(self.value)
-
-    def __eq__(self, v):
-        return self.value == v
-
     def incr(self, value: int):
         assert isinstance(value, int)
         self.value += value
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
-        self.owner.pending_changes[self.key].append(_IntIncrAction(value))
+        self.owner.pending_changes[self.key].append(StructSubtypeIntIncrAction(value))
         return self.owner
 
     def set(self, value):
@@ -82,25 +180,19 @@ class _StructIntType:
         self.value = value
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
-        self.owner.pending_changes[self.key].append(_IntSetAction(value))
+        self.owner.pending_changes[self.key].append(StructSubtypeIntSetAction(value))
         return self.owner
 
 
-class _StructListType:
+class _StructListType(_BasicStructType):
     def __init__(self, owner, key, value=None):
         self.value = value or []
         self.owner = owner
         self.key = key
 
-    def __eq__(self, value):
-        return self.value == value
-
     def __iter__(self):
         self._n = 0
         return self
-
-    def __str__(self):
-        return str(self.value)
 
     def __next__(self):
         try:
@@ -117,7 +209,7 @@ class _StructListType:
             self.value.append(value)
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
-        self.owner.pending_changes[self.key].append(_ListAction('append', list(values)))
+        self.owner.pending_changes[self.key].append(StructSubtypeListAction('append', list(values)))
         return self.owner
 
     def remove(self, *values: int):
@@ -127,7 +219,7 @@ class _StructListType:
             self.value.remove(value)
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
-        self.owner.pending_changes[self.key].append(_ListAction('remove', list(values)))
+        self.owner.pending_changes[self.key].append(StructSubtypeListAction('remove', list(values)))
         return self.owner
 
 
@@ -139,14 +231,14 @@ class StructComponent(ComponentType):
 
     @staticmethod
     def _validate_param_for_list(v, pending_changes):
-        if isinstance(v, _ListAction):
+        if isinstance(v, StructSubtypeListAction):
             pending_changes.append(v)
             return True
         if not isinstance(v, (list, tuple)):
             return False
         else:
             for x in v:
-                if not isinstance(x, _ListAction):
+                if not isinstance(x, StructSubtypeListAction):
                     return False
                 else:
                     pending_changes.append(x)
@@ -177,6 +269,10 @@ class StructComponent(ComponentType):
                 self._current_values[k] = _StructListType(self, k, v)
             elif expected_type == str:
                 self._current_values[k] = _StructStrType(self, k, v)
+            elif expected_type == bool:
+                self._current_values[k] = _StructBoolType(self, k, v)
+            elif expected_type == dict:
+                self._current_values[k] = _StructDictType(self, k, v)
 
         value = None
         super().__init__(value)
@@ -194,6 +290,10 @@ class StructComponent(ComponentType):
                 self._current_values[meta[0]] = _StructListType(self, meta[0], [])
             elif meta[1] == str:
                 self._current_values[meta[0]] = _StructStrType(self, meta[0], "")
+            elif meta[1] == bool:
+                self._current_values[meta[0]] = _StructBoolType(self, meta[0], False)
+            elif meta[1] == dict:
+                self._current_values[meta[0]] = _StructDictType(self, meta[0], {})
             else:
                 raise ValueError
 
@@ -212,22 +312,14 @@ class StructComponent(ComponentType):
         elif expected_type == list:
             return self._current_values.get(name, _StructListType(self, name, value))
         elif expected_type == str:
-            return self._current_values.get(name, "")
+            return self._current_values.get(name, _StructStrType(self, name, value))
+        elif expected_type == bool:
+            return self._current_values.get(name, _StructBoolType(self, name, value))
+        elif expected_type == dict:
+            return self._current_values.get(name, _StructDictType(self, name, value))
 
     def has_index(self, key):
         return key in self.indexes
-
-    def is_subtype_array(self, key):
-        return self.meta[getattr(self.meta_enum, key)][1] == list
-
-    def is_subtype_string(self, key):
-        return self.meta[getattr(self.meta_enum, key)][1] == str
-
-    def is_subtype_boolean(self, key):
-        return self.meta[getattr(self.meta_enum, key)][1] == bool
-
-    def is_subtype_int(self, key):
-        return self.meta[getattr(self.meta_enum, key)][1] == int
 
     def get_subtype(self, key):
         return self.meta[getattr(self.meta_enum, key)][1]

@@ -46,8 +46,8 @@ class RedisLUAPipeline:
     def hset(self, key, subkey, value):
         self.value += "redis.call('hset', '{}', '{}', '{}')\n".format(key, subkey, value)
 
-    def hincrby(self, key, entity_id, value):
-        self.value += "redis.call('hincrby', '{}', '{}', {})\n".format(key, entity_id, value)
+    def hincrby(self, key, subkey, value):
+        self.value += "redis.call('hincrby', '{}', '{}', {})\n".format(key, subkey, value)
 
     def hmset_dict(self, key, value):
         values = ""

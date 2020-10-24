@@ -12,6 +12,7 @@ class ComponentType(metaclass=abc.ABCMeta):
     libname = ''
     has_default = False
     subtype = None
+    is_struct = False
 
     def __init__(self, value=None):
         self._value = value

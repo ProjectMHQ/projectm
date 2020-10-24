@@ -8,6 +8,8 @@ import os
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.base import ComponentType, ComponentTypeEnum
+from core.src.world.components.base.structcomponent import StructSubtypeListAction, StructSubtypeStrSetAction, \
+    StructSubtypeIntIncrAction, StructSubtypeIntSetAction, StructSubTypeSetNull
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.factory import get_component_by_enum_value, get_component_alias_by_enum_value
 from core.src.world.components.instance_of import InstanceOfComponent
@@ -179,8 +181,46 @@ class RedisDataRepository:
         for _del_en_id, _del_components in deletions_by_entity.items():
             pipeline.hdel('{}:{}'.format(self._entity_prefix, _del_en_id), *_del_components)
 
-    def _update_component_indexes(self, pipeline, entity, component):
-        pass
+    @staticmethod
+    def _update_struct_component(pipeline, entity, component):
+        for k, v in component.pending_changes.values():
+            comp_key = component.component_enum
+            if component.get_subtype(k) == int:
+                for action in v:
+                    if isinstance(action, StructSubtypeIntIncrAction):
+                        pipeline.hincrby('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
+                        pipeline.hincrby('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
+                    elif isinstance(action, StructSubtypeIntSetAction):
+                        pipeline.hset('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
+                        pipeline.hset('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
+                    elif isinstance(action, StructSubTypeSetNull):
+                        pipeline.hdel('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
+                        pipeline.hdel('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
+                    else:
+                        raise ValueError('Invalid action type')
+            elif component.get_subtype(k) == str:
+                for action in v:
+                    if isinstance(action, StructSubtypeStrSetAction):
+                        pipeline.hset('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
+                        pipeline.hset('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
+                    elif isinstance(action, StructSubTypeSetNull):
+                        pipeline.hdel('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
+                        pipeline.hdel('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
+                    else:
+                        raise ValueError('Invalid action type')
+            elif component.get_subtype(k) == list:
+                for action in v:
+                    if isinstance(action, StructSubtypeListAction):
+                        if action.type == 'add':
+                            pipeline.zadd('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *action.value)
+                        elif action.type == 'remove':
+                            pipeline.zrem('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *action.value)
+                    elif isinstance(action, StructSubTypeSetNull):
+                        pipeline.delete('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k))
+                    else:
+                        raise ValueError('Invalid action type')
+            else:
+                raise ValueError('Invalid type')
 
     async def update_entities(self, *entities: Entity) -> Entity:
         redis = await self.async_redis()
@@ -194,13 +234,13 @@ class RedisDataRepository:
             self._check_bounds_for_update(pipeline, entity)
         for entity in entities:
             for component in entity.pending_changes.values():
-                if component.has_index():
-                    self._update_component_indexes(pipeline, entity, component)
                 pipeline.setbit(
                     '{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix),
                     entity.entity_id, Bit.ON.value if component.is_active() else Bit.OFF.value
                 )
-                if component.component_enum == ComponentTypeEnum.POS:
+                if component.is_struct():
+                    self._update_struct_component(pipeline, entity, component)
+                elif component.component_enum == ComponentTypeEnum.POS:
                     self.map_repository.update_map_position_for_entity(component, entity, pipeline)
                 elif component.is_array():
                     self._update_array_for_entity(pipeline, entity, component)
