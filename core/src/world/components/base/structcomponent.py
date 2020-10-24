@@ -1,4 +1,3 @@
-import copy
 import enum
 import typing
 from core.src.world.components.base import ComponentType
@@ -55,18 +54,19 @@ StructSubTypeBoolOff = typing.NamedTuple(
     ()
 )
 
-StructSubtypeDictSetAction = typing.NamedTuple(
-    'StructSubtypeDictSetAction',
+StructSubTypeDictSetKeyValueAction = typing.NamedTuple(
+    'StructSubTypeDictSetKeyValueAction',
     (
-        ('value', dict),
+        ('key', str),
+        ('value', typing.Union[int, str, None, bool]),
     )
 )
 
-StructSubtypeDictSetKeyValueAction = typing.NamedTuple(
-    'StructSubtypeDictSetKeyValueAction',
+
+StructSubTypeDictRemoveKeyValueAction = typing.NamedTuple(
+    'StructSubTypeDictRemoveKeyValueAction',
     (
         ('key', str),
-        ('value', typing.Union[int, str]),
     )
 )
 
@@ -82,8 +82,17 @@ class _BasicStructType:
     def __eq__(self, v):
         return self.value == v
 
+    def __ne__(self, v):
+        return self.value != v
+
     def __bool__(self):
         return bool(self.value)
+
+    def __hash__(self):
+        return hash(self.value)
+
+    def __len__(self):
+        return len(self.value)
 
     def null(self):
         self.value = None
@@ -98,32 +107,46 @@ class _StructDictType(_BasicStructType):
     def __dict__(self):
         return self.value
 
-    def __getitem__(self, key):
-        return self.value[key]
+    def __str__(self):
+        return str(self.value)
+
+    def __iter__(self):
+        return iter(self.value)
+
+    def __getitem__(self, item):
+        return self.value[item]
+
+    def items(self):
+        return self.value.items()
+
+    def keys(self):
+        return self.value.keys()
+
+    def values(self):
+        return self.value.values()
 
     def __init__(self, owner, key, value=None):
         self.value = value or {}
         self.owner = owner
         self.key = key
 
-    def set(self, value):
-        assert isinstance(value, dict)
-        self.value = value
+    def remove(self, key):
+        assert isinstance(key, str)
+        self.value.pop(key)
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
-        self.owner.pending_changes[self.key].append(StructSubtypeDictSetAction(copy.copy(value)))
+        self.owner.pending_changes[self.key].append(StructSubTypeDictRemoveKeyValueAction(key))
         return self.owner
 
     def get(self, key):
         return self.value[key]
 
-    def set_value(self, key, value):
+    def set(self, key: str, value: typing.Union[str, int, bool, None]):
         assert isinstance(key, str)
-        assert isinstance(value, (str, value))
         self.value[key] = value
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
-        self.owner.pending_changes[self.key].append(StructSubtypeDictSetKeyValueAction(key, value))
+        self.owner.pending_changes[self.key].append(StructSubTypeDictSetKeyValueAction(key, value))
         return self.owner
 
 
@@ -191,16 +214,7 @@ class _StructListType(_BasicStructType):
         self.key = key
 
     def __iter__(self):
-        self._n = 0
-        return self
-
-    def __next__(self):
-        try:
-            res = self.value[self._n]
-            self._n += 1
-            return res
-        except IndexError:
-            raise StopIteration
+        return iter(self.value)
 
     def append(self, *values: int):
         for value in values:

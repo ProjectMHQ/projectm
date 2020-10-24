@@ -1,8 +1,8 @@
 import unittest
 from core.src.world.components.base.structcomponent import \
     StructComponent, StructSubtypeListAction, StructSubtypeIntIncrAction, StructSubtypeIntSetAction, \
-    StructSubtypeStrSetAction, StructSubTypeSetNull, StructSubtypeDictSetAction, StructSubtypeDictSetKeyValueAction, \
-    StructSubTypeBoolOn, StructSubTypeBoolOff
+    StructSubtypeStrSetAction, StructSubTypeSetNull, \
+    StructSubTypeBoolOn, StructSubTypeBoolOff, StructSubTypeDictSetKeyValueAction, StructSubTypeDictRemoveKeyValueAction
 
 
 class TestStructComponent(unittest.TestCase):
@@ -126,26 +126,37 @@ class TestStructComponent(unittest.TestCase):
             meta = (('happy', bool), ('attrs', dict))
 
         container = Container()
-        container.attrs.set({"pippo": "pluto"}).happy.set(True)
+        container.happy.set(True).attrs.set('pippo', 'pluto')
         self.assertEqual(
             container.pending_changes,
             {
-                'attrs': [StructSubtypeDictSetAction(value={'pippo': 'pluto'})],
+                'attrs': [StructSubTypeDictSetKeyValueAction(key='pippo', value='pluto')],
                 'happy': [StructSubTypeBoolOn()]
             }
         )
         self.assertTrue(container.happy)
-        container.attrs.set_value("pippo", "pippa").happy.set(False)
+        self.assertEqual(container.attrs['pippo'], 'pluto')
+        r = {'pippo': 'pluto'}
+
+        for k, v in container.attrs.items():
+            self.assertEqual(v, r[k])
+
+        container.attrs.set("pippo", "pippa").happy.set(False)
         self.assertEqual(
             container.pending_changes,
-            {
-                'attrs': [
-                    StructSubtypeDictSetAction(value={'pippo': 'pluto'}),
-                    StructSubtypeDictSetKeyValueAction(key='pippo', value='pippa')
-                ],
-                'happy': [StructSubTypeBoolOn(), StructSubTypeBoolOff()]
-            }
+            dict(attrs=[StructSubTypeDictSetKeyValueAction(key='pippo', value='pluto'),
+                        StructSubTypeDictSetKeyValueAction(key='pippo', value='pippa')],
+                 happy=[StructSubTypeBoolOn(), StructSubTypeBoolOff()])
         )
         self.assertEqual(container.attrs['pippo'], 'pippa')
         self.assertEqual(container.attrs.get('pippo'), 'pippa')
         self.assertFalse(container.happy)
+        container.attrs.remove('pippo')
+        self.assertEqual(len(container.attrs), 0)
+        self.assertEqual(
+            container.pending_changes,
+            dict(attrs=[StructSubTypeDictSetKeyValueAction(key='pippo', value='pluto'),
+                        StructSubTypeDictSetKeyValueAction(key='pippo', value='pippa'),
+                        StructSubTypeDictRemoveKeyValueAction(key='pippo')],
+                 happy=[StructSubTypeBoolOn(), StructSubTypeBoolOff()])
+        )

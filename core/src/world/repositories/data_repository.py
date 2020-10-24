@@ -9,7 +9,9 @@ from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.base import ComponentType, ComponentTypeEnum
 from core.src.world.components.base.structcomponent import StructSubtypeListAction, StructSubtypeStrSetAction, \
-    StructSubtypeIntIncrAction, StructSubtypeIntSetAction, StructSubTypeSetNull
+    StructSubtypeIntIncrAction, StructSubtypeIntSetAction, StructSubTypeSetNull, StructSubTypeBoolOn, \
+    StructSubTypeBoolOff, StructSubTypeDictSetAction, StructSubTypeDictSetKeyValueAction, \
+    StructSubTypeDictRemoveKeyValueAction
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.factory import get_component_by_enum_value, get_component_alias_by_enum_value
 from core.src.world.components.instance_of import InstanceOfComponent
@@ -217,6 +219,28 @@ class RedisDataRepository:
                             pipeline.zrem('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *action.value)
                     elif isinstance(action, StructSubTypeSetNull):
                         pipeline.delete('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k))
+                    else:
+                        raise ValueError('Invalid action type')
+            elif component.get_subtype(k) == bool:
+                for action in v:
+                    if isinstance(action, (StructSubTypeBoolOn, StructSubTypeBoolOff)):
+                        pipeline.hset('c:{}:d:{}'.format(comp_key, k), entity.entity_id, int(action.value))
+                        pipeline.hset('e:{}:c:{}'.format(entity.entity_id, comp_key), k, int(action.value))
+                    elif isinstance(action, StructSubTypeSetNull):
+                        pipeline.hdel('c:{}:d:{}'.format(comp_key, k), entity.entity_id, action.value)
+                        pipeline.hdel('e:{}:c:{}'.format(entity.entity_id, comp_key), k, action.value)
+                    else:
+                        raise ValueError('Invalid action type')
+            elif component.get_subtype(k) == dict:
+                for action in v:
+                    if isinstance(action, StructSubTypeDictSetKeyValueAction):
+                        if isinstance(action.value, bool):
+                            action.value = int(action.value)
+                        pipeline.hset('c:{}:d:{}:{}'.format(comp_key, k, action.key), entity.entity_id, action.value)
+                        pipeline.hset('e:{}:c:{}:{}'.format(entity.entity_id, comp_key, k), action.key, action.value)
+                    if isinstance(action, StructSubTypeDictRemoveKeyValueAction):
+                        pipeline.hdel('c:{}:d:{}:{}'.format(comp_key, k, action.key), entity.entity_id)
+                        pipeline.hdel('e:{}:c:{}:{}'.format(entity.entity_id, comp_key, k), action.key)
                     else:
                         raise ValueError('Invalid action type')
             else:
