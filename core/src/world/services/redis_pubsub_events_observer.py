@@ -22,7 +22,6 @@ class PubSubObserver:
     def __init__(self, repository, transport, loop=asyncio.get_event_loop()):
         self.loop = loop
         self.repository = repository
-        self.transport = transport
         self.postprocessed_events_observers = {}
 
     def add_observer_for_pov_event(self, event_type: str, observer):

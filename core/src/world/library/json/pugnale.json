@@ -5,7 +5,8 @@
     "attributes": {
       "keyword": "pugnale",
       "name": "pugnale",
-      "description": "Quello che vedi è un pugnale molto affilatone",
-    }
+      "description": "Quello che vedi è un pugnale molto affilatone"
+    },
+    "weapon": "knife"
   }
 }

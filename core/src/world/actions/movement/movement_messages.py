@@ -11,6 +11,14 @@ class MovementMessages:
             DirectionEnum.UP: DirectionEnum.DOWN,
             DirectionEnum.DOWN: DirectionEnum.UP
         }
+        self._direction = {
+            DirectionEnum.NORTH: 'nord',
+            DirectionEnum.SOUTH: 'sud',
+            DirectionEnum.EAST: 'est',
+            DirectionEnum.WEST: 'ovest',
+            DirectionEnum.UP: 'l\'alto',
+            DirectionEnum.DOWN: 'il basso'
+        }
 
     def invalid_direction(self):
         return 'Non puoi andare in quella direzione!'
@@ -19,16 +27,16 @@ class MovementMessages:
         return 'Non è una direzione valida'
 
     def movement_begins(self, direction):
-        return 'inizi a muoverti verso {}'.format(direction)
+        return 'inizi a muoverti verso {}'.format(self._direction[direction])
 
     def movement_success(self, direction):
-        return 'vai a {}'.format(direction)
+        return 'vai a {}'.format(self._direction[direction])
 
     def entity_movement_begin_template(self, direction):
-        return '{origin} inizia a muoversi verso %s' % direction
+        return '{origin} inizia a muoversi verso %s' % self._direction[direction]
 
     def entity_movement_success_template(self, direction):
-        return '{origin} va verso %s' % direction
+        return '{origin} va verso %s' % self._direction[direction]
 
     def entity_movement_success_arrive_template(self, direction):
-        return '{origin} arriva da %s' % self.opposite_direction[direction]
+        return '{origin} arriva da %s' % self._direction[self.opposite_direction[direction]]

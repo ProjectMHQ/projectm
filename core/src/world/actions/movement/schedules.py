@@ -25,6 +25,7 @@ class ScheduledMovement:
         self.escape_corners = escape_corners
         self.direction = direction
         self.target_room = target
+        self._sem = True
 
     async def find_escape(self) -> typing.Optional[Room]:
         from core.src.world.builder import map_repository
@@ -56,7 +57,8 @@ class ScheduledMovement:
             else:
                 await emit_msg(self.entity, messages.invalid_direction())
                 return False
-        await do_move_entity(self.entity, self.target_room, self.direction, "movement")
+        await do_move_entity(self.entity, self.target_room, self.direction, "movement", self_emit_message=self._sem)
+        self._sem = False
         self.target_room = None
         return True
 

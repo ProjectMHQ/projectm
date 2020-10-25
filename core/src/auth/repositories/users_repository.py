@@ -42,7 +42,7 @@ class UsersRepositoryImpl:
             user_id=self._get_random_uuid(),
             status=user.status.value,
             hashed_password=user.hashed_password,
-            meta=user.meta
+            meta=user._meta
         )
         try:
             self.session.add(model)

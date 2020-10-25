@@ -3,9 +3,7 @@ import binascii
 import os
 import struct
 import time
-
 import typing
-
 import aioredis
 from core.src.auth.logging_factory import LOGGER
 from core.src.world import exceptions
@@ -65,20 +63,6 @@ class RedisMapRepository:
         redis = await self.redis()
         return [int(x.decode()) for x in await redis.zrange(self.get_room_key(position.x, position.y, position.z))]
 
-    def _get_rooms_content(self, pipeline, x: int, from_y: int, to_y: int, z: int):
-        key = 'temp:rmc:{}'.format(binascii.unhexlify(os.urandom(8)).decode())
-        pipeline.zunionstore(
-            key, *(self.get_room_key(*c) for c in ((x, y, z) for y in range(from_y, to_y)))
-        )
-        pipeline.zrange(key)
-        pipeline.delete(key)
-
-    def _set_room_content(self, pipeline, room: Room):
-        res = []
-        for x in room.entity_ids:
-            res.extend([int(time.time()*100000), x])
-        pipeline.zadd(self.get_room_key(room.position.x, room.position.y, room.position.z), *res)
-
     async def set_room(self, room: Room):
         return await self._set_room(room)
 
@@ -96,7 +80,6 @@ class RedisMapRepository:
             pipeline.setrange(
                 self.terrains_bitmap_key, num, struct.pack('B', room.terrain.value)
             )
-        any(room.entity_ids) and self._set_room_content(pipeline, room)
         not external_pipeline and await pipeline.execute()
         return room
 

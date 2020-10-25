@@ -91,7 +91,7 @@ class RedisDataRepository:
         await self.update_entities(entity)
         return entity
 
-    def _check_bounds_for_update(self, pipeline, entity):
+    def _check_bounds_for_update(self, pipeline: RedisLUAPipeline, entity: Entity):
         for bound in entity.bounds():
             if bound.is_struct:
                 assert bound.bounds
@@ -111,7 +111,7 @@ class RedisDataRepository:
                             pipeline.add_if_equal(check, value_selector=v)
                         else:
                             raise ValueError('Unknown bound')
-                bound.remove_bounds()
+                    bound.remove_bounds()
             elif bound.is_array():
                 assert bound.bounds
                 key = '{}:{}:{}:{}'.format(
@@ -789,39 +789,6 @@ class RedisDataRepository:
 
             room.add_entity(Entity(_entity_id).set_component(attrs))
 
-    async def get_raw_content_for_room_interaction(self, entity_id: int, room: Room) -> (int, typing.Generator):
-        """
-        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
-        """
-        redis = await self.async_redis()
-        pipeline = redis.pipeline()
-        _exp_res = []
-        for look_at_entity_id in room.entity_ids:
-            if look_at_entity_id == entity_id:
-                continue
-            pipeline.hmget(
-                '{}:{}'.format(self._entity_prefix, look_at_entity_id),
-                InstanceOfComponent.key, AttributesComponent.key
-            )
-            _exp_res.append(look_at_entity_id)
-        result = await pipeline.execute()
-
-        def load_attributes_or_default(r):
-            if not r[1]:
-                return self.library_repository.get_defaults_for_library_element(
-                    r[0].decode(),
-                    AttributesComponent
-                )
-            return AttributesComponent.from_bytes(r[1])
-
-        res = [
-            {
-                'entity_id': entity_id,
-                'attrs': load_attributes_or_default(result[i])
-            } for i, entity_id in enumerate(_exp_res)
-        ]
-        return 1, res
-
     async def delete_entity(self, entity_id: int):
         """
         USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
@@ -845,17 +812,6 @@ class RedisDataRepository:
             )
         await pipeline.execute()
         return True
-
-    async def check_entity_id_has_components(self, entity_id: int, *components: typing.Type[ComponentType]):
-        """
-        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
-        """
-        redis = await self.async_redis()
-        pipeline = redis.pipeline()
-        for component in components:
-            pipeline.getbit('{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix), entity_id)
-        result = await pipeline.execute()
-        return [bool(x) for x in result]
 
     async def filter_entities_with_active_component(self, component, *entities):
         """
@@ -888,7 +844,7 @@ class RedisDataRepository:
         pipeline = redis.pipeline()
         for component in components:
             primitives = []
-            for meta in component.meta:
+            for meta in component._meta:
                 subkey, subtype = meta
                 if subtype in (str, int, bool):
                     primitives.append(meta)
@@ -907,7 +863,7 @@ class RedisDataRepository:
             if not response.get(component.component_enum):
                 response[component.component_enum] = component()
             primitives = []
-            for meta in component.meta:
+            for meta in component._meta:
                 subkey, subtype = meta
                 if subtype in (str, int, bool):
                     primitives.append(meta)
@@ -965,7 +921,7 @@ class RedisDataRepository:
 
     @staticmethod
     def _enqueue_full_struct_component_read_multiple_entities(pipeline, entity_ids, component):
-        for meta in component.meta:
+        for meta in component._meta:
             subkey, subtype = meta
             if subtype in (bool, str, int):
                 pipeline.hmget('c:{}:d:{}'.format(component.component_enum, subkey), *entity_ids)
@@ -980,7 +936,7 @@ class RedisDataRepository:
 
     @staticmethod
     def _resolve_full_struct_component_read_multiple_entities(redis_response, response, entity_ids, component, pos=0):
-        for meta in component.meta:
+        for meta in component._meta:
             subkey, subtype = meta
             if subtype in (bool, str, int):
                 data = redis_response[pos]

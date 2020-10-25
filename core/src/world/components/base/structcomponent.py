@@ -263,12 +263,31 @@ class _StructListType(_BasicStructType):
 
 
 class StructComponent(ComponentType):
-    is_struct = True
-    meta = ()
-    indexes = ()
+    """
+    Example:
+
+    class InventoryComponent(StructComponent):
+        component_enum = ComponentTypeEnum.INVENTORY
+        key = ComponentTypeEnum.INVENTORY.value
+        libname = "inventory"
+
+        _meta = (
+            ("content", list),
+            ("current_weight", int)
+        )
+
+    """
+
+    _meta = ()
+    _indexes = ()
+    _defaults = ()
 
     @classmethod
     def is_active(cls):
+        return True
+
+    @property
+    def is_struct(self):
         return True
 
     @property
@@ -279,14 +298,13 @@ class StructComponent(ComponentType):
         return self._current_values
 
     def __init__(self, **kwargs):
-        self._valid_values = []
         self.pending_changes = {}
+        self.bounds = {}
         self._current_values = {}
         self._bake_class()
-        self.bounds = {}
 
         for k, v in kwargs.items():
-            expected_type = self.meta[getattr(self.meta_enum, k)][1]
+            expected_type = self._meta[getattr(self.meta_enum, k)][1]
             assert type(v) == expected_type
             self._set_value(k, v)
 
@@ -302,7 +320,7 @@ class StructComponent(ComponentType):
             pass
 
         self.meta_enum = MetaEnum
-        for i, meta in enumerate(self.meta):
+        for i, meta in enumerate(self._meta):
             setattr(self.meta_enum, meta[0], i)
             values = {int: b'0', list: [], str: b"", bool: b'0', dict: {}}
             load_value_in_struct_component(self, meta[0], values[meta[1]])
@@ -315,10 +333,13 @@ class StructComponent(ComponentType):
             raise AttributeError(msg.format(type(self).__name__, name, ', '.join(self._current_values.keys())))
 
     def has_index(self, key):
-        return key in self.indexes
+        return key in self._indexes
+
+    def has_default(self, key):
+        return key in self.defaults
 
     def get_subtype(self, key):
-        return self.meta[getattr(self.meta_enum, key)][1]
+        return self._meta[getattr(self.meta_enum, key)][1]
 
     @property
     def current_values(self):
@@ -326,7 +347,7 @@ class StructComponent(ComponentType):
 
 
 def load_value_in_struct_component(component, key, value):
-    expected_type = component.meta[getattr(component.meta_enum, key)][1]
+    expected_type = component._meta[getattr(component.meta_enum, key)][1]
     if expected_type is list:
         component.current_values[key] = _StructListType(component, key, value and [int(x) for x in value])
     elif expected_type is dict:

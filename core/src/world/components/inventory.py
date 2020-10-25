@@ -7,7 +7,7 @@ class InventoryComponent(StructComponent):
     key = ComponentTypeEnum.INVENTORY.value
     libname = "inventory"
 
-    meta = (
+    _meta = (
         ("content", list),
         ("current_weight", int)
     )

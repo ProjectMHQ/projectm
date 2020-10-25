@@ -44,11 +44,11 @@ async def move_entity(entity: Entity, *arguments):
 move_entity.get_self = True
 
 
-async def do_move_entity(entity, room, direction, reason, emit_message=True):
+async def do_move_entity(entity, room, direction, reason, emit_message=True, self_emit_message=True):
     init_room = entity.get_room()
     if await cast_entity(entity, room.position, reason=reason):
+        self_emit_message and emit_message and await emit_msg(entity, messages.movement_success(direction))
         emit_message and await asyncio.gather(
-            emit_msg(entity, messages.movement_success(direction)),
             emit_room_msg(
                 room=init_room,  # Emit this message in the previous room.
                 origin=entity,

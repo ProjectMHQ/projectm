@@ -61,7 +61,7 @@ class TestStructComponent(unittest.TestCase):
     def test_struct_str(self):
         class InventoryComponent(StructComponent):
             meta = (('content', list), ('weight', int), ('label', str))
-            indexes = ('content',)
+            _indexes = ('content',)
 
         inventory = InventoryComponent(label='ciao')
         self.assertEqual(inventory.label, 'ciao')
@@ -87,7 +87,7 @@ class TestStructComponent(unittest.TestCase):
     def test_struct_null(self):
         class InventoryComponent(StructComponent):
             meta = (('content', list), ('weight', int), ('label', str))
-            indexes = ('content',)
+            _indexes = ('content',)
 
         inventory = InventoryComponent(label='ciao', weight=11, content=[33])
         self.assertEqual(inventory.label, 'ciao')
