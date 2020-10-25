@@ -1,14 +1,14 @@
 {
   "libname": "tavolo",
   "components": {
+    "collectible": false,
     "attributes": {
-      "collectible": false,
       "keyword": "tavolo",
       "name": "un tavolo",
       "description": "Quello che vedi è un tavolo"
     },
     "inventory": {
-      "content": [1, 2, 3],
+      "content": [],
       "max_items": 10
     }
   }

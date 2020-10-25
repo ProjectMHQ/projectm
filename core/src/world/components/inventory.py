@@ -11,4 +11,3 @@ class InventoryComponent(StructComponent):
         ("content", list),
         ("current_weight", int)
     )
-

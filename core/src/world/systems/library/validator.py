@@ -56,6 +56,14 @@ LibraryWeaponValidator = combinators.struct(
     strict=True
 )
 
+InventoryComponentValidator = combinators.struct(
+    {
+        "content": combinators.list(combinators.String),
+        "max_items": combinators.Int
+    },
+    name="InventoryComponent"
+)
+
 GenericContainerValidator = combinators.struct(
     {
         "libname": combinators.subtype(
@@ -66,7 +74,7 @@ GenericContainerValidator = combinators.struct(
             {
                 "attributes": AttributesComponentValidator,
                 "collectible": combinators.Boolean,
-                "inventory": combinators.list(combinators.String)
+                "inventory": InventoryComponentValidator
             }
         ),
     },
