@@ -11,7 +11,7 @@ from core.src.world.components.base import ComponentType, ComponentTypeEnum
 from core.src.world.components.base.structcomponent import StructSubtypeListAction, StructSubtypeStrSetAction, \
     StructSubtypeIntIncrAction, StructSubtypeIntSetAction, StructSubTypeSetNull, StructSubTypeBoolOn, \
     StructSubTypeBoolOff, StructSubTypeDictSetKeyValueAction, \
-    StructSubTypeDictRemoveKeyValueAction
+    StructSubTypeDictRemoveKeyValueAction, StructComponent
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.factory import get_component_by_enum_value, get_component_alias_by_enum_value
 from core.src.world.components.instance_of import InstanceOfComponent
@@ -304,6 +304,9 @@ class RedisDataRepository:
     async def get_component_value_by_entity_id(
             self, entity_id: int, component: typing.Type[ComponentType]
     ) -> typing.Optional[ComponentType]:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         instance_of_value = None
         if component.component_type == bool:
@@ -346,6 +349,9 @@ class RedisDataRepository:
             entities: typing.List[Entity],
             components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[int, typing.Dict[ComponentTypeEnum, bytes]]:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         for component in components:
             assert not component.is_array(), 'At the moment is not possible to use this API with array components'
 
@@ -362,6 +368,9 @@ class RedisDataRepository:
             entities_ids: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[int, typing.Dict[ComponentTypeEnum, bytes]]:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         _bits_statuses = await self._get_components_statuses_by_entities_ids(entities_ids, components)
         _filtered = await self._get_components_values_from_entities_storage(_bits_statuses)
         return {
@@ -372,6 +381,9 @@ class RedisDataRepository:
 
     async def get_raw_component_value_by_entity_ids(
             self, component, *entity_ids: int):
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         assert not component.is_array(), 'At the moment is not possible to use this API with array components'
         redis = await self.async_redis()
         pipeline = redis.pipeline()
@@ -395,6 +407,9 @@ class RedisDataRepository:
             entity_ids: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
     ) -> typing.Dict[ComponentTypeEnum, typing.Dict[int, bytes]]:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         _bits_statuses = await self._get_components_statuses_by_components(entity_ids, components)
         _filtered = await self._get_components_values_from_components_storage(_bits_statuses)
         s = {
@@ -408,6 +423,9 @@ class RedisDataRepository:
             entities: typing.List[Entity],
             components: typing.List[typing.Type[ComponentType]]
     ) -> OrderedDict:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         bits_by_entity = OrderedDict()
@@ -432,6 +450,9 @@ class RedisDataRepository:
             entities_ids: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
     ) -> OrderedDict:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         bits_by_entity = OrderedDict()
@@ -456,6 +477,9 @@ class RedisDataRepository:
             entities: typing.List[int],
             components: typing.List[typing.Type[ComponentType]]
     ) -> OrderedDict:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         bits_by_component = OrderedDict()
@@ -475,6 +499,9 @@ class RedisDataRepository:
         return bits_by_component
 
     async def get_entity_ids_with_components(self, *components: ComponentType) -> typing.Iterator[int]:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         _key = os.urandom(8)
         redis = await self.async_redis()
         await redis.bitop_and(
@@ -491,6 +518,9 @@ class RedisDataRepository:
         return (i for i, v in enumerate(array) if v)
 
     async def _get_components_values_from_components_storage(self, filtered_query: OrderedDict):
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         for c_key in filtered_query:
@@ -599,6 +629,9 @@ class RedisDataRepository:
         return data
 
     async def _get_components_values_from_entities_storage(self, filtered_query: OrderedDict):
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         components = {}
@@ -672,6 +705,9 @@ class RedisDataRepository:
     async def get_entities_evaluation_by_entity(
             self, entity: Entity, *entity_ids: int
     ) -> typing.List:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         result = []
         redis = await self.async_redis()
         pipeline = redis.pipeline()
@@ -692,6 +728,9 @@ class RedisDataRepository:
         return result
 
     async def populate_area_content_for_area(self, entity: Entity, area: Area) -> None:
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         # TODO FIXME
         for _room in area.rooms:
             if _room:
@@ -699,6 +738,9 @@ class RedisDataRepository:
                     _room.add_entity(Entity(_entity_id))
 
     async def populate_room_content_for_look(self, room: Room):
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         _exp_res = []
@@ -728,6 +770,9 @@ class RedisDataRepository:
             room.add_entity(Entity(_entity_id).set_component(attrs))
 
     async def get_raw_content_for_room_interaction(self, entity_id: int, room: Room) -> (int, typing.Generator):
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         _exp_res = []
@@ -758,6 +803,9 @@ class RedisDataRepository:
         return 1, res
 
     async def delete_entity(self, entity_id: int):
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         components = await redis.hgetall('{}:{}'.format(self._entity_prefix, entity_id))
         pipeline = redis.pipeline()
@@ -779,6 +827,9 @@ class RedisDataRepository:
         return True
 
     async def check_entity_id_has_components(self, entity_id: int, *components: typing.Type[ComponentType]):
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         for component in components:
@@ -787,6 +838,9 @@ class RedisDataRepository:
         return [bool(x) for x in result]
 
     async def filter_entities_with_active_component(self, component, *entities):
+        """
+        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
+        """
         redis = await self.async_redis()
         pipeline = redis.pipeline()
         for entity in entities:
@@ -796,3 +850,90 @@ class RedisDataRepository:
             )
         result = await pipeline.execute()
         return [int(entities[i]) for i, v in enumerate(result) if v]
+
+    ###################################################
+    # BEGIN STRUCT COMPONENTS (COMPONENTS 2.0) SUPPORT #
+    # BEGIN STRUCT COMPONENTS (COMPONENTS 2.0) SUPPORT #
+    # BEGIN STRUCT COMPONENTS (COMPONENTS 2.0) SUPPORT #
+    # BEGIN STRUCT COMPONENTS (COMPONENTS 2.0) SUPPORT #
+    # BEGIN STRUCT COMPONENTS (COMPONENTS 2.0) SUPPORT #
+    # BEGIN STRUCT COMPONENTS (COMPONENTS 2.0) SUPPORT #
+    ###################################################
+
+    async def read_struct_components_for_entity(
+            self, entity_id, *components: typing.Union[tuple, list, StructComponent]
+    ):
+        """
+        This is tailored on the DB to read from the same entity table.
+        """
+        pass
+
+    async def read_struct_components_for_entities(
+        self,
+        entity_ids: typing.List[int],
+        *components: typing.Type[typing.Union[tuple, list, StructComponent]]
+    ):
+        """
+        This is more effective to mount the same components on multiple entities.
+        """
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
+        for component in components:
+            if issubclass(component, StructComponent):
+                self._enqueue_full_struct_component_read(pipeline, entity_ids, component)
+            elif isinstance(component, (tuple, list)):
+                self._enqueue_selective_struct_component_read(pipeline, entity_ids, component)
+            else:
+                raise ValueError('Unknown type')
+        redis_response = await pipeline.execute()
+        response = {entity_id: {} for entity_id in entity_ids}
+        pos = 0
+        for component in components:
+            if issubclass(component, StructComponent):
+                self._extract_full_struct_component_read(redis_response, response, entity_ids, component, pos)
+            else:
+                self._extract_selective_struct_component_read(redis_response, response, entity_ids, component, pos)
+        return response
+
+    @staticmethod
+    def _enqueue_full_struct_component_read(pipeline, entity_ids, component):
+        for meta in component.meta:
+            subkey, subtype = meta
+            if subtype in (bool, str, int):
+                pipeline.hmget('c:{}:d:{}'.format(component.component_enum, subkey), *entity_ids)
+            elif subtype is list:
+                for entity_id in entity_ids:
+                    pipeline.zrange('c:{}:zs:e:{}:{}'.format(component.component_enum, entity_id, subkey), 0, -1)
+            elif subtype is dict:
+                for entity_id in entity_ids:
+                    pipeline.hgetall('e:{}:c:{}:{}'.format(entity_id, component.component_enum, subkey))
+            else:
+                raise ValueError
+
+    @staticmethod
+    def _extract_full_struct_component_read(redis_response, response, entity_ids, component, pos=0):
+        for meta in component.meta:
+            subkey, subtype = meta
+            if subtype in (bool, str, int):
+                data = redis_response[pos]
+                for i, entity_id in enumerate(entity_ids):
+                    if not response[entity_id].get(component.component_enum):
+                        response[entity_id][component.component_enum] = component()
+                    response[entity_id][component.component_enum].load_value(subkey, data[i])
+                pos += 1
+            elif subtype is list:
+                for entity_id in entity_ids:
+                    data = redis_response[pos]
+                    if not response[entity_id].get(component.component_enum):
+                        response[entity_id][component.component_enum] = component()
+                    response[entity_id][component.component_enum].load_value(subkey, data)
+                    pos += 1
+            elif subtype is dict:
+                for entity_id in entity_ids:
+                    data = redis_response[pos]
+                    if not response[entity_id].get(component.component_enum):
+                        response[entity_id][component.component_enum] = component()
+                    response[entity_id][component.component_enum].load_value(subkey, data)
+                    pos += 1
+            else:
+                raise ValueError

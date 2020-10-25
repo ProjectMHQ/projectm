@@ -40,6 +40,7 @@ class TestStructComponent(TestCase):
         entity = Entity(555)
 
         class TestComponent(StructComponent):
+            component_enum = 0
             meta = (
                 ('weirdstuff', str),
                 ('manystuffhere', list),
@@ -48,27 +49,50 @@ class TestStructComponent(TestCase):
                 ('a', dict)
             )
 
-        c = TestComponent()
-        c.weirdstuff.set('a lot of')
-        c.manystuffhere.append(3)
-        c.integerrr.incr(42)
-        c.boolean.set(True)
-        c.a.set('key1', 'value1').a.set('key2', 'value2').a.set('key3', 'value3')
+        c = TestComponent()\
+            .weirdstuff.set('a lot of')\
+            .manystuffhere.append(3)\
+            .integerrr.incr(42)\
+            .boolean.set(True)\
+            .a.set('key1', 'value1')\
+            .a.set('key2', 'value2')\
+            .a.set('key3', 'value3')
         entity.set_for_update(c)
         await self.sut.update_entities(entity)
-
-        # todo fetch
-
+        res = await self.sut.read_struct_components_for_entities([555], TestComponent)
+        component = res[555][0]
+        self.assertEqual(component.weirdstuff, 'a lot of')
+        self.assertEqual(component.manystuffhere, [3])
+        self.assertEqual(component.integerrr, 42)
+        self.assertEqual(component.boolean, True)
+        self.assertEqual(component.a['key1'], 'value1')
+        self.assertEqual(component.a['key2'], 'value2')
+        self.assertEqual(component.a['key3'], 'value3')
         c.a.remove('key1')
         entity.set_for_update(c)
         await self.sut.update_entities(entity)
-
-        # todo fetch
-
+        res = await self.sut.read_struct_components_for_entities([555], TestComponent)
+        component = res[555][0]
+        self.assertEqual(component.a.get('key1'), None)
+        self.assertFalse(component.a.has_key('key1'))
+        self.assertEqual(component.manystuffhere, [3])
+        self.assertEqual(component.integerrr, 42)
+        self.assertEqual(component.boolean, True)
         c.weirdstuff.null()
         entity.set_for_update(c)
         await self.sut.update_entities(entity)
-
-        # todo fetch
-
+        res = await self.sut.read_struct_components_for_entities([555], TestComponent)
+        component = res[555][0]
+        self.assertEqual(component.weirdstuff, None)
+        self.assertEqual(component.manystuffhere, [3])
+        self.assertEqual(component.integerrr, 42)
+        self.assertEqual(component.boolean, True)
         self.test_success = True
+        c.manystuffhere.remove(3)
+        c.weirdstuff.set('yahi!')
+        entity.set_for_update(c)
+        await self.sut.update_entities(entity)
+        res = await self.sut.read_struct_components_for_entities([555], TestComponent)
+        component = res[555][0]
+        self.assertEqual(component.weirdstuff, 'yahi!')
+        self.assertEqual(component.manystuffhere, [])

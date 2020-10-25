@@ -1,5 +1,7 @@
 import enum
 import typing
+from ast import literal_eval
+
 from core.src.world.components.base import ComponentType
 
 
@@ -76,6 +78,9 @@ class _BasicStructType:
     owner = None
     key = None
 
+    def __repr__(self):
+        return repr(self.value)
+
     def __str__(self):
         return str(self.value)
 
@@ -139,7 +144,14 @@ class _StructDictType(_BasicStructType):
         return self.owner
 
     def get(self, key):
-        return self.value[key]
+        return self.value.get(key, None)
+
+    def has_key(self, key):
+        try:
+            _ = self.value[key]
+            return True
+        except KeyError:
+            return False
 
     def set(self, key: str, value: typing.Union[str, int, bool, None]):
         assert isinstance(key, str)
@@ -277,16 +289,7 @@ class StructComponent(ComponentType):
         for k, v in kwargs.items():
             expected_type = self.meta[getattr(self.meta_enum, k)][1]
             assert type(v) == expected_type
-            if expected_type == int:
-                self._current_values[k] = _StructIntType(self, k, v)
-            elif expected_type == list:
-                self._current_values[k] = _StructListType(self, k, v)
-            elif expected_type == str:
-                self._current_values[k] = _StructStrType(self, k, v)
-            elif expected_type == bool:
-                self._current_values[k] = _StructBoolType(self, k, v)
-            elif expected_type == dict:
-                self._current_values[k] = _StructDictType(self, k, v)
+            self._set_value(k, v)
 
         value = None
         super().__init__(value)
@@ -298,18 +301,23 @@ class StructComponent(ComponentType):
         self.meta_enum = MetaEnum
         for i, meta in enumerate(self.meta):
             setattr(self.meta_enum, meta[0], i)
-            if meta[1] == int:
-                self._current_values[meta[0]] = _StructIntType(self, meta[0], 0)
-            elif meta[1] == list:
-                self._current_values[meta[0]] = _StructListType(self, meta[0], [])
-            elif meta[1] == str:
-                self._current_values[meta[0]] = _StructStrType(self, meta[0], "")
-            elif meta[1] == bool:
-                self._current_values[meta[0]] = _StructBoolType(self, meta[0], False)
-            elif meta[1] == dict:
-                self._current_values[meta[0]] = _StructDictType(self, meta[0], {})
-            else:
-                raise ValueError
+            values = {int: 0, list: [], str: "", bool: False, dict: {}}
+            self._set_value(meta[0], values[meta[1]])
+
+    def _set_value(self, key, value):
+        expected_type = self.meta[getattr(self.meta_enum, key)][1]
+        if expected_type == int:
+            self._current_values[key] = _StructIntType(self, key, value)
+        elif expected_type == list:
+            self._current_values[key] = _StructListType(self, key, value)
+        elif expected_type == str:
+            self._current_values[key] = _StructStrType(self, key, value)
+        elif expected_type == bool:
+            self._current_values[key] = _StructBoolType(self, key, value)
+        elif expected_type == dict:
+            self._current_values[key] = _StructDictType(self, key, value)
+        else:
+            raise ValueError
 
     def __getattr__(self, name):
         try:
@@ -323,3 +331,19 @@ class StructComponent(ComponentType):
 
     def get_subtype(self, key):
         return self.meta[getattr(self.meta_enum, key)][1]
+
+    def load_value(self, key, value):
+        expected_type = self.meta[getattr(self.meta_enum, key)][1]
+        if not value:
+            self._set_value(key, value)
+        elif expected_type is list:
+            self._set_value(key, [int(x) for x in value])
+        elif expected_type is dict:
+            self._set_value(key, {k.decode(): v.decode() for k, v in value.items()})
+        elif expected_type is bool:
+            self._set_value(key, bool(int(value)))
+        elif expected_type is str:
+            self._set_value(key, value.decode())
+        elif expected_type is int:
+            self._set_value(key, int(value))
+        return self

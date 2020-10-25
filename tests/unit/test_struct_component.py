@@ -160,3 +160,4 @@ class TestStructComponent(unittest.TestCase):
                         StructSubTypeDictRemoveKeyValueAction(key='pippo')],
                  happy=[StructSubTypeBoolOn(), StructSubTypeBoolOff()])
         )
+
