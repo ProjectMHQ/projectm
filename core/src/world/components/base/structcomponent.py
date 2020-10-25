@@ -267,6 +267,10 @@ class StructComponent(ComponentType):
     meta = ()
     indexes = ()
 
+    @classmethod
+    def is_active(cls):
+        return True
+
     @staticmethod
     def _validate_param_for_list(v, pending_changes):
         if isinstance(v, StructSubtypeListAction):

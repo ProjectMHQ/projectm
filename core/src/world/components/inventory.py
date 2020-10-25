@@ -12,6 +12,3 @@ class InventoryComponent(StructComponent):
         ("current_weight", int)
     )
 
-    @classmethod
-    def is_active(cls):
-        return True
