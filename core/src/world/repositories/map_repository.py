@@ -2,6 +2,7 @@ import asyncio
 import binascii
 import os
 import struct
+import time
 
 import typing
 
@@ -75,7 +76,7 @@ class RedisMapRepository:
     def _set_room_content(self, pipeline, room: Room):
         res = []
         for x in room.entity_ids:
-            res.extend([0, x])
+            res.extend([int(time.time()*100000), x])
         pipeline.zadd(self.get_room_key(room.position.x, room.position.y, room.position.z), *res)
 
     async def set_room(self, room: Room):
@@ -239,7 +240,7 @@ class RedisMapRepository:
             pipeline.zrem(prev_set_name, '{}'.format(entity.entity_id))
         if position.value:
             new_set_name = self.get_room_key(position.x, position.y, position.z)
-            pipeline.zadd(new_set_name, 0, '{}'.format(entity.entity_id))
+            pipeline.zadd(new_set_name, int(time.time()*100000), '{}'.format(entity.entity_id))
             pipeline.hset('positions', entity.entity_id, [position.x, position.y, position.z])
 
     async def get_all_entity_ids_in_area(self, area):

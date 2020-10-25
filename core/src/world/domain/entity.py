@@ -1,6 +1,7 @@
 import typing
 
 from core.src.world.components.base import ComponentType
+from core.src.world.components.base.structcomponent import StructComponent
 from core.src.world.domain import DomainObject
 
 
@@ -27,6 +28,9 @@ class Entity(DomainObject):
 
     def set_for_update(self, component: ComponentType):
         self._pending_changes[component.key] = component
+        if isinstance(component, StructComponent) and component.bounds:
+            if component not in self._bounds:
+                self._bounds.append(component)
         return self
 
     @property

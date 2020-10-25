@@ -38,6 +38,7 @@ class TestStructComponent(TestCase):
 
     async def _test_save_struct_component(self):
         entity = Entity(555)
+        entity2 = Entity(556)
 
         class TestComponent(StructComponent):
             component_enum = 0
@@ -51,7 +52,7 @@ class TestStructComponent(TestCase):
 
         c = TestComponent()\
             .weirdstuff.set('a lot of')\
-            .manystuffhere.append(3)\
+            .manystuffhere.append(3, 6, 9)\
             .integerrr.incr(42)\
             .boolean.set(True)\
             .a.set('key1', 'value1')\
@@ -62,7 +63,7 @@ class TestStructComponent(TestCase):
         res = await self.sut.read_struct_components_for_entities([555], TestComponent)
         component = res[555][0]
         self.assertEqual(component.weirdstuff, 'a lot of')
-        self.assertEqual(component.manystuffhere, [3])
+        self.assertEqual(component.manystuffhere, [3, 6, 9])
         self.assertEqual(component.integerrr, 42)
         self.assertEqual(component.boolean, True)
         self.assertEqual(component.a['key1'], 'value1')
@@ -75,7 +76,8 @@ class TestStructComponent(TestCase):
         component = res[555][0]
         self.assertEqual(component.a.get('key1'), None)
         self.assertFalse(component.a.has_key('key1'))
-        self.assertEqual(component.manystuffhere, [3])
+        self.assertEqual(component.a, {'key2': 'value2', 'key3': 'value3'})
+        self.assertEqual(component.manystuffhere, [3, 6, 9])
         self.assertEqual(component.integerrr, 42)
         self.assertEqual(component.boolean, True)
         c.weirdstuff.null()
@@ -84,7 +86,7 @@ class TestStructComponent(TestCase):
         res = await self.sut.read_struct_components_for_entities([555], TestComponent)
         component = res[555][0]
         self.assertEqual(component.weirdstuff, None)
-        self.assertEqual(component.manystuffhere, [3])
+        self.assertEqual(component.manystuffhere, [3, 6, 9])
         self.assertEqual(component.integerrr, 42)
         self.assertEqual(component.boolean, True)
         self.test_success = True
@@ -95,4 +97,14 @@ class TestStructComponent(TestCase):
         res = await self.sut.read_struct_components_for_entities([555], TestComponent)
         component = res[555][0]
         self.assertEqual(component.weirdstuff, 'yahi!')
+        self.assertEqual(component.manystuffhere, [6, 9])
+        c.manystuffhere.remove(6, 9)
+        entity.set_for_update(c)
+        c2 = TestComponent().manystuffhere.append(666)
+        entity2.set_for_update(c2)
+        await self.sut.update_entities(entity, entity2)
+        res = await self.sut.read_struct_components_for_entities([555, 556], TestComponent)
+        component = res[555][0]
+        component2 = res[556][0]
         self.assertEqual(component.manystuffhere, [])
+        self.assertEqual(component2.manystuffhere, [666])

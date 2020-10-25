@@ -245,6 +245,9 @@ class _StructListType(_BasicStructType):
             self.value.remove(value)
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
+        if not self.owner.bounds.get(self.key):
+            self.owner.bounds[self.key] = []
+        self.owner.bounds[self.key].append(StructSubtypeListAction('remove', list(values)))
         self.owner.pending_changes[self.key].append(StructSubtypeListAction('remove', list(values)))
         return self.owner
 
@@ -285,6 +288,7 @@ class StructComponent(ComponentType):
         self.pending_changes = {}
         self._current_values = {}
         self._bake_class()
+        self.bounds = {}
 
         for k, v in kwargs.items():
             expected_type = self.meta[getattr(self.meta_enum, k)][1]
@@ -293,6 +297,10 @@ class StructComponent(ComponentType):
 
         value = None
         super().__init__(value)
+
+    def remove_bounds(self):
+        self.bounds = {}
+        return self
 
     def _bake_class(self):
         class MetaEnum(enum.Enum):

@@ -1,4 +1,5 @@
 import asyncio
+import time
 import typing
 from collections import OrderedDict
 
@@ -92,7 +93,26 @@ class RedisDataRepository:
 
     def _check_bounds_for_update(self, pipeline, entity):
         for bound in entity.bounds():
-            if bound.is_array():
+            if bound.is_struct:
+                assert bound.bounds
+                for k, bb in bound.bounds.items():
+                    for b in bb:
+                        if isinstance(b, StructSubtypeListAction):
+                            assert b.type == 'remove'
+                            key = 'c:{}:zs:e:{}:{}'.format(bound.component_enum, entity.entity_id, k)
+                            values = b.values
+                            if len(values) == 1:
+                                pipeline.allocate_value().zscan(key, cursor=0, match=values[0])
+                                v, check = "[2][1]", str(values[0])
+                            else:
+                                inter_seed = pipeline.zprepareinter(key, values)
+                                pipeline.allocate_value().zfetchinter(inter_seed)
+                                v, check = "", values
+                            pipeline.add_if_equal(check, value_selector=v)
+                        else:
+                            raise ValueError('Unknown bound')
+                bound.remove_bounds()
+            elif bound.is_array():
                 assert bound.bounds
                 key = '{}:{}:{}:{}'.format(
                     self._component_prefix, bound.key, self._zset_suffix, entity.entity_id
@@ -113,7 +133,7 @@ class RedisDataRepository:
         payload = []
         if component.to_add:
             for x in component.to_add:
-                payload.extend([0, x])
+                payload.extend([int(time.time()*100000), x])
             pipeline.zadd(
                 '{}:{}:{}:{}'.format(self._component_prefix, component.key, self._zset_suffix, entity.entity_id),
                 *payload
@@ -214,7 +234,7 @@ class RedisDataRepository:
                 for action in v:
                     if isinstance(action, StructSubtypeListAction):
                         payload = []
-                        _ = [payload.extend([0, _v]) for _v in action.values]
+                        _ = [payload.extend([int(time.time()*100000), _v]) for _v in action.values]
                         if action.type == 'append':
                             pipeline.zadd('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *payload)
                         elif action.type == 'remove':
@@ -894,6 +914,14 @@ class RedisDataRepository:
             else:
                 self._extract_selective_struct_component_read(redis_response, response, entity_ids, component, pos)
         return response
+
+    @staticmethod
+    def _enqueue_selective_struct_component_read(*a, **kw):
+        raise NotImplementedError
+
+    @staticmethod
+    def _extract_selective_struct_component_read(*a, **kw):
+        raise NotImplementedError
 
     @staticmethod
     def _enqueue_full_struct_component_read(pipeline, entity_ids, component):

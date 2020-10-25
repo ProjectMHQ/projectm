@@ -36,7 +36,7 @@ class RedisLUAPipeline:
         self.value += "redis.call('setbit', '{}', {}, {})\n".format(key, bit, value)
 
     def zadd(self, key, *payload):
-        ppload = ", ".join(["'{}'".format(str(p)) for p in payload])
+        ppload = ", ".join(["{}".format(str(p)) for p in payload])
         self.value += "redis.call('zadd', '{}', {})\n".format(key, ppload)
 
     def zrem(self, key, *payload):
