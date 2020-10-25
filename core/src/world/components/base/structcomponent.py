@@ -1,7 +1,5 @@
 import enum
 import typing
-from ast import literal_eval
-
 from core.src.world.components.base import ComponentType
 
 
@@ -80,9 +78,6 @@ class _BasicStructType:
 
     def __repr__(self):
         return repr(self.value)
-
-    def __iter__(self):
-        return iter(self.value)
 
     def __add__(self, other):
         return self.value + other
@@ -177,6 +172,9 @@ class _StructStrType(_BasicStructType):
         self.owner = owner
         self.key = key
 
+    def __iter__(self):
+        return iter(self.value)
+
     def set(self, value):
         assert isinstance(value, str)
         self.value = value
@@ -237,6 +235,9 @@ class _StructListType(_BasicStructType):
     def __getitem__(self, item):
         return self.value[item]
 
+    def __iter__(self):
+        return iter(self.value)
+
     def append(self, *values: int):
         for value in values:
             assert isinstance(value, int)
@@ -262,7 +263,6 @@ class _StructListType(_BasicStructType):
 
 
 class StructComponent(ComponentType):
-
     is_struct = True
     meta = ()
     indexes = ()
@@ -270,24 +270,6 @@ class StructComponent(ComponentType):
     @classmethod
     def is_active(cls):
         return True
-
-    @staticmethod
-    def _validate_param_for_list(v, pending_changes):
-        if isinstance(v, StructSubtypeListAction):
-            pending_changes.append(v)
-            return True
-        if not isinstance(v, (list, tuple)):
-            return False
-        else:
-            for x in v:
-                if not isinstance(x, StructSubtypeListAction):
-                    return False
-                else:
-                    pending_changes.append(x)
-
-    @property
-    def current_values(self) -> typing.Dict:
-        return self._current_values
 
     @property
     def value(self) -> typing.Dict:
@@ -322,27 +304,12 @@ class StructComponent(ComponentType):
         self.meta_enum = MetaEnum
         for i, meta in enumerate(self.meta):
             setattr(self.meta_enum, meta[0], i)
-            values = {int: 0, list: [], str: "", bool: False, dict: {}}
-            self._set_value(meta[0], values[meta[1]])
-
-    def _set_value(self, key, value):
-        expected_type = self.meta[getattr(self.meta_enum, key)][1]
-        if expected_type == int:
-            self._current_values[key] = _StructIntType(self, key, value)
-        elif expected_type == list:
-            self._current_values[key] = _StructListType(self, key, value)
-        elif expected_type == str:
-            self._current_values[key] = _StructStrType(self, key, value)
-        elif expected_type == bool:
-            self._current_values[key] = _StructBoolType(self, key, value)
-        elif expected_type == dict:
-            self._current_values[key] = _StructDictType(self, key, value)
-        else:
-            raise ValueError
+            values = {int: b'0', list: [], str: b"", bool: b'0', dict: {}}
+            load_value_in_struct_component(self, meta[0], values[meta[1]])
 
     def __getattr__(self, name):
         try:
-            return self._current_values[name]
+            return self.current_values[name]
         except KeyError:
             msg = "'{0}' object has no attribute '{1}'.\nvalid attributes: {2}"
             raise AttributeError(msg.format(type(self).__name__, name, ', '.join(self._current_values.keys())))
@@ -353,18 +320,23 @@ class StructComponent(ComponentType):
     def get_subtype(self, key):
         return self.meta[getattr(self.meta_enum, key)][1]
 
-    def load_value(self, key, value):
-        expected_type = self.meta[getattr(self.meta_enum, key)][1]
-        if not value:
-            self._set_value(key, value)
-        elif expected_type is list:
-            self._set_value(key, [int(x) for x in value])
-        elif expected_type is dict:
-            self._set_value(key, {k.decode(): v.decode() for k, v in value.items()})
-        elif expected_type is bool:
-            self._set_value(key, bool(int(value)))
-        elif expected_type is str:
-            self._set_value(key, value.decode())
-        elif expected_type is int:
-            self._set_value(key, int(value))
-        return self
+    @property
+    def current_values(self):
+        return self._current_values
+
+
+def load_value_in_struct_component(component, key, value):
+    expected_type = component.meta[getattr(component.meta_enum, key)][1]
+    if expected_type is list:
+        component.current_values[key] = _StructListType(component, key, value and [int(x) for x in value])
+    elif expected_type is dict:
+        component.current_values[key] = _StructDictType(
+            component, key, value and {k.decode(): v.decode() for k, v in value.items()}
+        )
+    elif expected_type is bool:
+        component.current_values[key] = _StructBoolType(component, key, value and bool(int(value.decode())))
+    elif expected_type is str:
+        component.current_values[key] = _StructStrType(component, key, value and value.decode())
+    elif expected_type is int:
+        component.current_values[key] = _StructIntType(component, key, value and int(value.decode()))
+    return component

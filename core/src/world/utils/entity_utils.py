@@ -336,12 +336,28 @@ async def batch_load_components(*components, entities=()):
     Useful to load multiple components with a single DB interaction, and reduce DB load.
     """
     from core.src.world.builder import world_repository
+    from core.src.world.components.base.structcomponent import StructComponent
+    struct = []
+    comps = []
+    for c in components:
+        if issubclass(c, StructComponent):
+            struct.append(c)
+        else:
+            comps.append(c)
+    struct_comps = struct and await world_repository.read_struct_components_for_entities((
+        [e.entity_id for e in entities], *components
+    )) or {}
     data = await world_repository.get_components_values_by_entities_ids([e.entity_id for e in entities], components)
     for entity in entities:
-        for c in components:
+        for c in comps:
             comp = c(data[entity.entity_id][c.component_enum])
             comp.set_owner(entity)
             entity.set_component(comp)
+    for entity in entities:
+        for k, c in struct_comps.items():
+            c.set_owner(entity)
+            entity.set_component(c)
+        return entity
 
 
 async def load_components(entity, *components):

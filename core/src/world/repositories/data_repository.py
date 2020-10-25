@@ -12,7 +12,7 @@ from core.src.world.components.base import ComponentType, ComponentTypeEnum
 from core.src.world.components.base.structcomponent import StructSubtypeListAction, StructSubtypeStrSetAction, \
     StructSubtypeIntIncrAction, StructSubtypeIntSetAction, StructSubTypeSetNull, StructSubTypeBoolOn, \
     StructSubTypeBoolOff, StructSubTypeDictSetKeyValueAction, \
-    StructSubTypeDictRemoveKeyValueAction, StructComponent
+    StructSubTypeDictRemoveKeyValueAction, StructComponent, load_value_in_struct_component
 from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.factory import get_component_by_enum_value, get_component_alias_by_enum_value
 from core.src.world.components.instance_of import InstanceOfComponent
@@ -912,15 +912,15 @@ class RedisDataRepository:
                 if subtype in (str, int, bool):
                     primitives.append(meta)
                 elif subtype == dict:
-                    response[component.component_enum].load_value(subkey, result[i])
+                    load_value_in_struct_component(response[component.component_enum], subkey, result[i])
                     i += 1
                 elif subtype == list:
-                    response[component.component_enum].load_value(subkey, result[i])
+                    load_value_in_struct_component(response[component.component_enum], subkey, result[i])
                     i += 1
                 else:
                     raise ValueError('Unknown type')
             for x, p in enumerate(primitives):
-                response[component.component_enum].load_value(p[0], result[i][x])
+                load_value_in_struct_component(response[component.component_enum], p[0], result[i][x])
             i += 1
         return response
 
@@ -987,21 +987,33 @@ class RedisDataRepository:
                 for i, entity_id in enumerate(entity_ids):
                     if not response[entity_id].get(component.component_enum):
                         response[entity_id][component.component_enum] = component()
-                    response[entity_id][component.component_enum].load_value(subkey, data[i])
+                    load_value_in_struct_component(
+                        response[entity_id][component.component_enum],
+                        subkey,
+                        data[i]
+                    )
                 pos += 1
             elif subtype is list:
                 for entity_id in entity_ids:
                     data = redis_response[pos]
                     if not response[entity_id].get(component.component_enum):
                         response[entity_id][component.component_enum] = component()
-                    response[entity_id][component.component_enum].load_value(subkey, data)
+                    load_value_in_struct_component(
+                        response[entity_id][component.component_enum],
+                        subkey,
+                        data
+                    )
                     pos += 1
             elif subtype is dict:
                 for entity_id in entity_ids:
                     data = redis_response[pos]
                     if not response[entity_id].get(component.component_enum):
                         response[entity_id][component.component_enum] = component()
-                    response[entity_id][component.component_enum].load_value(subkey, data)
+                    load_value_in_struct_component(
+                        response[entity_id][component.component_enum],
+                        subkey,
+                        data
+                    )
                     pos += 1
             else:
                 raise ValueError
