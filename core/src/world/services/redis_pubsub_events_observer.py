@@ -113,7 +113,7 @@ class PubSubObserver:
     async def publish_event(self, entity: Entity, message, room, interest_type, curr_pos):
         if self._is_system_event(message):
             event = self._get_system_event(message, room, curr_pos)
-            self.loop.create_task(emit_sys_msg(entity, event))
+            self.loop.create_task(emit_sys_msg(entity, None, event))
 
         if self._is_movement_message(message):
             if self._entity_sees_it(message, curr_pos):

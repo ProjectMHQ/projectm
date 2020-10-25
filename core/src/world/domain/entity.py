@@ -27,7 +27,7 @@ class Entity(DomainObject):
         return 15
 
     def set_for_update(self, component: ComponentType):
-        self._pending_changes[component.key] = component
+        self._pending_changes[component.component_enum] = component
         if isinstance(component, StructComponent) and component.bounds:
             if component not in self._bounds:
                 self._bounds.append(component)

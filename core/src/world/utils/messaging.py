@@ -39,9 +39,9 @@ async def emit_msg(entity, message: str):
     return False
 
 
-async def emit_sys_msg(entity, event_type: str, item: (DomainObject, Entity, typing.Dict)):
+async def emit_sys_msg(entity, event_type: (None, str), item: (DomainObject, Entity, typing.Dict)):
     from core.src.world.builder import transport
-    if event_type == 'map':  # fixme need client cooperation to fix this.
+    if event_type in ('map', None):  # fixme need client cooperation to fix this.
         payload = item
     elif isinstance(item, dict):
         payload = {

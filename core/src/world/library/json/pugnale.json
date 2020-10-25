@@ -1,12 +1,27 @@
 {
   "libname": "pugnale",
   "components": {
-    "collectible": true,
     "attributes": {
       "keyword": "pugnale",
       "name": "pugnale",
-      "description": "Quello che vedi è un pugnale molto affilatone"
+      "description": "Quello che vedi è un pugnale molto affilatone",
+      "family": "weapon",
+      "icon": 49,
+      "images": ["pugnale01.png", "pugnale02.png", "pugnale03.png"]
     },
-    "weapon": "knife"
+    "weapon": {
+      "type": "knife",
+      "min_damage": 1,
+      "max_damage": 42,
+      "speed": 50,
+      "min_defense": 1,
+      "max_defense": 3
+    },
+    "physics": {
+      "material": "iron",
+      "weight": 1,
+      "collectible": true,
+      "size": 1
+    }
   }
 }

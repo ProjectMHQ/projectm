@@ -81,6 +81,15 @@ class _BasicStructType:
     def __repr__(self):
         return repr(self.value)
 
+    def __iter__(self):
+        return iter(self.value)
+
+    def __add__(self, other):
+        return self.value + other
+
+    def __len__(self):
+        return len(self.value)
+
     def __str__(self):
         return str(self.value)
 
@@ -96,8 +105,8 @@ class _BasicStructType:
     def __hash__(self):
         return hash(self.value)
 
-    def __len__(self):
-        return len(self.value)
+    def __and__(self, other):
+        return other and self.value
 
     def null(self):
         self.value = None
@@ -225,8 +234,8 @@ class _StructListType(_BasicStructType):
         self.owner = owner
         self.key = key
 
-    def __iter__(self):
-        return iter(self.value)
+    def __getitem__(self, item):
+        return self.value[item]
 
     def append(self, *values: int):
         for value in values:
@@ -241,8 +250,8 @@ class _StructListType(_BasicStructType):
     def remove(self, *values: int):
         for value in values:
             assert isinstance(value, int)
-            assert value in self.value
-            self.value.remove(value)
+            if value in self.value:
+                self.value.remove(value)
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
         if not self.owner.bounds.get(self.key):

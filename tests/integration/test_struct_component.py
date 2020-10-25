@@ -36,6 +36,11 @@ class TestStructComponent(TestCase):
         loop.run_until_complete(self._test_save_struct_component())
         self.assertTrue(self.test_success)
 
+    def test2(self):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self._test_stuff_struct_component())
+        self.assertTrue(self.test_success)
+
     async def _test_save_struct_component(self):
         entity = Entity(555)
         entity2 = Entity(556)
@@ -89,7 +94,6 @@ class TestStructComponent(TestCase):
         self.assertEqual(component.manystuffhere, [3, 6, 9])
         self.assertEqual(component.integerrr, 42)
         self.assertEqual(component.boolean, True)
-        self.test_success = True
         c.manystuffhere.remove(3)
         c.weirdstuff.set('yahi!')
         entity.set_for_update(c)
@@ -108,3 +112,41 @@ class TestStructComponent(TestCase):
         component2 = res[556][0]
         self.assertEqual(component.manystuffhere, [])
         self.assertEqual(component2.manystuffhere, [666])
+        self.assertEqual(component2.manystuffhere + [2], [666, 2])
+        self.test_success = True
+
+    async def _test_stuff_struct_component(self):
+        class TestComponent2(StructComponent):
+            component_enum = 1
+            meta = (
+                ('weirdstuff', str),
+                ('manystuffhere', list),
+                ('integerrr', int),
+                ('boolean', bool),
+                ('a', dict)
+            )
+
+        class TestComponent(StructComponent):
+            component_enum = 0
+            meta = (
+                ('weirdstuff', str),
+                ('manystuffhere', list),
+                ('integerrr', int),
+                ('boolean', bool),
+                ('a', dict)
+            )
+            has_index = ('weirdstuff', )
+            has_default = ('integerrr', )
+
+        ent = Entity(444)
+        c3 = TestComponent().weirdstuff.set('weirdstuff').a.set('key', 'value').manystuffhere.append(3)
+        c4 = TestComponent2().weirdstuff.set('weirdstuff2').a.set('key', 'value2').manystuffhere.append(6)
+        ent.set_for_update(c3).set_for_update(c4)
+        await self.sut.update_entities(ent)
+        res = await self.sut.read_struct_components_for_entity(444, TestComponent, TestComponent2)
+        self.assertEqual(res[c3.component_enum].weirdstuff, 'weirdstuff')
+        self.assertEqual(res[c3.component_enum].a, {'key': 'value'})
+        self.assertEqual(res[c4.component_enum].weirdstuff, 'weirdstuff2')
+        self.assertEqual(res[c4.component_enum].a, {'key': 'value2'})
+
+        self.test_success = True

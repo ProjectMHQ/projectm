@@ -1,4 +1,5 @@
 import inspect
+import itertools
 import typing
 
 from core.src.auth.logging_factory import LOGGER
@@ -63,13 +64,12 @@ async def populate_container(container: InventoryComponent, *components):
         [Entity(x) for x in container.content], list(components)
     )
     container._raw_populated = data
-    container._populated = [data[x] for x in container.content]
-    return container
+    return [data[x] for x in container.content]
 
 
 def move_entity_from_container(
         entity: Entity,
-        target: (PosComponent, ListComponent),
+        target: (PosComponent, InventoryComponent),
         current_position=None,
         parent: Entity = None
 ):
@@ -79,13 +79,13 @@ def move_entity_from_container(
 
     elif entity.get_component(ParentOfComponent):
         assert entity.get_component(ParentOfComponent).parent_id == parent.entity_id
-        parent.set_for_update(InventoryComponent().remove(entity.entity_id))
+        parent.set_for_update(InventoryComponent().content.remove(entity.entity_id))
 
     else:
         raise ValueError('Cannot recognize target original position data')
 
-    if isinstance(target, ListComponent) and target.is_array():
-        target.add(entity.entity_id)
+    if isinstance(target, InventoryComponent):
+        target.content.append(entity.entity_id)
         target.owned_by().set_for_update(target)
         entity.set_for_update(ParentOfComponent(entity=target.owned_by(), location=target))
     elif isinstance(target, PosComponent):
@@ -102,9 +102,9 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
     Search for entities in the provided container, using the keyword param.
     Accept a wildcard as the final character of the keyword argument, to search for multiple entities.
     """
-    await populate_container(container, AttributesComponent)
+    container_entities = await populate_container(container, AttributesComponent)
     if '*' not in keyword:
-        for i, v in enumerate(container.populated):
+        for i, v in enumerate(container_entities):
             attr_comp_value = v[AttributesComponent.component_enum]
             if attr_comp_value['keyword'].startswith(keyword):
                 entity = Entity(entity_id=container.content[i])\
@@ -154,38 +154,64 @@ async def search_entity_in_sight_by_keyword(
     if not room.has_entities:
         return
     all_but_me = [eid for eid in room.entity_ids if eid != entity.entity_id]
-    self_inventory = []
+    self_inventory = None
     if include_self:
-        self_inventory = entity.get_component(InventoryComponent).content
-        all_but_me = all_but_me + self_inventory
+        self_inventory = entity.get_component(InventoryComponent)
+        all_but_me = self_inventory.content + all_but_me
 
     # filtering - investigate how to improve it
-    target_data = {}
     components = [PosComponent, AttributesComponent, ParentOfComponent]
-    if filter_by:
-        filter_by = filter_by if isinstance(filter_by, (tuple, list)) else (filter_by,)
-        component_types_in_filter = [comp for comp in filter_by]
-        components = components + list(component_types_in_filter)
-    else:
-        filter_by = []
-    _target_data = (await world_repository.get_components_values_by_entities_ids(all_but_me, components))
+
+    def _make_filters(_f_by):
+        if not _f_by:
+            return [], []
+        from core.src.world.components.base.structcomponent import StructComponent
+        _fb = []
+        _sb = []
+        if issubclass(_f_by, StructComponent):
+            _sb.append(_f_by)
+        elif isinstance(_f_by, (tuple, list)):
+            for _f in _f_by:
+                if issubclass(_f, StructComponent):
+                    _sb.append(_f)
+                else:
+                    _fb.append(_f)
+        else:
+            _fb.append(_f_by)
+        return _fb, _sb
+
+    filter_by, struct_filters = _make_filters(filter_by)
+    _target_data = await world_repository.get_components_values_by_entities_ids(all_but_me, components)
     filtered = []
+    target_data = {}
     for e_id, comp in _target_data.items():
         if not filter_by:
-            target_data = _target_data
+            target_data.update(_target_data)
         for c in filter_by:
-            if target_data.get(e_id, None) is None:
+            if _target_data.get(e_id, None) is None:
                 target_data[e_id] = {}
-            if inspect.isclass(c):
-                if comp[c.component_enum] is None:
-                    filtered.append(e_id)
-            else:
-                if comp[c.component_enum] != c.value:
-                    filtered.append(e_id)
+            assert inspect.isclass(c)
+            if comp[c.component_enum] is None:
+                filtered.append(e_id)
         if e_id in filtered:
             continue
-        target_data[e_id] = {c: v for c, v in comp.items()}
-
+        if not target_data.get(e_id):
+            target_data[e_id] = {}
+        target_data[e_id].update({c: v for c, v in comp.items()})
+    if struct_filters:
+        struct_data = await world_repository.read_struct_components_for_entities(all_but_me, *struct_filters)
+        for e_id, comp in struct_data.items():
+            for c in struct_filters:
+                if struct_data.get(e_id, None) is None:
+                    target_data[e_id] = {}
+                assert inspect.isclass(c)
+                if comp[c.component_enum] is None:
+                    filtered.append(e_id)
+            if e_id in filtered:
+                continue
+            if not target_data.get(e_id):
+                target_data[e_id] = {}
+            target_data[e_id].update({c: v for c, v in comp.items()})
     # end filtering
 
     search_data = []
@@ -222,7 +248,7 @@ async def search_entity_in_sight_by_keyword(
         target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.component_enum])
 
     entity = Entity(found_entity_id).set_component(target_attributes)
-    if found_entity_id in self_inventory:
+    if self_inventory and found_entity_id in self_inventory.content:
         entity.set_component(
             ParentOfComponent(target_data[found_entity_id][ParentOfComponent.component_enum])
         )
@@ -231,6 +257,9 @@ async def search_entity_in_sight_by_keyword(
     # Mount filtered components
     for f in filter_by:
         entity.set_component(f(target_data[found_entity_id][f.component_enum]))
+    for f in struct_filters:
+        assert isinstance(target_data[found_entity_id][f.component_enum], f)
+        entity.set_component(target_data[found_entity_id][f.component_enum])
     # End
     return entity
 
@@ -321,11 +350,24 @@ async def load_components(entity, *components):
     Useful to load multiple components with a single DB interaction, and reduce DB load.
     """
     from core.src.world.builder import world_repository
-    data = await world_repository.get_components_values_by_components_storage([entity.entity_id], components)
+    from core.src.world.components.base.structcomponent import StructComponent
+    struct = []
+    comps = []
     for c in components:
-        comp = c(data[c.component_enum][entity.entity_id])
+        if issubclass(c, StructComponent):
+            struct.append(c)
+        else:
+            comps.append(c)
+    struct_components = struct and \
+                        (await world_repository.read_struct_components_for_entity(entity.entity_id, *struct)) or {}
+    data = await world_repository.get_components_values_by_components_storage([entity.entity_id], comps)
+    for legacy_c in comps:
+        comp = legacy_c(data[legacy_c.component_enum][entity.entity_id])
         comp.set_owner(entity)
         entity.set_component(comp)
+    for k, c in struct_components.items():
+        c.set_owner(entity)
+        entity.set_component(c)
     return entity
 
 
