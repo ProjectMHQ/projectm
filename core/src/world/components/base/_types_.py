@@ -18,3 +18,4 @@ class ComponentTypeEnum(enum.IntEnum):
     PARENT_OF = 9
     INSTANCE_BY = 10
     COLLECTIBLE = 11
+    SYSTEM = 12

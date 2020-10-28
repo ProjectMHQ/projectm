@@ -3,7 +3,7 @@ from core.src.world.components.base.dictcomponent import DictComponent
 
 
 class AttributesComponent(DictComponent):
-    component_enum = ComponentTypeEnum.ATTRIBUTES
+    enum = ComponentTypeEnum.ATTRIBUTES
     key = ComponentTypeEnum.ATTRIBUTES.value
     libname = "attributes"
     has_default = True

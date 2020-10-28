@@ -2,7 +2,7 @@ from core.src.world.components.base import ComponentType
 
 
 class BoolComponent(ComponentType):
-    component_enum = NotImplementedError
+    enum = NotImplementedError
     key = NotImplementedError
     component_type = bool
     libname = NotImplementedError

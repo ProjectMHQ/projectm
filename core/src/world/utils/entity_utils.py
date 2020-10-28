@@ -105,7 +105,7 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
     container_entities = await populate_container(container, AttributesComponent)
     if '*' not in keyword:
         for i, v in enumerate(container_entities):
-            attr_comp_value = v[AttributesComponent.component_enum]
+            attr_comp_value = v[AttributesComponent.enum]
             if attr_comp_value['keyword'].startswith(keyword):
                 entity = Entity(entity_id=container.content[i])\
                     .set_component(AttributesComponent(attr_comp_value))\
@@ -119,7 +119,7 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
         assert keyword[-1] == '*'
         keyword = keyword.replace('*', '')
         for i, v in enumerate(container.populated):
-            attr_comp_value = v[AttributesComponent.component_enum]
+            attr_comp_value = v[AttributesComponent.enum]
             if attr_comp_value['keyword'].startswith(keyword):
                 entity = Entity(entity_id=container.content[i])\
                     .set_component(AttributesComponent(attr_comp_value))\
@@ -191,7 +191,7 @@ async def search_entity_in_sight_by_keyword(
             if _target_data.get(e_id, None) is None:
                 target_data[e_id] = {}
             assert inspect.isclass(c)
-            if comp[c.component_enum] is None:
+            if comp[c.enum] is None:
                 filtered.append(e_id)
         if e_id in filtered:
             continue
@@ -205,7 +205,7 @@ async def search_entity_in_sight_by_keyword(
                 if struct_data.get(e_id, None) is None:
                     target_data[e_id] = {}
                 assert inspect.isclass(c)
-                if comp[c.component_enum] is None:
+                if comp[c.enum] is None:
                     filtered.append(e_id)
             if e_id in filtered:
                 continue
@@ -231,7 +231,7 @@ async def search_entity_in_sight_by_keyword(
             continue
         search_data.append(
             {'entity_id': entity_id, 'data': [
-                {'keyword': target_data[entity_id][AttributesComponent.component_enum]['keyword']}
+                {'keyword': target_data[entity_id][AttributesComponent.enum]['keyword']}
             ]},
         )
     if not search_data:
@@ -245,21 +245,21 @@ async def search_entity_in_sight_by_keyword(
     if entity.entity_id == found_entity_id:
         target_attributes = entity.get_component(AttributesComponent)
     else:
-        target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.component_enum])
+        target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.enum])
 
     entity = Entity(found_entity_id).set_component(target_attributes)
     if self_inventory and found_entity_id in self_inventory.content:
         entity.set_component(
-            ParentOfComponent(target_data[found_entity_id][ParentOfComponent.component_enum])
+            ParentOfComponent(target_data[found_entity_id][ParentOfComponent.enum])
         )
     else:
-        entity.set_component(PosComponent(target_data[found_entity_id][PosComponent.component_enum]))
+        entity.set_component(PosComponent(target_data[found_entity_id][PosComponent.enum]))
     # Mount filtered components
     for f in filter_by:
-        entity.set_component(f(target_data[found_entity_id][f.component_enum]))
+        entity.set_component(f(target_data[found_entity_id][f.enum]))
     for f in struct_filters:
-        assert isinstance(target_data[found_entity_id][f.component_enum], f)
-        entity.set_component(target_data[found_entity_id][f.component_enum])
+        assert isinstance(target_data[found_entity_id][f.enum], f)
+        entity.set_component(target_data[found_entity_id][f.enum])
     # End
     return entity
 
@@ -316,12 +316,12 @@ async def ensure_same_position(self_entity: Entity, *entities: Entity) -> bool:
     for e in entities:
         if e.get_component(PosComponent):
             assert not e.get_component(ParentOfComponent)
-            p_value = target_data[e.entity_id][PosComponent.component_enum]
+            p_value = target_data[e.entity_id][PosComponent.enum]
             if p_value != pos0_value:
                 return False
         elif e.get_component(ParentOfComponent):
             assert not e.get_component(PosComponent)
-            p_value = target_data[e.entity_id][ParentOfComponent.component_enum]
+            p_value = target_data[e.entity_id][ParentOfComponent.enum]
             if p_value[0] != self_entity.entity_id:
                 return False
         else:
@@ -350,7 +350,7 @@ async def batch_load_components(*components, entities=()):
     data = await world_repository.get_components_values_by_entities_ids([e.entity_id for e in entities], components)
     for entity in entities:
         for c in comps:
-            comp = c(data[entity.entity_id][c.component_enum])
+            comp = c(data[entity.entity_id][c.enum])
             comp.set_owner(entity)
             entity.set_component(comp)
     for entity in entities:
@@ -378,7 +378,7 @@ async def load_components(entity, *components):
                         (await world_repository.read_struct_components_for_entity(entity.entity_id, *struct)) or {}
     data = await world_repository.get_components_values_by_components_storage([entity.entity_id], comps)
     for legacy_c in comps:
-        comp = legacy_c(data[legacy_c.component_enum][entity.entity_id])
+        comp = legacy_c(data[legacy_c.enum][entity.entity_id])
         comp.set_owner(entity)
         entity.set_component(comp)
     for k, c in struct_components.items():

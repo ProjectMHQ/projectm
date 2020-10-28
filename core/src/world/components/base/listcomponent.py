@@ -9,7 +9,7 @@ class ListComponent(ComponentType):
     This list component is 1:1 on a redis SortedSet, so it doesn't allow duplicates, but keeps order.
     Since no checks are made, ensure the code doesn't add duplicates into this component.
     """
-    component_enum = NotImplementedError
+    enum = NotImplementedError
     key = NotImplementedError
     component_type = list
     libname = NotImplementedError

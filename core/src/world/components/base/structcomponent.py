@@ -267,8 +267,7 @@ class StructComponent(ComponentType):
     Example:
 
     class InventoryComponent(StructComponent):
-        component_enum = ComponentTypeEnum.INVENTORY
-        key = ComponentTypeEnum.INVENTORY.value
+        enum = ComponentTypeEnum.INVENTORY
         libname = "inventory"
 
         _meta = (
@@ -277,10 +276,9 @@ class StructComponent(ComponentType):
         )
 
     """
-
-    _meta = ()
-    _indexes = ()
-    _defaults = ()
+    meta = ()
+    indexes = ()
+    defaults = ()
 
     @classmethod
     def is_active(cls):
@@ -302,9 +300,12 @@ class StructComponent(ComponentType):
         self.bounds = {}
         self._current_values = {}
         self._bake_class()
+        self._reserved_names = {'meta', 'indexes', 'defaults'}
 
         for k, v in kwargs.items():
-            expected_type = self._meta[getattr(self.meta_enum, k)][1]
+            assert k not in self._reserved_names
+            assert not getattr(self, k, None)
+            expected_type = self.meta[getattr(self.meta_enum, k)][1]
             assert type(v) == expected_type
             self._set_value(k, v)
 
@@ -320,7 +321,7 @@ class StructComponent(ComponentType):
             pass
 
         self.meta_enum = MetaEnum
-        for i, meta in enumerate(self._meta):
+        for i, meta in enumerate(self.meta):
             setattr(self.meta_enum, meta[0], i)
             values = {int: b'0', list: [], str: b"", bool: b'0', dict: {}}
             load_value_in_struct_component(self, meta[0], values[meta[1]])
@@ -338,8 +339,9 @@ class StructComponent(ComponentType):
     def has_default(self, key):
         return key in self.defaults
 
-    def get_subtype(self, key):
-        return self._meta[getattr(self.meta_enum, key)][1]
+    @classmethod
+    def get_subtype(cls, key):
+        return {k[0]: k[1] for k in cls.meta}[key]
 
     @property
     def current_values(self):
@@ -347,7 +349,7 @@ class StructComponent(ComponentType):
 
 
 def load_value_in_struct_component(component, key, value):
-    expected_type = component._meta[getattr(component.meta_enum, key)][1]
+    expected_type = component.meta[getattr(component.meta_enum, key)][1]
     if expected_type is list:
         component.current_values[key] = _StructListType(component, key, value and [int(x) for x in value])
     elif expected_type is dict:

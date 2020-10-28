@@ -11,7 +11,7 @@ class WeaponType(Enum):
 
 
 class WeaponComponent(StringComponent):
-    component_enum = ComponentTypeEnum.WEAPON
+    enum = ComponentTypeEnum.WEAPON
     key = ComponentTypeEnum.WEAPON.value
     libname = "weapon"
     has_default = True

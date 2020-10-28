@@ -10,6 +10,7 @@ from core.src.world.components.pos import PosComponent
 
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import get_base_room_for_entity
+from core.src.world.utils.messaging import emit_msg
 
 
 class ConnectionsObserver:
@@ -71,18 +72,22 @@ class ConnectionsObserver:
         self.loop.create_task(getmap(entity))
 
     async def greet(self, entity: Entity):
-        await entity.emit_msg(
+        await emit_msg(
+            entity,
             "Welcome to a new place..."
         )
         await asyncio.sleep(3)
-        await entity.emit_msg(
+        await emit_msg(
+            entity,
             "Look around..."
         )
         await asyncio.sleep(3)
-        await entity.emit_msg(
+        await emit_msg(
+            entity,
             "..but be careful... "
         )
         await asyncio.sleep(3)
-        await entity.emit_msg(
+        await emit_msg(
+            entity,
             "..Antani is on fire."
         )

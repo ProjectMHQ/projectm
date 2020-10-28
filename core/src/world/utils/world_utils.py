@@ -50,7 +50,7 @@ async def get_current_room(entity: Entity, populate=True):
             [entity.entity_id],
             [PosComponent]
         )
-        entity.set_component(PosComponent(pos[entity.entity_id][PosComponent.component_enum]))
+        entity.set_component(PosComponent(pos[entity.entity_id][PosComponent.enum]))
     room = await map_repository.get_room(entity.get_component(PosComponent), populate=populate)
     populate and await room.populate_content()
     entity.set_room(room)

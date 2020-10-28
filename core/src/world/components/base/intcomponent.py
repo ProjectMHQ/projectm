@@ -2,7 +2,7 @@ from core.src.world.components.base import ComponentType
 
 
 class IntComponent(ComponentType):
-    component_enum = NotImplementedError
+    enum = NotImplementedError
     key = NotImplementedError
     component_type = int
     libname = NotImplementedError

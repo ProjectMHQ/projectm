@@ -45,7 +45,7 @@ class CharacterDOImpl(CharacterDOAbstract):
         instance = cls(
             character_id=model.character_id,
             name=model.name,
-            meta=model._meta,
+            meta=model.meta,
             user_id=model.user.user_id
         )
         return instance

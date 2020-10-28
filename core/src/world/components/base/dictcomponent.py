@@ -6,7 +6,7 @@ from core.src.world.components.base import ComponentType
 
 class DictComponent(ComponentType):
     component_type = dict
-    component_enum = NotImplementedError
+    enum = NotImplementedError
     key = NotImplementedError
     libname = NotImplementedError
 

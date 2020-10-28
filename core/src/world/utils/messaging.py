@@ -28,7 +28,7 @@ async def emit_msg(entity, message: str):
             components_data = await world_repository.get_components_values_by_components_storage(
                 [entity.entity_id], [ConnectionComponent]
             )
-            connection_id = components_data[ConnectionComponent.component_enum][entity.entity_id]
+            connection_id = components_data[ConnectionComponent.enum][entity.entity_id]
             if connection_id:
                 entity.set_component(ConnectionComponent(connection_id))
                 await transport.send_message(
@@ -71,9 +71,9 @@ async def emit_room_sys_msg(entity: Entity, event_type: str, details: typing.Dic
         elegible_listeners, [ConnectionComponent, PosComponent]
     )
     futures = []
-    for entity_id, value in components_data[PosComponent.component_enum].items():
+    for entity_id, value in components_data[PosComponent.enum].items():
         if value == room.position.value and \
-                components_data.get(ConnectionComponent.component_enum, {}).get(entity_id):
+                components_data.get(ConnectionComponent.enum, {}).get(entity_id):
             payload = {
                 "event": event_type,
                 "target": "entity",
@@ -82,7 +82,7 @@ async def emit_room_sys_msg(entity: Entity, event_type: str, details: typing.Dic
             }
             futures.append(
                 transport.send_system_event(
-                    components_data[ConnectionComponent.component_enum][entity_id],
+                    components_data[ConnectionComponent.enum][entity_id],
                     payload
                 )
             )
@@ -110,12 +110,12 @@ async def emit_room_msg(origin: Entity, message_template, target: Entity = None,
         elegible_listeners, [ConnectionComponent, PosComponent]
     )
     futures = []
-    for entity_id, value in components_data[PosComponent.component_enum].items():
-        if value == room.position.value and components_data[ConnectionComponent.component_enum][entity_id]:
+    for entity_id, value in components_data[PosComponent.enum].items():
+        if value == room.position.value and components_data[ConnectionComponent.enum][entity_id]:
             # TODO - Evaluate VS entity memory
             futures.append(
                 transport.send_message(
-                    components_data[ConnectionComponent.component_enum][entity_id],
+                    components_data[ConnectionComponent.enum][entity_id],
                     message_template.format(
                         origin=origin.get_component(AttributesComponent).keyword,
                         target=target and target.get_component(AttributesComponent).keyword

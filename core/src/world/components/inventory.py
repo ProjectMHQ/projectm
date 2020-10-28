@@ -3,11 +3,10 @@ from core.src.world.components.base.structcomponent import StructComponent
 
 
 class InventoryComponent(StructComponent):
-    component_enum = ComponentTypeEnum.INVENTORY
-    key = ComponentTypeEnum.INVENTORY.value
+    enum = ComponentTypeEnum.INVENTORY
     libname = "inventory"
 
-    _meta = (
+    meta = (
         ("content", list),
         ("current_weight", int)
     )

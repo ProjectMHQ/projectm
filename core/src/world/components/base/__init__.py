@@ -6,13 +6,13 @@ from core.src.world.components.base._types_ import ComponentTypeEnum
 
 
 class ComponentType(metaclass=abc.ABCMeta):
-    component_enum = ComponentTypeEnum.NULL
-    key = ComponentTypeEnum.NULL.value
+    enum = ComponentTypeEnum.NULL
     component_type = NotImplementedError
     libname = ''
     has_default = False
     subtype = None
     is_struct = False
+    key = enum.value
 
     def __init__(self, value=None):
         self._value = value

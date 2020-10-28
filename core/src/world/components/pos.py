@@ -5,7 +5,7 @@ from core.src.world.components.base.listcomponent import ListComponent
 
 
 class PosComponent(ListComponent):
-    component_enum = ComponentTypeEnum.POS
+    enum = ComponentTypeEnum.POS
     key = ComponentTypeEnum.POS.value
     libname = "pos"
     subtype = int

@@ -4,7 +4,7 @@ from core.src.world.components.base import ComponentType
 
 
 class StringComponent(ComponentType):
-    component_enum = NotImplementedError
+    enum = NotImplementedError
     key = NotImplementedError
     component_type = str
     libname = NotImplementedError

@@ -41,6 +41,11 @@ class TestStructComponent(TestCase):
         loop.run_until_complete(self._test_stuff_struct_component())
         self.assertTrue(self.test_success)
 
+    def test3(self):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self._test_selective_repo_queries())
+        self.assertTrue(self.test_success)
+
     async def _test_save_struct_component(self):
         entity = Entity(555)
         entity2 = Entity(556)
@@ -144,9 +149,35 @@ class TestStructComponent(TestCase):
         ent.set_for_update(c3).set_for_update(c4)
         await self.sut.update_entities(ent)
         res = await self.sut.read_struct_components_for_entity(444, TestComponent, TestComponent2)
-        self.assertEqual(res[c3.component_enum].weirdstuff, 'weirdstuff')
-        self.assertEqual(res[c3.component_enum].a, {'key': 'value'})
-        self.assertEqual(res[c4.component_enum].weirdstuff, 'weirdstuff2')
-        self.assertEqual(res[c4.component_enum].a, {'key': 'value2'})
+        self.assertEqual(res[c3.enum].weirdstuff, 'weirdstuff')
+        self.assertEqual(res[c3.enum].a, {'key': 'value'})
+        self.assertEqual(res[c4.enum].weirdstuff, 'weirdstuff2')
+        self.assertEqual(res[c4.enum].a, {'key': 'value2'})
 
+        self.test_success = True
+
+    async def _test_selective_repo_queries(self):
+
+        class TestComponent(StructComponent):
+            enum = 1
+            key = enum
+            meta = (
+                ('weirdstuff', str),
+                ('manystuffhere', list),
+                ('integerrr', int),
+                ('boolean', bool),
+                ('a', dict)
+            )
+
+        c = TestComponent().weirdstuff.set('weirdstuff').a.set('key', 'value').manystuffhere.append(3)
+        entity = Entity(123)
+        entity.set_for_update(c)
+        await self.sut.update_entities(entity)
+        res = await self.sut.read_struct_components_for_entities([123], (TestComponent, 'weirdstuff'))
+        r = res[123][c.enum]
+        self.assertEqual(r.weirdstuff, 'weirdstuff')
+        self.assertEqual(r.manystuffhere, [])
+        self.assertEqual(r.integerrr, 0)
+        self.assertEqual(r.boolean, False)
+        self.assertEqual(r.a, {})
         self.test_success = True

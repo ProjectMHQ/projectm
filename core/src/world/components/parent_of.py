@@ -4,7 +4,7 @@ from core.src.world.components.base.listcomponent import ListComponent
 
 
 class ParentOfComponent(ListComponent):
-    component_enum = ComponentTypeEnum.PARENT_OF
+    enum = ComponentTypeEnum.PARENT_OF
     key = ComponentTypeEnum.PARENT_OF.value
     libname = "parent_of"
     subtype = int
@@ -15,7 +15,7 @@ class ParentOfComponent(ListComponent):
             value = [self.subtype(a[0][0]), self.subtype(a[0][1])]
         elif entity and location:
             entity_id = (entity and entity.entity_id) or entity_id
-            value = [entity_id, location.component_enum]
+            value = [entity_id, location.enum]
         else:
             value = None
         super().__init__(value)
