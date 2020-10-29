@@ -1,12 +1,21 @@
 Project M
 ---
 
-E' necessario settare una variabile d'ambiente PROJECTM_ENV.
-In sviluppo dev'essere "development".
+**ENVIRONMENT**:
 
+It's necessary to declare an environment variable (for development, it must be set to `development`).
+
+You can either specify at every command (like in the code snippets below) or set it in your `~/.bashrc`:
+
+```
+export PROJECTM_ENV=development
+```
+at the end of the file.
 
 **SETUP**: 
 ```bash
+# first install redis via your package manager,
+# then do the following:
 git pull projectm_url
 cd projectm
 virtualenv -p python3.6 venv
@@ -27,11 +36,12 @@ then open with browser projectm/htmlcov/index.html
 ```bash
 cd projectm
 . venv/bin/activate
+
+# type each of these lines in a different terminal
+redis-server # if not running as a service
 PROJECTM_ENV=development python -m core.src.auth.app
 PROJECTM_ENV=development python -m core.src.world.run_websocket
 PROJECTM_ENV=development python -m core.src.world.run_worker
-
-(in separate terminals, obv)
 ```
 
 **CLIENT (API test)**:
@@ -52,7 +62,6 @@ python -m manage user signup
  PROJECTM_ENV=development python -m tools.txt_map_to_redis
 ```
 
-
 **IN THE NEED OF CUSTOMIZED SETTINGS**:
 ```bash
 cd projectm
@@ -64,16 +73,6 @@ Notes:
 
 - The filename is into `.gitignore`.
 - Keys with typos are ignored and the default settings is used.
-
-
-
-**TO AVOID DECLARE PROJECTM_ENV EVERYTIME**:
-
-edit ~/.bashrc and add
-```
-export PROJECTM_ENV=development
-```
-at the end of the file, to avoid explicitly declare the variable at every execution.
 
 
 **CUSTOMIZING APP SETTINGS VIA `local-settings.conf`:**
