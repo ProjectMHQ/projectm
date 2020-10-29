@@ -5,8 +5,8 @@ from core.src.auth.builder import auth_service, redis_characters_index_repositor
     psql_character_repository
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.character import CharacterComponent
-from core.src.world.components.created_at import CreatedAtComponent
+
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.entity import Entity
 
 
@@ -23,15 +23,10 @@ def build_public_namespace(sio, world_repository, websocket_channels_service):
     async def create_character(sid, payload):
         token = auth_service.decode_session_token(payload['token'])
         assert token['context'] == 'world:create'
+        system_component = SystemComponent(character=True, created_at=int(time.time()))
         entity = Entity() \
-            .set_for_update(CharacterComponent(True))\
-            .set_for_update(CreatedAtComponent(int(time.time()))) \
-            .set_for_update(AttributesComponent(
-                {
-                    "name": payload["name"],
-                    "keyword": "uomo"  # FIXME TODO Race
-                }
-        ))\
+            .set_for_update(system_component) \
+            .set_for_update(AttributesComponent({"name": payload["name"], "keyword": "uomo"}))
 
         entity = await world_repository.save_entity(entity)
         """
