@@ -16,4 +16,8 @@ class SystemComponent(StructComponent):
         ("instance_of", int),
         ("active", bool)
     )
-    indexes = ("active",)
+    indexes = (
+        ("active", bool),
+        ("connection", bool),
+        ("user_id", str)
+    )

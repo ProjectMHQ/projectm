@@ -78,6 +78,12 @@ class RedisLUAPipeline:
         self.value += "redis.call('zrange', 'temp:{}:2', 0, -1)\n".format(seed)
         self.value += "redis.call('del', 'temp:{0}:2', 'temp:{0}:1')\n".format(seed)
 
+    def mantain_valued_index(self, index_prefix: str, value: (str, int), entity_id: int):
+        raise NotImplementedError
+
+    def drop_value_from_index(self, index_prefix: str, value: (str, int), entity_id: int):
+        raise NotImplementedError
+
     def return_exit(self, value_key=None):
         self.value += "return {}".format(value_key or 0)
 

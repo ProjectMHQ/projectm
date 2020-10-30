@@ -1,7 +1,7 @@
 import asyncio
 import typing
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.components.connection import ConnectionComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 
@@ -43,15 +43,15 @@ class RedisPubSubEventsSubscriberService:
             )
 
     async def subscribe_events(self, entity: Entity):
-        connection = entity.get_component(ConnectionComponent)
-        assert connection
+        connection = entity.get_component(SystemComponent).connection
+        assert connection.value
         self._transports_by_entity_id[entity.entity_id] = connection.value
         await asyncio.gather(self._subscribe_entity(entity))
 
     async def bootstrap_subscribes(self, data: typing.List[typing.Dict]):
         for en in data:
             await self.subscribe_events(
-                Entity(en['entity_id']).set_component(ConnectionComponent(en['channel_id']))
+                Entity(en['entity_id']).set_component(SystemComponent(connection=en['channel_id']))
             )
 
     async def unsubscribe_all(self, entity: Entity):

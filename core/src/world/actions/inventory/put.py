@@ -4,8 +4,7 @@ from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import load_components, update_entities, \
     search_entities_in_container_by_keyword, move_entity_from_container, search_entity_in_sight_by_keyword
-from core.src.world.utils.messaging import emit_msg, emit_room_msg, emit_sys_msg, emit_room_sys_msg, \
-    get_stacker
+from core.src.world.utils.messaging import emit_msg, emit_room_msg, emit_sys_msg, get_stacker
 
 messages = InventoryMessages()
 

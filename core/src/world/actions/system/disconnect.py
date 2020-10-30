@@ -1,6 +1,6 @@
 from core.src.world.actions_scheduler.tools import singleton_action
-from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import update_entities, load_components
 from core.src.world.utils.messaging import emit_sys_msg, get_eligible_listeners_for_area, get_events_publisher
@@ -18,5 +18,5 @@ async def disconnect_entity(entity: Entity):
         listeners
     )
     await emit_sys_msg(entity, "event", "quit")
-    entity.set_for_update(ConnectionComponent(""))
+    entity.set_for_update(SystemComponent().connection.set(""))
     update_entities(entity)

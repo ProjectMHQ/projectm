@@ -5,8 +5,8 @@ from core.src.world.actions.system.cast import cast_entity
 from core.src.world.actions.system.disconnect import disconnect_entity
 from core.src.world.actions.system.getmap import getmap
 from core.src.world.actions.look.look import look
-from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
+from core.src.world.components.system import SystemComponent
 
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import get_base_room_for_entity
@@ -37,7 +37,7 @@ class ConnectionsObserver:
     async def on_message(self, message: typing.Dict):
         entity = Entity(
             message['e_id'], itsme=True
-        ).set_component(ConnectionComponent(message['n']))
+        ).set_component(SystemComponent().connection.set(message['n']))
         if message['c'] == 'connected':
             await self.on_connect(entity)
         elif message['c'] == 'disconnected':
@@ -46,10 +46,10 @@ class ConnectionsObserver:
             raise ValueError('wtf?!')
 
     async def on_disconnect(self, entity: Entity):
-        current_connection = list(await self.world_repository.get_raw_component_value_by_entity_ids(
-            ConnectionComponent, entity.entity_id
-        ))
-        if current_connection and current_connection[0] != entity.get_component(ConnectionComponent).value:
+        current_connection = await self.world_repository.read_struct_components_for_entity(
+            entity.entity_id, (SystemComponent, 'connection')
+        )[SystemComponent.enum]
+        if current_connection != entity.get_component(SystemComponent).connection.value:
             return
         await disconnect_entity(entity)
         self.events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
@@ -57,9 +57,9 @@ class ConnectionsObserver:
         await self.events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
-        await self.world_repository.update_entities(
-            entity.set_for_update(ConnectionComponent(entity.get_component(ConnectionComponent).value))
-        )
+        #await self.world_repository.update_entities(
+        #    entity.set_for_update(ConnectionComponent(entity.get_component(ConnectionComponent).value))
+        #)
         self.events_subscriber_service.add_observer_for_entity_id(entity.entity_id, self.pubsub_observer)
         pos = await self.world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         if not pos:
@@ -67,7 +67,7 @@ class ConnectionsObserver:
             self.loop.create_task(self.greet(entity))
         else:
             await cast_entity(entity, pos, update=False, on_connect=True, reason="connect")
-        self.manager.set_transport(entity.entity_id, entity.get_component(ConnectionComponent).value)
+        self.manager.set_transport(entity.entity_id, entity.get_component(SystemComponent).connection.value)
         self.loop.create_task(look(entity))
         self.loop.create_task(getmap(entity))
 

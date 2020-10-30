@@ -1,7 +1,7 @@
 from core.src.world.builder import events_subscriber_service, channels_repository, \
     world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub_manager, \
     library_repository
-from core.src.world.components.connection import ConnectionComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.entity import Entity
 
 worker_queue_manager.add_queue_observer('connected', connections_observer)
@@ -24,10 +24,8 @@ async def check_entities_connection_status():
         return []
     # FIXME TODO multiprocess workers must discriminate and works only on their own entities
 
-    components_values = list(
-        await world_repository.get_raw_component_value_by_entity_ids(
-            ConnectionComponent, *connected_entity_ids
-        )
+    connections = await world_repository.read_struct_components_for_entities(
+        *connected_entity_ids, (SystemComponent, 'connection')
     )
     to_update = []
     online = []

@@ -1,7 +1,7 @@
 import typing
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.components.connection import ConnectionComponent
+from core.src.world.components.system import SystemComponent
 
 from etc import settings
 from core.src.world.domain.entity import Entity
@@ -24,7 +24,7 @@ class CommandsObserver:
                 raise TypeError('Empty command?')
 
             entity = Entity(message['e_id'], itsme=True)
-            entity.set_component(ConnectionComponent(message['n']))
+            entity.set_component(SystemComponent(connection=message['n']))
 
             command = self._commands[data[0].lower()]
             if getattr(command, 'get_self', False):

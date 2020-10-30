@@ -37,10 +37,12 @@ async def look_at_target(entity: Entity, *arguments: str):
     elif not await ensure_same_position(entity, target_entity):
         await emit_msg(entity, messages.missing_target())
     else:
-        target_entity.can_receive_messages() and await emit_msg(
-            target_entity,
-            messages.entity_looks_at_you(entity.get_component(AttributesComponent).keyword)
-        )  # Avoid to send messages to... knives, for example :-)
+        if await check_entity_can_receive_messages(target_entity):
+            # Avoid to send messages to... knives, for example :-)
+            await emit_msg(
+                target_entity,
+                messages.entity_looks_at_you(entity.get_component(AttributesComponent).keyword)
+            )
 
         await emit_room_msg(
             origin=entity,

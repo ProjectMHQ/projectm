@@ -1,10 +1,7 @@
-import asyncio
-import time
-
-from core.src.world.components.character import CharacterComponent
-from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.components.pos import PosComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.entity import Entity
+from core.src.world.utils.entity_utils import load_components
 from core.src.world.utils.messaging import emit_msg
 
 
@@ -50,17 +47,18 @@ async def _destroy_instance(entity: Entity, parent_alias: str, entity_id_to_dele
     if not await world_repository.entity_exists(entity_id_to_delete):
         await emit_msg(entity, 'Entity does not exists, use cleanup (bug)')
         return
-    instance_of = await world_repository.get_component_value_by_entity_id(entity_id_to_delete, InstanceOfComponent)
-    is_character = await world_repository.get_component_value_by_entity_id(entity_id_to_delete, CharacterComponent)
-    if is_character:
+    entity_to_delete = Entity(entity_id_to_delete)
+    await load_components(entity_to_delete, (SystemComponent, 'instance_of', 'character'))
+    system_component = entity_to_delete.get_component(SystemComponent)
+    if system_component.character:
         await emit_msg(entity, 'Cannot destroy characters with this command')
         return
     if force != '--force':
-        if instance_of and (parent_alias != instance_of.value):
+        if system_component.instance_of and (parent_alias != system_component.instance_of):
             await emit_msg(
                 entity,
                     'Entity {} is not type <{}>, it\'s <{}> instead'.format(
-                    entity_id_to_delete, parent_alias, instance_of.value
+                    entity_id_to_delete, parent_alias, system_component.instance_of
                 )
             )
             return

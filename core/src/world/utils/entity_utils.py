@@ -1,15 +1,13 @@
 import inspect
-import itertools
 import typing
 
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.base import ComponentType
-from core.src.world.components.base.listcomponent import ListComponent
-from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.parent_of import ParentOfComponent
 from core.src.world.components.pos import PosComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.domain.room import Room
 from core.src.world.utils.world_utils import get_current_room
@@ -310,7 +308,7 @@ async def ensure_same_position(self_entity: Entity, *entities: Entity) -> bool:
     target_data = (
         await world_repository.get_components_values_by_entities_ids(
             list((e.entity_id for e in entities)),
-            [PosComponent, ConnectionComponent, ParentOfComponent]
+            [PosComponent, ParentOfComponent]
         )
     )
     for e in entities:

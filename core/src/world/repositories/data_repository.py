@@ -13,10 +13,9 @@ from core.src.world.components.base.structcomponent import StructSubtypeListActi
     StructSubtypeIntIncrAction, StructSubtypeIntSetAction, StructSubTypeSetNull, StructSubTypeBoolOn, \
     StructSubTypeBoolOff, StructSubTypeDictSetKeyValueAction, \
     StructSubTypeDictRemoveKeyValueAction, StructComponent, load_value_in_struct_component
-from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.factory import get_component_by_enum_value, get_component_alias_by_enum_value
-from core.src.world.components.instance_of import InstanceOfComponent
 from core.src.world.components.pos import PosComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.room import Room
 from core.src.world.domain.entity import Entity
@@ -204,8 +203,28 @@ class RedisDataRepository:
             pipeline.hdel('{}:{}'.format(self._entity_prefix, _del_en_id), *_del_components)
 
     @staticmethod
-    def _update_struct_component(pipeline, entity, component):
+    def _handle_index_for_struct_component(pipeline, component, k, v, entity):
+        assert isinstance(v, (bool, int, str))
+        index_type = component.get_index_type(k)
+        index_key = 'i:c:{}:{}'.format(component.key, k)
+        if index_type == bool:
+            if v:
+                pipeline.zadd(index_key, (0, entity.entity_id))
+            else:
+                pipeline.zrem(index_key, (0, entity.entity_id))
+        elif index_type == str:
+            if v:
+                pipeline.zadd(index_key, (0, entity.entity_id))
+                pipeline.mantain_valued_index(index_key, v, entity.entity_id)
+            else:
+                pipeline.zrem(index_key, (0, entity.entity_id))
+                pipeline.drop_value_from_index(index_key, v, entity.entity_id)
+        else:
+            raise ValueError('Unknown index type: %s' % index_type)
+
+    def _update_struct_component(self, pipeline, entity, component):
         for k, v in component.pending_changes.items():
+            component.has_index(k) and self._handle_index_for_struct_component(pipeline, component, k, v, entity)
             comp_key = component.enum
             if component.get_subtype(k) == int:
                 for action in v:
@@ -331,14 +350,7 @@ class RedisDataRepository:
         instance_of_value = None
         if component.component_type == bool:
             pipeline = redis.pipeline()
-            pipeline.getbit(
-                '{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix),
-                entity_id
-            )
-            if component.has_default:
-                pipeline.hget('{}:{}'.format(self._entity_prefix, entity_id), InstanceOfComponent.key)
-            else:
-                instance_of_value = None
+            pipeline.getbit('{}:{}:{}'.format(self._component_prefix, component.key, self._map_suffix), entity_id)
             res = await pipeline.execute()
             if not res:
                 return
@@ -346,18 +358,14 @@ class RedisDataRepository:
             if component.has_default:
                 instance_of_value = res[1]
         else:
-            res = await redis.hmget(
-                '{}:{}'.format(self._entity_prefix, entity_id),
-                InstanceOfComponent.key, component.key
-            )
+            res = await redis.hget('{}:{}'.format(self._entity_prefix, entity_id), component.key)
             if not res:
                 return
-            instance_of_value, component_value = res
+            return res
         if not component_value:
-            if component in (PosComponent, ConnectionComponent):
-                # Fixme
+            if component == PosComponent:
                 return
-            if not instance_of_value:
+            elif not instance_of_value:
                 # Todo - Remove once all the entities are fixed with a proper InstanceOf
                 LOGGER.core.error('Entity id {} has not InstanceOfComponent'.format(entity_id))
                 return
@@ -409,17 +417,12 @@ class RedisDataRepository:
         pipeline = redis.pipeline()
         for entity_id in entity_ids:
             key = '{}:{}'.format(self._entity_prefix, entity_id)
-            pipeline.hmget(key, InstanceOfComponent.key, component.key)
+            pipeline.hmget(key, component.key)
         results = await pipeline.execute()
         response = []
         for result in results:
-            if result[1] or not component.has_default:
+            if result[1]:
                 response.append(result[1] and result[1].decode())
-            else:
-                v = self.library_repository.get_defaults_for_library_element(
-                    result[0].decode(), component
-                )
-                response.append(v and v.value or v)
         return response
 
     async def get_components_values_by_components_storage(
@@ -550,10 +553,7 @@ class RedisDataRepository:
             ]
             if entity_ids:
                 for eid in entity_ids:
-                    pipeline.hget(
-                        '{}:{}:{}'.format(self._component_prefix, InstanceOfComponent.key, self._data_suffix),
-                        eid
-                    )
+                    pipeline.hget('c:{}:d:{}'.format(SystemComponent.key, 'instance_of'), eid)
                 comp = get_component_by_enum_value(c_key)
                 if comp.is_array():
                     for eid in entity_ids:
@@ -664,19 +664,19 @@ class RedisDataRepository:
                     )
                     pipeline.zscan(key, 0, -1)
                 elif all(status_and_querable):
-                    keys = [InstanceOfComponent.key] + [
+                    keys = [
                         comp_key for comp_key, status_and_querable in v.items() if all(status_and_querable)
                     ]
                     pipeline.hmget('{}:{}'.format(self._entity_prefix, entity_id), *keys)
                 elif not status_and_querable[1]:
-                    pipeline.hget('{}:{}'.format(self._entity_prefix, entity_id), InstanceOfComponent.key)
+                    pass
                 else:
                     print(components[comp_key])
         response = await pipeline.execute()
         data = {}
         i = 0
         for entity_id, vv in filtered_query.items():
-            c_i = 1   # 1-based cause the element 0 is InstanceOf
+            c_i = 0
             for c_key, status_and_querable in vv.items():
                 component = get_component_by_enum_value(ComponentTypeEnum(c_key))
                 if component.is_array() and all(status_and_querable):
@@ -685,21 +685,10 @@ class RedisDataRepository:
                     except KeyError:
                         data[entity_id] = {ComponentTypeEnum(c_key): response[i][1]}
                 elif not status_and_querable[1]:
-                    if component.has_default:
-                        if response[i]:
-                            value = status_and_querable[0] or self.library_repository.get_defaults_for_library_element(
-                                response[i].decode(), component
-                            )
-                            value = value.value if (not status_and_querable[0] and value) else value
-                        else:
-                            value = status_and_querable[0]
-                    else:
-                        value = status_and_querable[0]
                     try:
-                        data[entity_id].update({ComponentTypeEnum(c_key): value})
+                        data[entity_id].update({ComponentTypeEnum(c_key): None})
                     except KeyError:
-                        data[entity_id] = {ComponentTypeEnum(c_key): value}
-                    i += 1
+                        data[entity_id] = {ComponentTypeEnum(c_key): None}
                 elif all(status_and_querable):
                     if component.has_default:
                         value = response[i][c_i] or self.library_repository.get_defaults_for_library_element(
@@ -722,31 +711,6 @@ class RedisDataRepository:
                         data[entity_id] = {ComponentTypeEnum(c_key): None}
         return data
 
-    async def get_entities_evaluation_by_entity(
-            self, entity: Entity, *entity_ids: int
-    ) -> typing.List:
-        """
-        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
-        """
-        result = []
-        redis = await self.async_redis()
-        pipeline = redis.pipeline()
-        for entity_id in entity_ids:
-            pipeline.hmget(
-                '{}:{}'.format(self._entity_prefix, entity_id),
-                InstanceOfComponent.key, AttributesComponent.key,
-            )
-        data = await pipeline.execute()
-        for i, el in enumerate(data):
-            if el[1]:
-                attrs = AttributesComponent.from_bytes(el[1])
-            else:
-                attrs = self.library_repository.get_defaults_for_library_element(
-                    el[0].decode(), AttributesComponent
-                )
-            result.append(Entity(entity_ids[i]).set_component(attrs))
-        return result
-
     async def populate_area_content_for_area(self, entity: Entity, area: Area) -> None:
         """
         USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
@@ -765,24 +729,22 @@ class RedisDataRepository:
         pipeline = redis.pipeline()
         _exp_res = []
         for entity_id in room.entity_ids:
-            pipeline.hmget(
-                '{}:{}'.format(self._entity_prefix, entity_id),
-                InstanceOfComponent.key, AttributesComponent.key
-            )
+            pipeline.hget('c:{}:d:{}'.format(SystemComponent.key, 'instance_of'), entity_id)
+            pipeline.hget('{}:{}'.format(self._entity_prefix, entity_id), AttributesComponent.key)
             _exp_res.append(entity_id)
         result = await pipeline.execute()
         for i, _entity_id in enumerate(_exp_res):
             try:
-                if result[i][1]:
-                    attrs = AttributesComponent.from_bytes(result[i][1])
+                if result[i+1]:
+                    attrs = AttributesComponent.from_bytes(result[i+1])
                 else:
-                    if not result[i][0]:
+                    if not result[i]:
                         # FIXME REMOVE TODO
                         LOGGER.core.error('Entity id {} has not InstanceOfComponent'.format(_entity_id))
                         attrs = None
                     else:
                         attrs = self.library_repository.get_defaults_for_library_element(
-                            result[i][0].decode(), AttributesComponent
+                            result[i].decode(), AttributesComponent
                         )
             except Exception as e:
                 raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _entity_id)) from e

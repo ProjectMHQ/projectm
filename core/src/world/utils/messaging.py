@@ -3,9 +3,8 @@ import asyncio
 import typing
 
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.character import CharacterComponent
-from core.src.world.components.connection import ConnectionComponent
 from core.src.world.components.pos import PosComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain import DomainObject
 from core.src.world.domain.area import Area
 from core.src.world.domain.entity import Entity
@@ -14,25 +13,29 @@ from core.src.world.utils.serialization import serialize_system_message_item
 from core.src.world.utils.world_utils import get_current_room
 
 
+async def check_entity_can_receive_messages():
+    raise NotImplementedError
+
+
 async def emit_msg(entity, message: str):
     from core.src.world.builder import transport
     from core.src.world.builder import world_repository
     if entity.itsme:
-        connection_id = entity.get_component(ConnectionComponent).value
+        connection_id = entity.get_component(SystemComponent).connection.value
         assert connection_id
         await transport.send_message(connection_id, message)
         return True
     else:
         assert entity.can_receive_messages()
-        if not entity.get_component(ConnectionComponent):
-            components_data = await world_repository.get_components_values_by_components_storage(
-                [entity.entity_id], [ConnectionComponent]
+        if not entity.get_component(SystemComponent):
+            components_data = await world_repository.read_struct_components_for_entity(
+                entity.entity_id, (SystemComponent, 'connection')
             )
-            connection_id = components_data[ConnectionComponent.enum][entity.entity_id]
+            connection_id = components_data[SystemComponent.enum].connection
             if connection_id:
-                entity.set_component(ConnectionComponent(connection_id))
+                entity.set_component(SystemComponent().connection.set(connection_id))
                 await transport.send_message(
-                    entity.get_component(ConnectionComponent).value,
+                    entity.get_component(SystemComponent).connection,
                     message
                 )
                 return True
@@ -56,7 +59,7 @@ async def emit_sys_msg(entity, event_type: (None, str), item: (DomainObject, Ent
             "target": item_type,
             "details": details
         }
-    return await transport.send_system_event(entity.get_component(ConnectionComponent).value, payload)
+    return await transport.send_system_event(entity.get_component(SystemComponent).connection, payload)
 
 
 async def emit_room_sys_msg(entity: Entity, event_type: str, details: typing.Dict, room=None, include_origin=True):
@@ -68,12 +71,14 @@ async def emit_room_sys_msg(entity: Entity, event_type: str, details: typing.Dic
     if not include_origin:
         elegible_listeners.remove(entity.entity_id)
     components_data = await world_repository.get_components_values_by_components_storage(
-        elegible_listeners, [ConnectionComponent, PosComponent]
+        elegible_listeners, [PosComponent]
+    )
+    new_components_data = await world_repository.read_struct_components_for_entities(
+        elegible_listeners, (SystemComponent, 'connection')
     )
     futures = []
     for entity_id, value in components_data[PosComponent.enum].items():
-        if value == room.position.value and \
-                components_data.get(ConnectionComponent.enum, {}).get(entity_id):
+        if value == room.position.value and new_components_data[entity_id][SystemComponent.enum].connection:
             payload = {
                 "event": event_type,
                 "target": "entity",
@@ -82,7 +87,7 @@ async def emit_room_sys_msg(entity: Entity, event_type: str, details: typing.Dic
             }
             futures.append(
                 transport.send_system_event(
-                    components_data[ConnectionComponent.enum][entity_id],
+                    new_components_data[entity_id][SystemComponent.enum].connection,
                     payload
                 )
             )
@@ -107,15 +112,18 @@ async def emit_room_msg(origin: Entity, message_template, target: Entity = None,
         origin and origin.entity_id, target and target.entity_id
     )]
     components_data = await world_repository.get_components_values_by_components_storage(
-        elegible_listeners, [ConnectionComponent, PosComponent]
+        elegible_listeners, [PosComponent]
+    )
+    new_components_data = await world_repository.read_struct_components_for_entities(
+        elegible_listeners, (SystemComponent, 'connection')
     )
     futures = []
     for entity_id, value in components_data[PosComponent.enum].items():
-        if value == room.position.value and components_data[ConnectionComponent.enum][entity_id]:
+        if value == room.position.value and new_components_data[entity_id][SystemComponent.enum].connection:
             # TODO - Evaluate VS entity memory
             futures.append(
                 transport.send_message(
-                    components_data[ConnectionComponent.enum][entity_id],
+                    new_components_data[entity_id][SystemComponent.enum].connection,
                     message_template.format(
                         origin=origin.get_component(AttributesComponent).keyword,
                         target=target and target.get_component(AttributesComponent).keyword
@@ -164,10 +172,12 @@ async def get_eligible_listeners_for_area(area: (PosComponent, Area)) -> typing.
     from core.src.world.builder import map_repository
     from core.src.world.builder import world_repository
     entities_rooms = await map_repository.get_all_entity_ids_in_area(area)
-    characters = entities_rooms and await world_repository.filter_entities_with_active_component(
-        CharacterComponent, *entities_rooms
+    if not entities_rooms:
+        return []
+    entities = world_repository.read_struct_components_for_entities(
+        entities_rooms, (SystemComponent, 'receive_events')
     )
-    return characters
+    return [entity_id for entity_id in entities if entities[entity_id][SystemComponent].receive_events]
 
 
 async def get_eligible_listeners_for_room(pos: (Room, PosComponent)) -> typing.List[int]:
@@ -180,10 +190,12 @@ async def get_eligible_listeners_for_room(pos: (Room, PosComponent)) -> typing.L
     from core.src.world.builder import map_repository
     entities_room = await map_repository.get_room_content(pos)
     from core.src.world.builder import world_repository
-    characters = entities_room and await world_repository.filter_entities_with_active_component(
-        CharacterComponent, *entities_room
-    ) or []
-    return characters
+    if not entities_room:
+        return []
+    entities = world_repository.read_struct_components_for_entities(
+        entities_room, (SystemComponent, 'receive_events')
+    )
+    return [entity_id for entity_id in entities if entities[entity_id][SystemComponent].receive_events]
 
 
 def get_events_publisher():

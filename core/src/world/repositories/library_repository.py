@@ -6,10 +6,8 @@ import aioredis
 import typing
 
 from core.src.world.components.base import ComponentType
-from core.src.world.components.created_at import CreatedAtComponent
 from core.src.world.components.factory import get_component_by_type
-from core.src.world.components.instance_by import InstanceByComponent
-from core.src.world.components.instance_of import InstanceOfComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.entity import Entity
 
 
@@ -107,9 +105,13 @@ class RedisLibraryRepository:
         data = self._local_copy.get(name)
         if not data:
             return
-        e.set_for_update(InstanceOfComponent(data['libname']))
-        e.set_for_update(CreatedAtComponent(int(time.time())))
-        e.set_for_update(InstanceByComponent(entity.entity_id))
+
+        system_component = SystemComponent()\
+            .instance_of.set(data['libname'])\
+            .created_at.set(int(time.time()))\
+            .instance_by.set(entity.entity_id)
+
+        e.set_for_update(system_component)
         for component in data['components']:
             comp_type = get_component_by_type(component)
             if comp_type.has_data():

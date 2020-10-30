@@ -307,7 +307,7 @@ class StructComponent(ComponentType):
             assert not getattr(self, k, None)
             expected_type = self.meta[getattr(self.meta_enum, k)][1]
             assert type(v) == expected_type
-            self._set_value(k, v)
+            load_value_in_struct_component(self, k, v)
 
         value = None
         super().__init__(value)
@@ -334,7 +334,14 @@ class StructComponent(ComponentType):
             raise AttributeError(msg.format(type(self).__name__, name, ', '.join(self._current_values.keys())))
 
     def has_index(self, key):
-        return key in self._indexes
+        for x in self.indexes:
+            if key == x[0]:
+                return True
+
+    def get_index_type(self, key):
+        for x in self.indexes:
+            if key == x[0]:
+                return x[1]
 
     def has_default(self, key):
         return key in self.defaults
