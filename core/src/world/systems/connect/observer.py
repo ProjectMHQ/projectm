@@ -21,6 +21,7 @@ class ConnectionsObserver:
             world_repository,
             events_subscriber_service,
             connections_manager,
+            commands_observer,
             loop=asyncio.get_event_loop()
     ):
         self._commands = {}
@@ -30,6 +31,7 @@ class ConnectionsObserver:
         self.world_repository = world_repository
         self.events_subscriber_service = events_subscriber_service
         self.manager = connections_manager
+        self.commands_observer = commands_observer
 
     def add_command(self, command: str, method: callable):
         self._commands[command] = method
@@ -69,6 +71,7 @@ class ConnectionsObserver:
         else:
             await cast_entity(entity, pos, update=False, on_connect=True, reason="connect")
         self.manager.set_transport(entity.entity_id, connection_id)
+        self.commands_observer.enable_channel(connection_id)
         self.loop.create_task(look(entity))
         self.loop.create_task(getmap(entity))
 

@@ -69,7 +69,8 @@ connections_observer = ConnectionsObserver(
     pubsub_observer,
     world_repository,
     events_subscriber_service,
-    connections_manager
+    connections_manager,
+    cmds_observer
 )
 
 singleton_actions_scheduler = SingletonActionsScheduler()

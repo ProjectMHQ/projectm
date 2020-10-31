@@ -11,6 +11,13 @@ class CommandsObserver:
     def __init__(self, transport):
         self._commands = {}
         self.transport = transport
+        self._enabled_channels = set()
+
+    def enable_channel(self, channel_id):
+        self._enabled_channels.add(channel_id)
+
+    def close_channel(self, channel_id):
+        self._enabled_channels.remove(channel_id)
 
     def add_command(self, method: callable, *aliases: str):
         for alias in aliases:
@@ -18,6 +25,10 @@ class CommandsObserver:
 
     async def on_message(self, message: typing.Dict):
         assert message['c'] == 'cmd'
+        if message['n'] not in self._enabled_channels:
+            LOGGER.core.error('Error, message received on closed channel: %s', message)
+            return
+
         try:
             data = message['d'].strip().split(' ')
             if not data:
