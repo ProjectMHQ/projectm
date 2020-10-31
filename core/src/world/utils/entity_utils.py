@@ -408,7 +408,7 @@ async def check_entities_connection_status() -> typing.List[typing.Dict]:
     from core.src.world.builder import world_repository
     from core.src.world.components.system import SystemComponent
     from core.src.world.builder import channels_repository
-    from core.src.world.builder import map_repository
+    from core.src.world.builder import map_repository, cmds_observer
 
     entity_ids_with_connection_component_active = await world_repository.get_entity_ids_with_valued_components(
         (SystemComponent, 'connection')
@@ -437,6 +437,7 @@ async def check_entities_connection_status() -> typing.List[typing.Dict]:
                 entity.get_component(PosComponent)
             )
         else:
+            cmds_observer.enable_channel(ch.id)
             online.append(
                 {
                     'entity_id': entity_ids_with_connection_component_active[i],
