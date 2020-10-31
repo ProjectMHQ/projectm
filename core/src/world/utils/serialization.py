@@ -25,4 +25,4 @@ def serialize_system_message_item(item, entity):
     elif isinstance(item, dict):
         return item
     else:
-        raise ValueError
+        raise ValueError(item)

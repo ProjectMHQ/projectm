@@ -949,6 +949,20 @@ class RedisDataRepository:
         _ = [entity_ids.extend((int(eid) for eid in r)) for r in res]
         return entity_ids
 
+    async def get_entity_ids_with_components_having_value(
+        self,
+        *components: typing.Tuple[StructComponent, str, str]
+    ):
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
+        entity_ids = []
+        for component in components:
+            index_key = 'i:c:{}:{}:{}'.format(component[0].key, component[1], component[2])
+            pipeline.zrange(index_key, 0, -1)
+        res = await pipeline.execute()
+        _ = [entity_ids.extend((int(eid) for eid in r)) for r in res]
+        return entity_ids
+
     async def read_struct_components_for_entities(
         self,
         entity_ids: typing.List[int],

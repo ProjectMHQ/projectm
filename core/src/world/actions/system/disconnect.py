@@ -7,16 +7,15 @@ from core.src.world.utils.messaging import emit_sys_msg, get_eligible_listeners_
 
 
 @singleton_action
-async def disconnect_entity(entity: Entity):
+async def disconnect_entity(entity: Entity, msg=True):
+    from core.src.world.builder import map_repository
     events_publisher = get_events_publisher()
     await load_components(entity, PosComponent)
     listeners = await get_eligible_listeners_for_area(entity.get_component(PosComponent))
     await events_publisher.on_entity_disappear_position(
-        entity,
-        entity.get_component(PosComponent),
-        "disconnect",
-        listeners
+        entity, entity.get_component(PosComponent), "disconnect", listeners
     )
-    await emit_sys_msg(entity, "event", "quit")
+    msg and await emit_sys_msg(entity, "event", {"event": "quit"})
     entity.set_for_update(SystemComponent().connection.set(""))
-    update_entities(entity)
+    if await update_entities(entity):
+        await map_repository.remove_entity_from_map(entity.entity_id, entity.get_component(PosComponent))

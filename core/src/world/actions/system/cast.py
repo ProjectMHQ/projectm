@@ -35,7 +35,7 @@ async def cast_entity(
             return
     area = Area(where).make_coordinates()
     listeners = await get_eligible_listeners_for_area(area)
-    listeners.remove(entity.entity_id)
+    entity.entity_id in listeners and listeners.remove(entity.entity_id)
     if on_connect:
         await events_publisher_service.on_entity_appear_position(entity, where, reason, targets=listeners)
         loop.create_task(events_subscriber_service.subscribe_events(entity))

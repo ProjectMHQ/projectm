@@ -33,7 +33,10 @@ class PosComponent(ListComponent):
 
     @property
     def z(self):
-        return self._value[2]
+        try:
+            return self._value[2]
+        except IndexError:
+            return 0
 
     def has_previous_position(self):
         return bool(self._prev_pos)

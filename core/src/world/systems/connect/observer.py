@@ -49,9 +49,9 @@ class ConnectionsObserver:
         current_connection = (await self.world_repository.read_struct_components_for_entity(
             entity.entity_id, (SystemComponent, 'connection')
         ))[SystemComponent.enum]
-        if current_connection != entity.get_component(SystemComponent).connection.value:
+        if current_connection.connection.value != entity.get_component(SystemComponent).connection.value:
             return
-        await disconnect_entity(entity)
+        await disconnect_entity(entity, msg=False)
         self.events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
         self.manager.remove_transport(entity.entity_id)
         await self.events_subscriber_service.unsubscribe_all(entity)

@@ -353,11 +353,11 @@ async def batch_load_components(*components, entities=()):
             comp.set_owner(entity)
             entity.set_component(comp)
     for entity in entities:
-        for k, c in struct_comps.items():
-            for ck, cv in c.items():
-                cv.set_owner(entity)
-                entity.set_component(cv)
-        return entity
+        entity_comps = struct_comps[entity.entity_id]
+        for ck, cv in entity_comps.items():
+            cv.set_owner(entity)
+            entity.set_component(cv)
+    return entities
 
 
 async def load_components(entity, *components):
@@ -395,3 +395,53 @@ def update_entities(*entities, apply_bounds=True):
     """
     from core.src.world.builder import world_repository
     return world_repository.update_entities(*entities)
+
+
+async def check_entities_connection_status() -> typing.List[typing.Dict]:
+    """
+    Check the match between the transport repository and the ECS status.
+    If Entities with Connection component valued are found, but there is no match in the repository,
+    the channel is removed from the ECS and the entity is removed from the room.
+
+    Return details on the still active entities.
+    """
+    from core.src.world.builder import world_repository
+    from core.src.world.components.system import SystemComponent
+    from core.src.world.builder import channels_repository
+    from core.src.world.builder import map_repository
+
+    entity_ids_with_connection_component_active = await world_repository.get_entity_ids_with_valued_components(
+        (SystemComponent, 'connection')
+    )
+    if not entity_ids_with_connection_component_active:
+        return []
+    entities = [Entity(eid) for eid in entity_ids_with_connection_component_active]
+
+    await batch_load_components(PosComponent, (SystemComponent, 'connection'), entities=entities)
+    components_values = []
+    entities_by_id = {}
+    for entity in entities:
+        components_values.append(entity.get_component(SystemComponent).connection.value)
+        entities_by_id[entity.entity_id] = entity
+    to_update = []
+    online = []
+    if not components_values:
+        return online
+    channels = channels_repository.get_many(*components_values)
+    for i, ch in enumerate(channels.values()):
+        if not ch:
+            entity = entities[i]
+            to_update.append(entity)
+            await map_repository.remove_entity_from_map(
+                entity_ids_with_connection_component_active[i],
+                entity.get_component(PosComponent)
+            )
+        else:
+            online.append(
+                {
+                    'entity_id': entity_ids_with_connection_component_active[i],
+                    'channel_id': ch.id
+                }
+            )
+    await world_repository.update_entities(*to_update)
+    return online

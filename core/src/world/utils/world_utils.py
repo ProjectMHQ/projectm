@@ -1,5 +1,6 @@
 import typing
 
+from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.world_types import DirectionEnum, TerrainEnum
@@ -68,3 +69,32 @@ async def get_room_at_direction(entity: Entity, direction_enum, populate=True):
     room = await map_repository.get_room(look_cords, populate=populate)
     populate and await room.populate_content()
     return room
+
+
+async def clean_rooms_from_stales_instances(instance_type='character'):
+    from core.src.world.components.system import SystemComponent
+    from core.src.world.builder import world_repository
+    from core.src.world.utils.entity_utils import batch_load_components
+    from core.src.world.actions.system.disconnect import disconnect_entity
+    from core.src.world.builder import map_repository
+    entity_ids_with_connection_component_active = await world_repository.get_entity_ids_with_components_having_value(
+        (SystemComponent, 'instance_of', instance_type)
+    )
+    if not entity_ids_with_connection_component_active:
+        return []
+    entities = [Entity(eid) for eid in entity_ids_with_connection_component_active]
+    await batch_load_components(PosComponent, SystemComponent, entities=entities)
+    entities_without_connection_component_and_position = [
+        e for e in entities if not e.get_component(SystemComponent).connection.value
+        and e.get_component(PosComponent).value
+    ]
+    rooms = await map_repository.get_rooms(
+        *(e.get_component(PosComponent) for e in entities_without_connection_component_and_position)
+    )
+    stales = []
+    for i, room in enumerate(rooms):
+        if entities_without_connection_component_and_position[i].entity_id in room.entity_ids:
+            stales.append(entities_without_connection_component_and_position[i])
+    LOGGER.core.error('Error, found stales entities: %s' % str([x.entity_id for x in stales]))
+    for entity in stales:
+        await disconnect_entity(entity, msg=False)

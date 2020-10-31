@@ -1,8 +1,7 @@
-from core.src.world.builder import events_subscriber_service, channels_repository, \
-    world_repository, pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub_manager, \
-    library_repository
-from core.src.world.components.system import SystemComponent
-from core.src.world.domain.entity import Entity
+from core.src.world.builder import events_subscriber_service, library_repository, \
+    pubsub_observer, worker_queue_manager, cmds_observer, connections_observer, pubsub_manager
+from core.src.world.utils.entity_utils import check_entities_connection_status
+from core.src.world.utils.world_utils import clean_rooms_from_stales_instances
 
 worker_queue_manager.add_queue_observer('connected', connections_observer)
 worker_queue_manager.add_queue_observer('disconnected', connections_observer)
@@ -18,39 +17,13 @@ async def main(entities):
     await worker_queue_manager.run()
 
 
-async def check_entities_connection_status():
-    connected_entity_ids = await world_repository.get_entity_ids_with_valued_components(
-        (SystemComponent, 'connection')
-    )
-    if not connected_entity_ids:
-        return []
-    # FIXME TODO multiprocess workers must discriminate and works only on their own entities
-
-    connections = await world_repository.read_struct_components_for_entities(
-        connected_entity_ids, (SystemComponent, 'connection')
-    )
-    components_values = []
-    for eid, comp_val in connections.items():
-        components_values.append(comp_val[SystemComponent.enum].connection.value)
-    to_update = []
-    online = []
-    if components_values:
-        channels = channels_repository.get_many(*components_values)
-        for i, ch in enumerate(channels.values()):
-            if not ch:
-                to_update.append(Entity(connected_entity_ids[i]).set_for_update(SystemComponent().connection.set('')))
-            else:
-                online.append({'entity_id': connected_entity_ids[i], 'channel_id': ch.id})
-    await world_repository.update_entities(*to_update)
-    return online
-
-
 if __name__ == '__main__':
     from core.src.auth.logging_factory import LOGGER
     import asyncio
 
     loop = asyncio.get_event_loop()
     LOGGER.core.debug('Starting Worker')
+    loop.run_until_complete(clean_rooms_from_stales_instances())
     online_entities = loop.run_until_complete(check_entities_connection_status())
     loop.create_task(pubsub_manager.start())
     loop.run_until_complete(main(online_entities))
