@@ -46,9 +46,9 @@ class ConnectionsObserver:
             raise ValueError('wtf?!')
 
     async def on_disconnect(self, entity: Entity):
-        current_connection = await self.world_repository.read_struct_components_for_entity(
+        current_connection = (await self.world_repository.read_struct_components_for_entity(
             entity.entity_id, (SystemComponent, 'connection')
-        )[SystemComponent.enum]
+        ))[SystemComponent.enum]
         if current_connection != entity.get_component(SystemComponent).connection.value:
             return
         await disconnect_entity(entity)
@@ -57,9 +57,6 @@ class ConnectionsObserver:
         await self.events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
-        #await self.world_repository.update_entities(
-        #    entity.set_for_update(ConnectionComponent(entity.get_component(ConnectionComponent).value))
-        #)
         self.events_subscriber_service.add_observer_for_entity_id(entity.entity_id, self.pubsub_observer)
         pos = await self.world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         if not pos:

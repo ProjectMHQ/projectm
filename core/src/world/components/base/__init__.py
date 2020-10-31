@@ -3,6 +3,7 @@ import typing
 from ast import literal_eval
 
 from core.src.world.components.base._types_ import ComponentTypeEnum
+from core.src.world.tools import ClassProperty
 
 
 class ComponentType(metaclass=abc.ABCMeta):
@@ -12,7 +13,11 @@ class ComponentType(metaclass=abc.ABCMeta):
     has_default = False
     subtype = None
     is_struct = False
-    key = enum.value
+
+    @ClassProperty
+    @classmethod
+    def key(cls):
+        return cls.enum.value
 
     def __init__(self, value=None):
         self._value = value

@@ -111,6 +111,8 @@ async def emit_room_msg(origin: Entity, message_template, target: Entity = None,
     elegible_listeners = [l for l in elegible_listeners if l not in (
         origin and origin.entity_id, target and target.entity_id
     )]
+    if not elegible_listeners:
+        return
     components_data = await world_repository.get_components_values_by_components_storage(
         elegible_listeners, [PosComponent]
     )
@@ -174,10 +176,10 @@ async def get_eligible_listeners_for_area(area: (PosComponent, Area)) -> typing.
     entities_rooms = await map_repository.get_all_entity_ids_in_area(area)
     if not entities_rooms:
         return []
-    entities = world_repository.read_struct_components_for_entities(
+    entities = await world_repository.read_struct_components_for_entities(
         entities_rooms, (SystemComponent, 'receive_events')
     )
-    return [entity_id for entity_id in entities if entities[entity_id][SystemComponent].receive_events]
+    return [entity_id for entity_id in entities if entities[entity_id][SystemComponent.enum].receive_events]
 
 
 async def get_eligible_listeners_for_room(pos: (Room, PosComponent)) -> typing.List[int]:
@@ -192,10 +194,10 @@ async def get_eligible_listeners_for_room(pos: (Room, PosComponent)) -> typing.L
     from core.src.world.builder import world_repository
     if not entities_room:
         return []
-    entities = world_repository.read_struct_components_for_entities(
+    entities = await world_repository.read_struct_components_for_entities(
         entities_room, (SystemComponent, 'receive_events')
     )
-    return [entity_id for entity_id in entities if entities[entity_id][SystemComponent].receive_events]
+    return [entity_id for entity_id in entities if entities[entity_id][SystemComponent.enum].receive_events]
 
 
 def get_events_publisher():

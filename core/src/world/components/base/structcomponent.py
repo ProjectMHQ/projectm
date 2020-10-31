@@ -218,7 +218,7 @@ class _StructIntType(_BasicStructType):
         return self.owner
 
     def set(self, value):
-        assert isinstance(value, int)
+        assert isinstance(value, int), value
         self.value = value
         if not self.owner.pending_changes.get(self.key):
             self.owner.pending_changes[self.key] = []
@@ -356,17 +356,32 @@ class StructComponent(ComponentType):
 
 
 def load_value_in_struct_component(component, key, value):
+    def _enc(x):
+        return isinstance(x, bytes) and x.decode() or x
+
     expected_type = component.meta[getattr(component.meta_enum, key)][1]
     if expected_type is list:
         component.current_values[key] = _StructListType(component, key, value and [int(x) for x in value])
     elif expected_type is dict:
         component.current_values[key] = _StructDictType(
-            component, key, value and {k.decode(): v.decode() for k, v in value.items()}
+            component, key, value and {_enc(k): _enc(v) for k, v in value.items()}
         )
     elif expected_type is bool:
-        component.current_values[key] = _StructBoolType(component, key, value and bool(int(value.decode())))
+        if value is not None and not isinstance(value, bool):
+            v = bool(int(value.decode()))
+        else:
+            v = value
+        component.current_values[key] = _StructBoolType(component, key, v)
     elif expected_type is str:
-        component.current_values[key] = _StructStrType(component, key, value and value.decode())
+        if value is not None and not isinstance(value, str):
+            v = value.decode()
+        else:
+            v = value
+        component.current_values[key] = _StructStrType(component, key, v)
     elif expected_type is int:
-        component.current_values[key] = _StructIntType(component, key, value and int(value.decode()))
+        if value is not None and not isinstance(value, int):
+            v = int(value.decode())
+        else:
+            v = value
+        component.current_values[key] = _StructIntType(component, key, v)
     return component

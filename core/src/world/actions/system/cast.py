@@ -16,6 +16,7 @@ async def cast_entity(
         reason=None,
         override=False
 ):
+    assert isinstance(where, PosComponent)
     from core.src.world.builder import world_repository, events_subscriber_service, events_publisher_service
     loop = asyncio.get_event_loop()
     where.add_previous_position(

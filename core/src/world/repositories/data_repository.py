@@ -361,7 +361,7 @@ class RedisDataRepository:
             res = await redis.hget('{}:{}'.format(self._entity_prefix, entity_id), component.key)
             if not res:
                 return
-            return res
+            component_value = res
         if not component_value:
             if component == PosComponent:
                 return
@@ -733,23 +733,23 @@ class RedisDataRepository:
             pipeline.hget('{}:{}'.format(self._entity_prefix, entity_id), AttributesComponent.key)
             _exp_res.append(entity_id)
         result = await pipeline.execute()
-        for i, _entity_id in enumerate(_exp_res):
+        for i in range(0, len(_exp_res), 2):
             try:
                 if result[i+1]:
                     attrs = AttributesComponent.from_bytes(result[i+1])
                 else:
                     if not result[i]:
                         # FIXME REMOVE TODO
-                        LOGGER.core.error('Entity id {} has not InstanceOfComponent'.format(_entity_id))
+                        LOGGER.core.error('Entity id {} has not InstanceOfComponent'.format(_exp_res[i]))
                         attrs = None
                     else:
                         attrs = self.library_repository.get_defaults_for_library_element(
                             result[i].decode(), AttributesComponent
                         )
             except Exception as e:
-                raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _entity_id)) from e
+                raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _exp_res[i])) from e
 
-            room.add_entity(Entity(_entity_id).set_component(attrs))
+            room.add_entity(Entity(_exp_res[i]).set_component(attrs))
 
     async def delete_entity(self, entity_id: int):
         """
@@ -807,9 +807,9 @@ class RedisDataRepository:
                     primitives[component] = []
                 primitives[component].append(subkey)
             elif subtype == dict:
-                pipeline.hgetall('e:{}:c:{}:{}'.format(entity_id, component.enum, subkey))
+                pipeline.hgetall('e:{}:c:{}:{}'.format(entity_id, component.key, subkey))
             elif subtype == list:
-                pipeline.zrange('c:{}:zs:e:{}:{}'.format(component.enum, entity_id, subkey), 0, -1)
+                pipeline.zrange('c:{}:zs:e:{}:{}'.format(component.key, entity_id, subkey), 0, -1)
             else:
                 raise ValueError('Unknown type')
 
@@ -818,16 +818,16 @@ class RedisDataRepository:
         component = component_query[0]
         keys = component_query[1:]
         for key in keys:
-            if key in (str, int, bool):
+            if component.get_subtype(key) in (str, int, bool):
                 if not primitives.get(component):
                     primitives[component] = []
                 primitives[component].append(key)
-            elif key == dict:
-                pipeline.hgetall('e:{}:c:{}:{}'.format(entity_id, component.enum, key))
-            elif key == list:
-                pipeline.zrange('c:{}:zs:e:{}:{}'.format(component.enum, entity_id, key), 0, -1)
+            elif component.get_subtype(key) == dict:
+                pipeline.hgetall('e:{}:c:{}:{}'.format(entity_id, component.key, key))
+            elif component.get_subtype(key) == list:
+                pipeline.zrange('c:{}:zs:e:{}:{}'.format(component.key, entity_id, key), 0, -1)
             else:
-                raise ValueError('Unknown type')
+                raise ValueError('Unknown type: %s' % key)
 
     def _resolve_full_struct_component_read_for_entity(self, redis_response, response, component, pos=0):
         if not response.get(component.enum):
@@ -854,22 +854,22 @@ class RedisDataRepository:
         component = component_query[0]
         keys = component_query[1:]
         for key in keys:
-            if key in (str, int, bool):
+            if component.get_subtype(key) in (str, int, bool):
                 pass
-            elif key == dict:
+            elif component.get_subtype(key) == dict:
                 if not response.get(component.enum):
                     response[component.enum] = component()
                 value = self._load_value_or_default(component, key, redis_response[pos])
                 load_value_in_struct_component(response[component.enum], key, value)
                 pos += 1
-            elif key == list:
+            elif component.get_subtype(key) == list:
                 if not response.get(component.enum):
                     response[component.enum] = component()
                 value = self._load_value_or_default(component, key, redis_response[pos])
                 load_value_in_struct_component(response[component.enum], key, value)
                 pos += 1
             else:
-                raise ValueError('Unknown type')
+                raise ValueError('Unknown type %s' % key)
         pos += 1
 
     async def read_struct_components_for_entity(
@@ -911,6 +911,21 @@ class RedisDataRepository:
             i += 1
         return response
 
+    async def get_entity_ids_with_valued_components(
+        self,
+        *components: typing.Tuple[StructComponent, str]
+    ):
+        redis = await self.async_redis()
+        pipeline = redis.pipeline()
+        entity_ids = []
+        for component in components:
+            for component_column in component[1:]:
+                index_key = 'i:c:{}:{}'.format(component[0].key, component_column)
+                pipeline.zrange(index_key, 0, -1)
+        res = await pipeline.execute()
+        _ = [entity_ids.extend((int(eid) for eid in r)) for r in res]
+        return entity_ids
+
     async def read_struct_components_for_entities(
         self,
         entity_ids: typing.List[int],
@@ -950,13 +965,13 @@ class RedisDataRepository:
         keys = component_query[1:]
         for key in keys:
             if component.get_subtype(key) in (str, bool, int):
-                pipeline.hmget('c:{}:d:{}'.format(component.enum, key), *entity_ids)
+                pipeline.hmget('c:{}:d:{}'.format(component.key, key), *entity_ids)
             elif component.get_subtype(key) == list:
                 for entity_id in entity_ids:
-                    pipeline.zrange('c:{}:zs:e:{}:{}'.format(component.enum, entity_id, key), 0, -1)
+                    pipeline.zrange('c:{}:zs:e:{}:{}'.format(component.key, entity_id, key), 0, -1)
             elif component.get_subtype(key) == dict:
                 for entity_id in entity_ids:
-                    pipeline.hgetall('e:{}:c:{}:{}'.format(entity_id, component.enum, key))
+                    pipeline.hgetall('e:{}:c:{}:{}'.format(entity_id, component.key, key))
             else:
                 raise ValueError('Unknown subtype {}.{}'.format(component, key))
 
@@ -1000,13 +1015,13 @@ class RedisDataRepository:
         for meta in component.meta:
             subkey, subtype = meta
             if subtype in (bool, str, int):
-                pipeline.hmget('c:{}:d:{}'.format(component.enum, subkey), *entity_ids)
+                pipeline.hmget('c:{}:d:{}'.format(component.key, subkey), *entity_ids)
             elif subtype is list:
                 for entity_id in entity_ids:
-                    pipeline.zrange('c:{}:zs:e:{}:{}'.format(component.enum, entity_id, subkey), 0, -1)
+                    pipeline.zrange('c:{}:zs:e:{}:{}'.format(component.key, entity_id, subkey), 0, -1)
             elif subtype is dict:
                 for entity_id in entity_ids:
-                    pipeline.hgetall('e:{}:c:{}:{}'.format(entity_id, component.enum, subkey))
+                    pipeline.hgetall('e:{}:c:{}:{}'.format(entity_id, component.key, subkey))
             else:
                 raise ValueError
 

@@ -13,7 +13,7 @@ class SystemComponent(StructComponent):
         ("created_at", int),
         ("receive_events", bool),
         ("instance_by", int),
-        ("instance_of", int),
+        ("instance_of", str),
         ("active", bool)
     )
     indexes = (

@@ -19,7 +19,9 @@ async def main(entities):
 
 
 async def check_entities_connection_status():
-    connected_entity_ids = [x for x in (await world_repository.get_entity_ids_with_components(ConnectionComponent))]
+    connected_entity_ids = await world_repository.get_entity_ids_with_valued_components(
+        (SystemComponent, 'connection')
+    )
     if not connected_entity_ids:
         return []
     # FIXME TODO multiprocess workers must discriminate and works only on their own entities
@@ -27,13 +29,16 @@ async def check_entities_connection_status():
     connections = await world_repository.read_struct_components_for_entities(
         *connected_entity_ids, (SystemComponent, 'connection')
     )
+    components_values = []
+    for eid, comp_val in connections.items():
+        components_values.append(comp_val[SystemComponent].connection.value)
     to_update = []
     online = []
     if components_values:
         channels = channels_repository.get_many(*components_values)
         for i, ch in enumerate(channels.values()):
             if not ch:
-                to_update.append(Entity(connected_entity_ids[i]).set_for_update(ConnectionComponent("")))
+                to_update.append(Entity(connected_entity_ids[i]).set_for_update(SystemComponent().connection.set('')))
             else:
                 online.append({'entity_id': connected_entity_ids[i], 'channel_id': ch.id})
     await world_repository.update_entities(*to_update)
