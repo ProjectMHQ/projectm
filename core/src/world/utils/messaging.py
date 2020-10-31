@@ -31,12 +31,11 @@ async def emit_msg(entity, message: str):
         await transport.send_message(connection_id, message)
         return True
     else:
-        assert entity.can_receive_messages()
         if not entity.get_component(SystemComponent):
             components_data = await world_repository.read_struct_components_for_entity(
                 entity.entity_id, (SystemComponent, 'connection')
             )
-            connection_id = components_data[SystemComponent.enum].connection
+            connection_id = components_data[SystemComponent.enum].connection.value
             if connection_id:
                 entity.set_component(SystemComponent().connection.set(connection_id))
                 await transport.send_message(

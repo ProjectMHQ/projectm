@@ -337,14 +337,15 @@ async def batch_load_components(*components, entities=()):
     struct = []
     comps = []
     for c in components:
-        if issubclass(c, StructComponent):
+        if (isinstance(c, tuple) and (inspect.isclass(c[0]) and issubclass(c[0], StructComponent))) or \
+                (inspect.isclass(c) and issubclass(c, StructComponent)):
             struct.append(c)
         else:
             comps.append(c)
-    struct_comps = struct and await world_repository.read_struct_components_for_entities((
-        [e.entity_id for e in entities], *components
-    )) or {}
-    data = await world_repository.get_components_values_by_entities_ids([e.entity_id for e in entities], components)
+    struct_comps = struct and await world_repository.read_struct_components_for_entities(
+        [e.entity_id for e in entities], *struct
+    ) or {}
+    data = await world_repository.get_components_values_by_entities_ids([e.entity_id for e in entities], comps)
     for entity in entities:
         for c in comps:
             comp = c(data[entity.entity_id][c.enum])
@@ -352,8 +353,9 @@ async def batch_load_components(*components, entities=()):
             entity.set_component(comp)
     for entity in entities:
         for k, c in struct_comps.items():
-            c.set_owner(entity)
-            entity.set_component(c)
+            for ck, cv in c.items():
+                cv.set_owner(entity)
+                entity.set_component(cv)
         return entity
 
 
