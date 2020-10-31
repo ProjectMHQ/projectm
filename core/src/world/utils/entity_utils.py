@@ -348,6 +348,7 @@ async def batch_load_components(*components, entities=()):
     data = await world_repository.get_components_values_by_entities_ids([e.entity_id for e in entities], comps)
     for entity in entities:
         for c in comps:
+            assert not isinstance(c, tuple)
             comp = c(data[entity.entity_id][c.enum])
             comp.set_owner(entity)
             entity.set_component(comp)
