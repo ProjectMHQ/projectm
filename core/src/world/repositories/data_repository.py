@@ -215,7 +215,7 @@ class RedisDataRepository:
         elif index_type == str:
             if v:
                 pipeline.zadd(index_key, (0, entity.entity_id))
-                pipeline.mantain_valued_index(index_key, v, entity.entity_id)
+                pipeline.mantain_valued_index(component, k, v, entity.entity_id)
             else:
                 pipeline.zrem(index_key, (0, entity.entity_id))
                 pipeline.drop_value_from_index(index_key, v, entity.entity_id)

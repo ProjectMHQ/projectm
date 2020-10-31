@@ -78,11 +78,15 @@ class RedisLUAPipeline:
         self.value += "redis.call('zrange', 'temp:{}:2', 0, -1)\n".format(seed)
         self.value += "redis.call('del', 'temp:{0}:2', 'temp:{0}:1')\n".format(seed)
 
-    def mantain_valued_index(self, index_prefix: str, value: (str, int), entity_id: int):
-        raise NotImplementedError
+    def mantain_valued_index(self, component, key: str, value: (str, int), entity_id: int):
+        c_key = 'c:{}:e:{}'.format(component.key, entity_id)
+        i_key_prefix = 'i:c:{}:{}'.format(component.key, key)
+        self.value += "local mvi_val = redis.call('hget', '{}', '{}')\n".format(c_key, key)
+        self.value += "redis.call('zrem', '{}:' .. mvi_val, {})\n".format(i_key_prefix, entity_id)
+        self.value += "redis.call('zadd', '{}:{}', {})\n".format(i_key_prefix, value, entity_id)
 
     def drop_value_from_index(self, index_prefix: str, value: (str, int), entity_id: int):
-        raise NotImplementedError
+        self.value += "redis.call('zdel', '{}:{}', {})\n".format(index_prefix, value, entity_id)
 
     def return_exit(self, value_key=None):
         self.value += "return {}".format(value_key or 0)
