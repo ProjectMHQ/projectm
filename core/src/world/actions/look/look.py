@@ -2,7 +2,7 @@ from core.src.world.actions.look.messages import LookMessages
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import search_entity_in_sight_by_keyword, ensure_same_position
-from core.src.world.utils.messaging import emit_sys_msg, emit_msg, emit_room_msg
+from core.src.world.utils.messaging import emit_sys_msg, emit_msg, emit_room_msg, check_entity_can_receive_messages
 from core.src.world.utils.world_types import DirectionEnum
 from core.src.world.utils.world_utils import get_direction, get_current_room, get_room_at_direction
 

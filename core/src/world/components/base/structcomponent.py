@@ -199,6 +199,14 @@ class _StructBoolType(_BasicStructType):
         self.owner.pending_changes[self.key].append(action)
         return self.owner
 
+    def enable(self):
+        self.set(True)
+        return self.owner
+
+    def disable(self):
+        self.set(False)
+        return self.owner
+
 
 class _StructIntType(_BasicStructType):
     def __init__(self, owner, key, value=0):

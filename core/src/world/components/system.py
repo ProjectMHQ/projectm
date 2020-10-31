@@ -8,16 +8,14 @@ class SystemComponent(StructComponent):
 
     meta = (
         ("user_id", str),
-        ("character", bool),
         ("connection", str),
         ("created_at", int),
         ("receive_events", bool),
         ("instance_by", int),
-        ("instance_of", str),
-        ("active", bool)
+        ("instance_of", str)
     )
     indexes = (
-        ("active", bool),
         ("connection", bool),
-        ("user_id", str)
+        ("user_id", str),
+        ("instance_of", str)
     )

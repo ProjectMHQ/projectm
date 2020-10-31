@@ -8,7 +8,7 @@ class BoolComponent(ComponentType):
     libname = NotImplementedError
 
     def __init__(self, value: (int, bool) = None):
-        if not isinstance(value, bool):
+        if value and not isinstance(value, bool):
             assert value in (0, 1), (self.libname, value)
             value = bool(value or 0)
         super().__init__(value)

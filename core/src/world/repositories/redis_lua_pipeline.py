@@ -82,8 +82,8 @@ class RedisLUAPipeline:
         c_key = 'c:{}:e:{}'.format(component.key, entity_id)
         i_key_prefix = 'i:c:{}:{}'.format(component.key, key)
         self.value += "local mvi_val = redis.call('hget', '{}', '{}')\n".format(c_key, key)
-        self.value += "redis.call('zrem', '{}:' .. mvi_val, {})\n".format(i_key_prefix, entity_id)
-        self.value += "redis.call('zadd', '{}:{}', {})\n".format(i_key_prefix, value, entity_id)
+        self.value += "if mvi_val then redis.call('zrem', '{}:' .. mvi_val, {}) end \n".format(i_key_prefix, entity_id)
+        self.value += "redis.call('zadd', '{}:{}', 0, {})\n".format(i_key_prefix, value, entity_id)
 
     def drop_value_from_index(self, index_prefix: str, value: (str, int), entity_id: int):
         self.value += "redis.call('zdel', '{}:{}', {})\n".format(index_prefix, value, entity_id)

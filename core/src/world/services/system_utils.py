@@ -24,13 +24,12 @@ def get_redis_factory(rtype: RedisType):
             raise ValueError('wtf?')
 
     async def async_redis_pool_factory(max_size=1024):
-        if not connection_pools.get(rtype):
-            connection_pool = await aioredis.create_redis_pool(
-                endpoint,
-                db=settings.REDIS_DB,
-                maxsize=max_size
-            )
-            connection_pools[rtype] = connection_pool
+        connection_pool = await aioredis.create_redis_pool(
+            endpoint,
+            db=settings.REDIS_DB,
+            maxsize=max_size
+        )
+        connection_pools[rtype] = connection_pool
         return connection_pools[rtype]
 
     return async_redis_pool_factory

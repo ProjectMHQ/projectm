@@ -23,7 +23,12 @@ def build_public_namespace(sio, world_repository, websocket_channels_service):
     async def create_character(sid, payload):
         token = auth_service.decode_session_token(payload['token'])
         assert token['context'] == 'world:create'
-        system_component = SystemComponent(character=True, created_at=int(time.time()))
+        system_component = SystemComponent()\
+            .instance_of.set('character')\
+            .created_at.set(int(time.time()))\
+            .receive_events.enable()\
+            .user_id.set(token['data']['user_id'])
+
         entity = Entity() \
             .set_for_update(system_component) \
             .set_for_update(AttributesComponent({"name": payload["name"], "keyword": "uomo"}))

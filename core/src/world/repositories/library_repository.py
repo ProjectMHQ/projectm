@@ -114,8 +114,10 @@ class RedisLibraryRepository:
         e.set_for_update(system_component)
         for component in data['components']:
             comp_type = get_component_by_type(component)
-            if comp_type.has_data():
+            if comp_type.has_default:
                 e.set_for_update(comp_type().activate())
+            else:
+                e.set_for_update(comp_type(value=data['components'][component]))
         return e
 
     def get_libraries(self, pattern: str, offset=0, limit=20):

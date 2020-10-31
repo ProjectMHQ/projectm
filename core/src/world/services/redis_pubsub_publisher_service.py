@@ -37,6 +37,7 @@ class RedisPubSubEventsPublisherService:
             k = self._eid_to_key(target)
             LOGGER.core.debug('Publishing Message %s on channel %s', msg, k)
             await self.pubsub.publish(k, msg)
+            LOGGER.core.debug('Published Message %s on channel %s', msg, k)
 
     async def on_entity_appear_position(self, entity, room_position, reason, targets):
         msg = {

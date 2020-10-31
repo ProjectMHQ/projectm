@@ -9,12 +9,17 @@ from core.src.world.domain import DomainObject
 from core.src.world.domain.area import Area
 from core.src.world.domain.entity import Entity
 from core.src.world.domain.room import Room
+from core.src.world.utils.entity_utils import load_components
 from core.src.world.utils.serialization import serialize_system_message_item
 from core.src.world.utils.world_utils import get_current_room
 
 
-async def check_entity_can_receive_messages():
-    raise NotImplementedError
+async def check_entity_can_receive_messages(entity):
+    system_component = entity.get_component(SystemComponent)
+    if not system_component:
+        await load_components(entity, (SystemComponent, 'receive_events'))
+    system_component = entity.get_component(SystemComponent)
+    return system_component.receive_events
 
 
 async def emit_msg(entity, message: str):
@@ -108,9 +113,11 @@ async def emit_room_msg(origin: Entity, message_template, target: Entity = None,
     from core.src.world.builder import transport
     room = room or (origin.get_room() or await get_current_room(origin))
     elegible_listeners = await get_eligible_listeners_for_room(room)
-    elegible_listeners = [l for l in elegible_listeners if l not in (
-        origin and origin.entity_id, target and target.entity_id
-    )]
+    elegible_listeners = [
+        listener for listener in elegible_listeners if listener not in (
+            origin and origin.entity_id, target and target.entity_id
+        )
+    ]
     if not elegible_listeners:
         return
     components_data = await world_repository.get_components_values_by_components_storage(
@@ -179,7 +186,7 @@ async def get_eligible_listeners_for_area(area: (PosComponent, Area)) -> typing.
     entities = await world_repository.read_struct_components_for_entities(
         entities_rooms, (SystemComponent, 'receive_events')
     )
-    return [entity_id for entity_id in entities if entities[entity_id][SystemComponent.enum].receive_events]
+    return [int(entity_id) for entity_id in entities if entities[entity_id][SystemComponent.enum].receive_events]
 
 
 async def get_eligible_listeners_for_room(pos: (Room, PosComponent)) -> typing.List[int]:

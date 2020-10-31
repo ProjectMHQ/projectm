@@ -9,7 +9,7 @@ from core.src.world.components.pos import PosComponent
 from core.src.world.components.system import SystemComponent
 
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.entity_utils import get_base_room_for_entity
+from core.src.world.utils.entity_utils import get_base_room_for_entity, update_entities
 from core.src.world.utils.messaging import emit_msg
 
 
@@ -57,14 +57,18 @@ class ConnectionsObserver:
         await self.events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
+        connection_id = entity.get_component(SystemComponent).connection.value
         self.events_subscriber_service.add_observer_for_entity_id(entity.entity_id, self.pubsub_observer)
+        await update_entities(
+            entity.set_for_update(SystemComponent().connection.set(connection_id))
+        )
         pos = await self.world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
         if not pos:
             await cast_entity(entity, get_base_room_for_entity(entity), on_connect=True, reason="connect")
             self.loop.create_task(self.greet(entity))
         else:
             await cast_entity(entity, pos, update=False, on_connect=True, reason="connect")
-        self.manager.set_transport(entity.entity_id, entity.get_component(SystemComponent).connection.value)
+        self.manager.set_transport(entity.entity_id, connection_id)
         self.loop.create_task(look(entity))
         self.loop.create_task(getmap(entity))
 

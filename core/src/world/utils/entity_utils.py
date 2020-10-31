@@ -7,7 +7,6 @@ from core.src.world.components.base import ComponentType
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.parent_of import ParentOfComponent
 from core.src.world.components.pos import PosComponent
-from core.src.world.components.system import SystemComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.domain.room import Room
 from core.src.world.utils.world_utils import get_current_room
@@ -245,21 +244,21 @@ async def search_entity_in_sight_by_keyword(
     else:
         target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.enum])
 
-    entity = Entity(found_entity_id).set_component(target_attributes)
+    ent = Entity(found_entity_id).set_component(target_attributes)
     if self_inventory and found_entity_id in self_inventory.content:
-        entity.set_component(
+        ent.set_component(
             ParentOfComponent(target_data[found_entity_id][ParentOfComponent.enum])
         )
-    else:
-        entity.set_component(PosComponent(target_data[found_entity_id][PosComponent.enum]))
+    elif entity.entity_id != found_entity_id:
+        ent.set_component(PosComponent(target_data[found_entity_id][PosComponent.enum]))
     # Mount filtered components
     for f in filter_by:
-        entity.set_component(f(target_data[found_entity_id][f.enum]))
+        ent.set_component(f(target_data[found_entity_id][f.enum]))
     for f in struct_filters:
         assert isinstance(target_data[found_entity_id][f.enum], f)
-        entity.set_component(target_data[found_entity_id][f.enum])
+        ent.set_component(target_data[found_entity_id][f.enum])
     # End
-    return entity
+    return ent
 
 
 async def search_entities_in_room_by_keyword(
@@ -368,7 +367,8 @@ async def load_components(entity, *components):
     struct = []
     comps = []
     for c in components:
-        if issubclass(c, StructComponent):
+        if (isinstance(c, tuple) and (inspect.isclass(c[0]) and issubclass(c[0], StructComponent))) or \
+                (inspect.isclass(c) and issubclass(c, StructComponent)):
             struct.append(c)
         else:
             comps.append(c)

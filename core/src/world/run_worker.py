@@ -27,11 +27,11 @@ async def check_entities_connection_status():
     # FIXME TODO multiprocess workers must discriminate and works only on their own entities
 
     connections = await world_repository.read_struct_components_for_entities(
-        *connected_entity_ids, (SystemComponent, 'connection')
+        connected_entity_ids, (SystemComponent, 'connection')
     )
     components_values = []
     for eid, comp_val in connections.items():
-        components_values.append(comp_val[SystemComponent].connection.value)
+        components_values.append(comp_val[SystemComponent.enum].connection.value)
     to_update = []
     online = []
     if components_values:
