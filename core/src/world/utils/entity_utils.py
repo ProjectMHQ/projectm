@@ -353,7 +353,7 @@ async def batch_load_components(*components, entities=()):
             comp.set_owner(entity)
             entity.set_component(comp)
     for entity in entities:
-        entity_comps = struct_comps[entity.entity_id]
+        entity_comps = struct_comps.get(entity.entity_id, {})
         for ck, cv in entity_comps.items():
             cv.set_owner(entity)
             entity.set_component(cv)
