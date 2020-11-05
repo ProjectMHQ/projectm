@@ -1,7 +1,5 @@
 from pycomb import combinators
 
-from core.src.world.components.weapon import WeaponType
-
 
 def string_size(value, size):
     if len(value) > size:
@@ -29,30 +27,6 @@ AttributesComponentValidator = combinators.struct(
         ),
     },
     name="AttributesComponentValidator",
-    strict=True
-)
-
-WeaponComponentValidator = combinators.subtype(
-    combinators.String,
-    lambda x: is_enum(x, WeaponType),
-    name="WeaponComponentValidator"
-)
-
-LibraryWeaponValidator = combinators.struct(
-    {
-        "libname": combinators.subtype(
-            combinators.String,
-            lambda x: string_size(x, 16)
-        ),
-        "components": combinators.struct(
-            {
-                "attributes": AttributesComponentValidator,
-                "weapon": WeaponComponentValidator,
-                "collectible": combinators.Boolean
-            }
-        )
-    },
-    name="LibraryJSONFileValidator",
     strict=True
 )
 
@@ -84,6 +58,5 @@ GenericContainerValidator = combinators.struct(
 
 
 LibraryJSONFileValidator = combinators.union(
-    LibraryWeaponValidator,
     GenericContainerValidator
 )
