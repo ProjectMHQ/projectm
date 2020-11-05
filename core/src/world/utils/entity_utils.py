@@ -4,6 +4,7 @@ import typing
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.base import ComponentType
+from core.src.world.components.base.structcomponent import StructComponent
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.parent_of import ParentOfComponent
 from core.src.world.components.pos import PosComponent
@@ -102,10 +103,10 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
     container_entities = await populate_container(container, AttributesComponent)
     if '*' not in keyword:
         for i, v in enumerate(container_entities):
-            attr_comp_value = v[AttributesComponent.enum]
-            if attr_comp_value['keyword'].startswith(keyword):
+            attr_comp = v[AttributesComponent.enum]
+            if attr_comp.keyword.value.startswith(keyword):
                 entity = Entity(entity_id=container.content[i])\
-                    .set_component(AttributesComponent(attr_comp_value))\
+                    .set_component(attr_comp)\
                     .set_component(
                     ParentOfComponent(entity=container.owned_by(), location=InventoryComponent)
                 )
@@ -116,10 +117,10 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
         assert keyword[-1] == '*'
         keyword = keyword.replace('*', '')
         for i, v in enumerate(container.populated):
-            attr_comp_value = v[AttributesComponent.enum]
-            if attr_comp_value['keyword'].startswith(keyword):
+            attr_comp = v[AttributesComponent.enum]
+            if attr_comp.keyword.value.startswith(keyword):
                 entity = Entity(entity_id=container.content[i])\
-                    .set_component(AttributesComponent(attr_comp_value))\
+                    .set_component(attr_comp)\
                     .set_component(
                     ParentOfComponent(entity=container.owned_by(), location=InventoryComponent)
                 )
@@ -228,7 +229,7 @@ async def search_entity_in_sight_by_keyword(
             continue
         search_data.append(
             {'entity_id': entity_id, 'data': [
-                {'keyword': target_data[entity_id][AttributesComponent.enum]['keyword']}
+                {'keyword': target_data[entity_id][AttributesComponent.enum].keyword}
             ]},
         )
     if not search_data:
@@ -242,7 +243,7 @@ async def search_entity_in_sight_by_keyword(
     if entity.entity_id == found_entity_id:
         target_attributes = entity.get_component(AttributesComponent)
     else:
-        target_attributes = AttributesComponent(target_data[found_entity_id][AttributesComponent.enum])
+        target_attributes = target_data[found_entity_id][AttributesComponent.enum]
 
     ent = Entity(found_entity_id).set_component(target_attributes)
     if self_inventory and found_entity_id in self_inventory.content:
@@ -264,16 +265,22 @@ async def search_entity_in_sight_by_keyword(
 async def search_entities_in_room_by_keyword(
     room: Room,
     keyword: str,
-    filter_by: (ComponentType, typing.Tuple[ComponentType]) = None
+    filter_by: (StructComponent, typing.Tuple[ComponentType]) = None
 ) -> typing.List[Entity]:
     if not room.has_entities:
         return []
     if not room.content:
         await room.populate_content()  # Use the filter here
-    if isinstance(filter_by, ComponentType):
+    if inspect.isclass(filter_by) and issubclass(filter_by, StructComponent):
         filter_by = (filter_by, )
-        ent_filter = (type(x) for x in filter_by)
-        await batch_load_components(*ent_filter, entities=room.entities)
+        comp_keys, comp_values = None
+    elif isinstance(filter_by, tuple) and inspect.isclass(filter_by[0]) and issubclass(filter_by[0], StructComponent):
+        filter_by = (filter_by[0])
+        await batch_load_components(*filter_by, entities=room.entities)
+        comp_keys = [filter_by[1]]
+        comp_values = [filter_by[2]]
+    else:
+        raise ValueError
     multiple_items = False
     if '*' in keyword:
         assert '*' not in keyword[1:]
@@ -283,9 +290,13 @@ async def search_entities_in_room_by_keyword(
     for e in room.entities:
         if filter_by:
             filtered = False
-            for c in filter_by:
-                if e.get_component(type(c)).value != c.value:
-                    filtered = True
+            for i, c in enumerate(filter_by):
+                if not comp_keys:
+                    if not e.get_component(c):
+                        filtered = True
+                else:
+                    if e.get_component(c).get_value(comp_keys[i]) != comp_values[i]:
+                        filtered = True
             if filtered:
                 continue
         if multiple_items and e.get_component(AttributesComponent).keyword.startswith(keyword):

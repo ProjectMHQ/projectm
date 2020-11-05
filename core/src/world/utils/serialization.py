@@ -18,8 +18,13 @@ def serialize_system_message_item(item, entity):
             location = item.get_component(ParentOfComponent).location
         else:
             location = None
+        attributes = item.get_component(AttributesComponent)
         return "entity", {
-            "attributes": item.get_component(AttributesComponent).value,
+            "attributes": {
+                "name": attributes.name,
+                "keyword": attributes.keyword,
+                "description": attributes.description
+            },
             "location": location
         }
     elif isinstance(item, dict):

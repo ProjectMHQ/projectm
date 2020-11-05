@@ -4,6 +4,7 @@ from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain import DomainObject
 from core.src.world.domain.entity import Entity
+from core.src.world.utils.entity_utils import batch_load_components
 from core.src.world.utils.world_types import TerrainEnum
 from core.src.world.utils.world_utils import is_terrain_walkable
 
@@ -105,8 +106,10 @@ class Room(DomainObject):
         return is_terrain_walkable(self.terrain)
 
     async def populate_content(self):
-        from core.src.world.builder import world_repository
-        await world_repository.populate_room_content_for_look(self)
+        entities = [Entity(eid) for eid in self.entity_ids]
+        await batch_load_components(AttributesComponent, entities=entities)
+        for entity in entities:
+            self.add_entity(entity)
         return self
 
     async def refresh(self, populate=False):

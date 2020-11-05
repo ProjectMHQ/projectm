@@ -362,6 +362,9 @@ class StructComponent(ComponentType):
     def current_values(self):
         return self._current_values
 
+    def get_value(self, k):
+        return self._current_values[k].value
+
 
 def load_value_in_struct_component(component, key, value):
     def _enc(x):

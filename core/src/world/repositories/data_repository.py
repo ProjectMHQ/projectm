@@ -739,39 +739,6 @@ class RedisDataRepository:
                 for _entity_id in _room.entity_ids:
                     _room.add_entity(Entity(_entity_id))
 
-    async def populate_room_content_for_look(self, room: Room):
-        """
-        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
-        """
-        redis = await self.async_redis()
-        pipeline = redis.pipeline()
-        _exp_res = []
-        for entity_id in room.entity_ids:
-            pipeline.hget('c:{}:d:{}'.format(SystemComponent.key, 'instance_of'), entity_id)
-            pipeline.hget('{}:{}'.format(self._entity_prefix, entity_id), AttributesComponent.key)
-            _exp_res.append(entity_id)
-        result = await pipeline.execute()
-        if not _exp_res:
-            return
-        for i in range(0, len(_exp_res) * 2, 2):
-            try:
-                if result[i+1]:
-                    attrs = AttributesComponent.from_bytes(result[i+1])
-                else:
-                    if not result[i]:
-                        LOGGER.core.error('Entity id {} has not InstanceOfComponent'.format(
-                            _exp_res[i and int(i/2) or i])
-                        )
-                        attrs = None
-                    else:
-                        attrs = self.library_repository.get_defaults_for_library_element(
-                            result[i].decode(), AttributesComponent
-                        )
-            except Exception as e:
-                raise ValueError('Errorone! i: {} entity_id: {}'.format(i, _exp_res[i and int(i / 2) or i])) from e
-
-            room.add_entity(Entity(_exp_res[i and int(i / 2) or i]).set_component(attrs))
-
     async def delete_entity(self, entity_id: int):
         """
         USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.

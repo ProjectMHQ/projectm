@@ -1,4 +1,5 @@
 from core.src.world.actions.inventory.inventory_messages import InventoryMessages
+from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.collectible import CollectibleComponent
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.pos import PosComponent
@@ -17,7 +18,7 @@ async def pick(entity: Entity, *arguments):
     if len(arguments) == 1:
         room = await get_current_room(entity)
         items_to_pick = await search_entities_in_room_by_keyword(
-            room, keyword, filter_by=CollectibleComponent(True)
+            room, keyword, filter_by=(AttributesComponent, 'collectible', True)
         )
         container_entity = None
     elif len(arguments) == 2:
