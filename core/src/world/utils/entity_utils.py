@@ -273,14 +273,17 @@ async def search_entities_in_room_by_keyword(
         await room.populate_content()  # Use the filter here
     if inspect.isclass(filter_by) and issubclass(filter_by, StructComponent):
         filter_by = (filter_by, )
-        comp_keys, comp_values = None
     elif isinstance(filter_by, tuple) and inspect.isclass(filter_by[0]) and issubclass(filter_by[0], StructComponent):
-        filter_by = (filter_by[0])
-        await batch_load_components(*filter_by, entities=room.entities)
-        comp_keys = [filter_by[1]]
-        comp_values = [filter_by[2]]
+        pass
     else:
         raise ValueError
+    components = [AttributesComponent]
+    if filter_by[0] not in components:
+        if len(filter_by) > 1:
+            components.append((filter_by[0], filter_by[1]))
+        else:
+            components.append(filter_by[0])
+    await batch_load_components(*components, entities=room.entities)
     multiple_items = False
     if '*' in keyword:
         assert '*' not in keyword[1:]
@@ -290,13 +293,14 @@ async def search_entities_in_room_by_keyword(
     for e in room.entities:
         if filter_by:
             filtered = False
-            for i, c in enumerate(filter_by):
-                if not comp_keys:
-                    if not e.get_component(c):
+            if not e.get_component(filter_by[0]):
+                filtered = True
+            else:
+                if len(filter_by) == 3:
+                    if e.get_component(filter_by[0]).get_value(filter_by[1]) != filter_by[2]:
                         filtered = True
-                else:
-                    if e.get_component(c).get_value(comp_keys[i]) != comp_values[i]:
-                        filtered = True
+                elif len(filter_by) == 2 and not e.get_component(filter_by[0]).get_value(filter_by[1]):
+                    filtered = True
             if filtered:
                 continue
         if multiple_items and e.get_component(AttributesComponent).keyword.startswith(keyword):

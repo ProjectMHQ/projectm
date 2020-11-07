@@ -175,6 +175,9 @@ class _StructStrType(_BasicStructType):
     def __iter__(self):
         return iter(self.value)
 
+    def startswith(self, value):
+        return self.value.startswith(value)
+
     def set(self, value):
         assert isinstance(value, str)
         self.value = value
