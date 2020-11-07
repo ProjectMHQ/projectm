@@ -144,3 +144,9 @@ class RedisLibraryRepository:
         assert name
         val = self._local_copy.get(name, {'components': {}})['components'].get(component.libname)
         return val and component(val)
+
+    def get_default_value_for_struct_subkey(self, entity_type, component_key, component_subkey):
+        assert entity_type and component_key and component_subkey
+        return self._local_copy.get(entity_type, {'components': {}})['components']\
+            .get(component_key, {})\
+            .get(component_subkey)

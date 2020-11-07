@@ -25,9 +25,25 @@ AttributesComponentValidator = combinators.struct(
             combinators.String,
             lambda x: string_size(x, 512)
         ),
+        "collectible": combinators.Boolean,
     },
     name="AttributesComponentValidator",
     strict=True
+)
+
+LibraryWeaponValidator = combinators.struct(
+    {
+        "libname": combinators.subtype(
+            combinators.String,
+            lambda x: string_size(x, 16)
+        ),
+        "components": combinators.struct(
+            {
+                "attributes": AttributesComponentValidator,
+            }
+        )
+    },
+    name="LibraryJSONFileValidator"
 )
 
 InventoryComponentValidator = combinators.struct(
@@ -47,7 +63,6 @@ GenericContainerValidator = combinators.struct(
         "components": combinators.struct(
             {
                 "attributes": AttributesComponentValidator,
-                "collectible": combinators.Boolean,
                 "inventory": InventoryComponentValidator
             }
         ),
@@ -58,5 +73,6 @@ GenericContainerValidator = combinators.struct(
 
 
 LibraryJSONFileValidator = combinators.union(
+    LibraryWeaponValidator,
     GenericContainerValidator
 )

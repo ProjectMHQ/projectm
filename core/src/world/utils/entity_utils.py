@@ -9,8 +9,6 @@ from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.parent_of import ParentOfComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
-from core.src.world.domain.room import Room
-from core.src.world.utils.world_utils import get_current_room
 
 
 def get_base_room_for_entity(entity: Entity):
@@ -35,7 +33,7 @@ def get_entity_id_from_raw_data_input(text: str, data: typing.List, index: int =
     i = 0
     for entry in data:
         for x in entry['data']:
-            print('Looking for %s at index %s, Examining %s' % (text, index, x))
+            print('Looking for %s at index %s, Examining %s (%s)' % (text, index, x, entry))
             if x['keyword'].startswith(text):
                 if i == index:
                     return entry['entity_id'], x
@@ -148,17 +146,21 @@ async def search_entity_in_sight_by_keyword(
         await load_components(entity, PosComponent, AttributesComponent, InventoryComponent)
     else:
         await load_components(entity, PosComponent, AttributesComponent)
+    from core.src.world.utils.world_utils import get_current_room
     room = await get_current_room(entity)
     if not room.has_entities:
         return
     all_but_me = [eid for eid in room.entity_ids if eid != entity.entity_id]
+    search_data = []
+    target_data = {}
     self_inventory = None
     if include_self:
         self_inventory = entity.get_component(InventoryComponent)
         all_but_me = self_inventory.content + all_but_me
 
     # filtering - investigate how to improve it
-    components = [PosComponent, AttributesComponent, ParentOfComponent]
+    components = [PosComponent, ParentOfComponent]
+    struct_components = [AttributesComponent]
 
     def _make_filters(_f_by):
         if not _f_by:
@@ -179,28 +181,15 @@ async def search_entity_in_sight_by_keyword(
         return _fb, _sb
 
     filter_by, struct_filters = _make_filters(filter_by)
-    _target_data = await world_repository.get_components_values_by_entities_ids(all_but_me, components)
-    filtered = []
-    target_data = {}
-    for e_id, comp in _target_data.items():
-        if not filter_by:
-            target_data.update(_target_data)
-        for c in filter_by:
-            if _target_data.get(e_id, None) is None:
-                target_data[e_id] = {}
-            assert inspect.isclass(c)
-            if comp[c.enum] is None:
-                filtered.append(e_id)
-        if e_id in filtered:
-            continue
-        if not target_data.get(e_id):
-            target_data[e_id] = {}
-        target_data[e_id].update({c: v for c, v in comp.items()})
-    if struct_filters:
-        struct_data = await world_repository.read_struct_components_for_entities(all_but_me, *struct_filters)
-        for e_id, comp in struct_data.items():
-            for c in struct_filters:
-                if struct_data.get(e_id, None) is None:
+
+    if all_but_me:
+        filtered = []
+        _target_data = await world_repository.get_components_values_by_entities_ids(all_but_me, components)
+        for e_id, comp in _target_data.items():
+            if not filter_by:
+                target_data.update(_target_data)
+            for c in filter_by:
+                if _target_data.get(e_id, None) is None:
                     target_data[e_id] = {}
                 assert inspect.isclass(c)
                 if comp[c.enum] is None:
@@ -210,28 +199,39 @@ async def search_entity_in_sight_by_keyword(
             if not target_data.get(e_id):
                 target_data[e_id] = {}
             target_data[e_id].update({c: v for c, v in comp.items()})
-    # end filtering
-
-    search_data = []
+        struct_components = list(struct_components) + list(struct_filters)
+        struct_data = await world_repository.read_struct_components_for_entities(all_but_me, *struct_components)
+        for e_id, comp in struct_data.items():
+            if struct_filters:
+                for c in struct_filters:
+                    assert inspect.isclass(c)
+                    if comp[c.enum] is None:
+                        filtered.append(e_id)
+            if e_id in filtered:
+                continue
+            if not target_data.get(e_id):
+                target_data[e_id] = {}
+            target_data[e_id].update({c: v for c, v in comp.items()})
+        # end filtering
+        for entity_id in all_but_me:
+            if entity_id in filtered:
+                continue
+            search_data.append(
+                {'entity_id': entity_id, 'data': [
+                    {'keyword': target_data[entity_id][AttributesComponent.enum].keyword.value}
+                ]},
+            )
     attrs = entity.get_component(AttributesComponent)
     include_self and search_data.extend(
         [
             {
                 'entity_id': entity.entity_id, 'data': [
-                    {'keyword': attrs.name},
-                    {'keyword': attrs.keyword}
+                    {'keyword': attrs.name.value},
+                    {'keyword': attrs.keyword.value}
                 ]
             }
         ]
     )
-    for entity_id in all_but_me:
-        if entity_id in filtered:
-            continue
-        search_data.append(
-            {'entity_id': entity_id, 'data': [
-                {'keyword': target_data[entity_id][AttributesComponent.enum].keyword}
-            ]},
-        )
     if not search_data:
         return
     index, target = get_index_from_text(keyword)
@@ -263,7 +263,7 @@ async def search_entity_in_sight_by_keyword(
 
 
 async def search_entities_in_room_by_keyword(
-    room: Room,
+    room,
     keyword: str,
     filter_by: (StructComponent, typing.Tuple[ComponentType]) = None
 ) -> typing.List[Entity]:

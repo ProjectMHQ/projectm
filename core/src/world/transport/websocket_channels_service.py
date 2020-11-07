@@ -4,7 +4,7 @@ import time
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.services.transport.websocket_namespace_private import private_namespace_factory
+from core.src.world.transport.websocket_namespace_private import private_namespace_factory
 
 
 class WebsocketChannelsService:

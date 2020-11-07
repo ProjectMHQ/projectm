@@ -2,9 +2,9 @@ import socketio
 from aiohttp import web
 from core.src.world.builder import websocket_channels_service, async_redis_queue, world_repository
 from core.src.world.services.redis_pubsub_interface import PubSubManager
-from core.src.world.services.transport.redis_pubsub_subscriber_service import RedisPubSubSystemEventsSubscriberService
-from core.src.world.services.transport.websocket_namespace_main import build_public_namespace
-from core.src.world.services.transport.websocket_system_events_observer import TransportSystemEventsObserver
+from core.src.world.transport.redis_pubsub_subscriber_service import RedisPubSubSystemEventsSubscriberService
+from core.src.world.transport.websocket_namespace_main import build_public_namespace
+from core.src.world.transport.websocket_system_events_observer import TransportSystemEventsObserver
 from etc import settings
 
 

@@ -14,7 +14,7 @@ async def whoami(entity: Entity):
             {
                 "event": "whoami",
                 "id": entity.entity_id,
-                "name": entity.get_component(AttributesComponent).name
+                "name": entity.get_component(AttributesComponent).name.value
             }
         )
     )

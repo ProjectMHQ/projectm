@@ -1,6 +1,5 @@
 from core.src.world.actions.inventory.inventory_messages import InventoryMessages
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.collectible import CollectibleComponent
 from core.src.world.components.inventory import InventoryComponent
 from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity

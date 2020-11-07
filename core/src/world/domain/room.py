@@ -74,7 +74,7 @@ class Room(DomainObject):
                     'status': 0,
                     'excerpt': 0,
                     'e_id': e.entity_id,
-                    'name': e.get_component(AttributesComponent).name
+                    'name': e.get_component(AttributesComponent).name.value
                 }
             )
         return {
@@ -107,6 +107,8 @@ class Room(DomainObject):
 
     async def populate_content(self):
         entities = [Entity(eid) for eid in self.entity_ids]
+        if not entities:
+            return self
         await batch_load_components(AttributesComponent, entities=entities)
         for entity in entities:
             self.add_entity(entity)
