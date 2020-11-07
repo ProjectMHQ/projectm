@@ -412,24 +412,6 @@ class RedisDataRepository:
             } for entity_id in entities_ids
         }
 
-    async def get_raw_component_value_by_entity_ids(
-            self, component, *entity_ids: int):
-        """
-        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
-        """
-        assert not component.is_array(), 'At the moment is not possible to use this API with array components'
-        redis = await self.async_redis()
-        pipeline = redis.pipeline()
-        for entity_id in entity_ids:
-            key = '{}:{}'.format(self._entity_prefix, entity_id)
-            pipeline.hmget(key, component.key)
-        results = await pipeline.execute()
-        response = []
-        for result in results:
-            if result[1]:
-                response.append(result[1] and result[1].decode())
-        return response
-
     async def get_components_values_by_components_storage(
             self,
             entity_ids: typing.List[int],
@@ -525,25 +507,6 @@ class RedisDataRepository:
                     bits_by_component[comp.key] = _comp_v
                 i += 1
         return bits_by_component
-
-    async def get_entity_ids_with_components(self, *components: ComponentType) -> typing.Iterator[int]:
-        """
-        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
-        """
-        _key = os.urandom(8)
-        redis = await self.async_redis()
-        await redis.bitop_and(
-            _key,
-            *('{}:{}:{}'.format(self._component_prefix, c.key, self._map_suffix) for c in components)
-        )
-        p = redis.pipeline()
-        p.get(_key)
-        p.delete(_key)
-        res = await p.execute()
-        bitmap, _ = res
-        array = bitarray.bitarray()
-        bitmap and array.frombytes(bitmap) or []
-        return (i for i, v in enumerate(array) if v)
 
     async def _get_components_values_from_components_storage(self, filtered_query: OrderedDict):
         """
