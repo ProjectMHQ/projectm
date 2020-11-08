@@ -20,7 +20,7 @@ async def move_entity(entity: Entity, *arguments):
     await load_components(entity, AttributesComponent)
     assert len(arguments) == 1
     direction = get_direction(arguments[0])
-    target_room = await get_room_at_direction(entity, direction)
+    target_room = await get_room_at_direction(entity, direction, False)
     if not target_room:
         await emit_msg(entity, messages.invalid_direction())
         return

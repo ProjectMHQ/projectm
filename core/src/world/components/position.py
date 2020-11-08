@@ -12,9 +12,6 @@ class PositionComponent(StructComponent):
         ("coord", str),
         ("parent_of", int)
     )
-    indexes = (
-        "coord",
-    )
 
     def __init__(self, **kw):
         super().__init__(**kw)
@@ -22,6 +19,7 @@ class PositionComponent(StructComponent):
         self.previous_position = None
 
     def add_previous_position(self, previous: 'PositionComponent'):
+        assert isinstance(previous, PositionComponent)
         self.previous_position = previous
         return self
 
@@ -45,14 +43,14 @@ class PositionComponent(StructComponent):
     @property
     def x(self):
         coord = self._make_coordinates()
-        return coord and coord[0] or None
+        return coord and coord[0] or 0
 
     @property
     def y(self):
         coord = self._make_coordinates()
-        return coord and coord[1] or None
+        return coord and coord[1] or 0
 
     @property
     def z(self):
         coord = self._make_coordinates()
-        return coord and coord[2] or None
+        return coord and coord[2] or 0

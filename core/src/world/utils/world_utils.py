@@ -19,12 +19,12 @@ def direction_to_coords_delta(direction: object) -> typing.Tuple:
 
 
 def apply_delta_to_position(room_position: PositionComponent, delta: typing.Tuple[int, int, int]):
-    return PositionComponent(
-        coord='{},{},{}'.format(
+    return PositionComponent().set_list_coordinates(
+        [
             room_position.x + delta[0],
             room_position.y + delta[1],
             room_position.z + delta[2]
-        )
+        ]
     )
 
 

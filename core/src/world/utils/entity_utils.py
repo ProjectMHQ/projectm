@@ -67,7 +67,7 @@ def move_entity_from_container(
     if isinstance(target, InventoryComponent):
         target.content.append(entity.entity_id)
         target.owned_by().set_for_update(target)
-        entity.set_for_update(PositionComponent.parent_of.set(target.owned_by()).coords.set(''))
+        entity.set_for_update(PositionComponent().parent_of.set(target.owned_by().entity_id).coord.set(''))
     elif isinstance(target, PositionComponent):
         entity.set_for_update(target)
     else:
@@ -84,7 +84,7 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
     if '*' not in keyword:
         for c_entity in container.populated:
             if c_entity.get_component(AttributesComponent).keyword.startswith(keyword):
-                c_entity.set_component(PositionComponent().parent_of.set(container.owned_by()))
+                c_entity.set_component(PositionComponent().parent_of.set(container.owned_by().entity_id))
                 return [c_entity]
         return []
     else:
@@ -93,7 +93,7 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
         keyword = keyword.replace('*', '')
         for c_entity in container.populated:
             if c_entity.get_component(AttributesComponent).keyword.startswith(keyword):
-                c_entity.set_component(PositionComponent().parent_of.set(container.owned_by()))
+                c_entity.set_component(PositionComponent().parent_of.set(container.owned_by().entity_id))
                 res.append(c_entity)
         return res
 
@@ -113,7 +113,7 @@ async def search_entity_in_sight_by_keyword(
     """
     if '*' in keyword:
         return
-    components = [PosComponent, AttributesComponent, InventoryComponent]
+    components = [PositionComponent, AttributesComponent, InventoryComponent]
     include_self and components.append(InventoryComponent)
     await load_components(entity, *components)
     from core.src.world.utils.world_utils import get_current_room
@@ -247,7 +247,7 @@ async def ensure_same_position(self_entity: Entity, *entities: Entity) -> bool:
 
     for e in entities:
         position = e.get_component(PositionComponent)
-        if position.coords and position.coords != self_pos.coords:
+        if position.coord and position.coord != self_pos.coord:
             return False
         elif position.parent_of and position.parent_of != self_entity.entity_id:
             return False
@@ -363,3 +363,21 @@ async def check_entities_connection_status() -> typing.List[typing.Dict]:
             )
     await world_repository.update_entities(*to_update)
     return online
+
+
+async def get_components_for_entity(entity, *components):
+    from core.src.world.builder import world_repository
+    res = await world_repository.read_struct_components_for_entity(entity.entity_id, *components)
+    if len(components) == 1:
+        if inspect.isclass(components[0]):
+            return res[components[0].enum]
+        elif isinstance(components[0], tuple):
+            return res[components[0][0].enum]
+    r = []
+    for c in components:
+        if inspect.isclass(c):
+            r.append(res[c.enum])
+        elif isinstance(c, tuple):
+            r.append(res[c[0][0].enum])
+    return r
+
