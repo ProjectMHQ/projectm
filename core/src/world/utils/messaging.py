@@ -63,7 +63,10 @@ async def emit_sys_msg(entity, event_type: (None, str), item: (DomainObject, Ent
             "target": item_type,
             "details": details
         }
-    return await transport.send_system_event(entity.get_component(SystemComponent).connection, payload)
+    return await transport.send_system_event(
+        entity.get_component(SystemComponent).connection.value,
+        payload
+    )
 
 
 async def emit_room_sys_msg(entity: Entity, event_type: str, details: typing.Dict, room=None, include_origin=True):
@@ -91,7 +94,7 @@ async def emit_room_sys_msg(entity: Entity, event_type: str, details: typing.Dic
             }
             futures.append(
                 transport.send_system_event(
-                    new_components_data[entity_id][SystemComponent.enum].connection,
+                    new_components_data[entity_id][SystemComponent.enum].connection.value,
                     payload
                 )
             )

@@ -55,12 +55,9 @@ def get_entity_data_from_raw_data_input(
 
 
 async def populate_container(container: InventoryComponent, *components):
-    from core.src.world.builder import world_repository
-    data = await world_repository.get_components_values_by_entities(
-        [Entity(x) for x in container.content], list(components)
-    )
-    container._raw_populated = data
-    return [data[x] for x in container.content]
+    container._raw_populated = [Entity(x) for x in container.content]
+    container._raw_populated and await batch_load_components(*components, entities=container._raw_populated)
+    return container
 
 
 def move_entity_from_container(
@@ -98,31 +95,25 @@ async def search_entities_in_container_by_keyword(container: InventoryComponent,
     Search for entities in the provided container, using the keyword param.
     Accept a wildcard as the final character of the keyword argument, to search for multiple entities.
     """
-    container_entities = await populate_container(container, AttributesComponent)
+    await populate_container(container, AttributesComponent)
     if '*' not in keyword:
-        for i, v in enumerate(container_entities):
-            attr_comp = v[AttributesComponent.enum]
-            if attr_comp.keyword.value.startswith(keyword):
-                entity = Entity(entity_id=container.content[i])\
-                    .set_component(attr_comp)\
-                    .set_component(
+        for c_entity in container.populated:
+            if c_entity.get_component(AttributesComponent).keyword.startswith(keyword):
+                c_entity.set_component(
                     ParentOfComponent(entity=container.owned_by(), location=InventoryComponent)
                 )
-                return [entity]
+                return [c_entity]
         return []
     else:
         res = []
         assert keyword[-1] == '*'
         keyword = keyword.replace('*', '')
-        for i, v in enumerate(container.populated):
-            attr_comp = v[AttributesComponent.enum]
-            if attr_comp.keyword.value.startswith(keyword):
-                entity = Entity(entity_id=container.content[i])\
-                    .set_component(attr_comp)\
-                    .set_component(
+        for c_entity in container.populated:
+            if c_entity.get_component(AttributesComponent).keyword.startswith(keyword):
+                c_entity.set_component(
                     ParentOfComponent(entity=container.owned_by(), location=InventoryComponent)
                 )
-                res.append(entity)
+                res.append(c_entity)
         return res
 
 

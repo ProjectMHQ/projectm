@@ -143,7 +143,12 @@ class RedisLibraryRepository:
     def get_defaults_for_library_element(self, name: str, component: typing.Type[ComponentType]) -> ComponentType:
         assert name
         val = self._local_copy.get(name, {'components': {}})['components'].get(component.libname)
-        return val and component(val)
+        if not val:
+            return val
+        elif isinstance(component, ComponentType):
+            return component(val)
+        else:
+            return component(**val)
 
     def get_default_value_for_struct_subkey(self, entity_type, component_key, component_subkey):
         assert entity_type and component_key and component_subkey

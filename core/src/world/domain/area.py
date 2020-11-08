@@ -120,9 +120,14 @@ class Area(DomainObject):
                 self.rooms.extend([None] * self.size)
         return self
 
+    def populate_area_content_for_area(self, entity: Entity) -> None:
+        for _room in self.rooms:
+            if _room:
+                for _entity_id in _room.entity_ids:
+                    _room.add_entity(Entity(_entity_id))
+
     async def populate_rooms_content(self, entity: Entity):
-        from core.src.world.builder import world_repository
-        await world_repository.populate_area_content_for_area(entity, self)
+        self.populate_area_content_for_area(entity)
         return self
 
     async def get_map_for_entity(self, entity: Entity) -> typing.Dict:

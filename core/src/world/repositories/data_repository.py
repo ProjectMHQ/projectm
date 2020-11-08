@@ -384,6 +384,7 @@ class RedisDataRepository:
         USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
         """
         for component in components:
+            assert not component.is_struct
             assert not component.is_array(), 'At the moment is not possible to use this API with array components'
 
         _bits_statuses = await self._get_components_statuses_by_entities(entities, components)
@@ -693,16 +694,6 @@ class RedisDataRepository:
                     except KeyError:
                         data[entity_id] = {ComponentTypeEnum(c_key): None}
         return data
-
-    async def populate_area_content_for_area(self, entity: Entity, area: Area) -> None:
-        """
-        USE OLD STYLE COMPONENTS, GOING TO BE DEPRECATED.
-        """
-        # TODO FIXME
-        for _room in area.rooms:
-            if _room:
-                for _entity_id in _room.entity_ids:
-                    _room.add_entity(Entity(_entity_id))
 
     async def delete_entity(self, entity_id: int):
         """
