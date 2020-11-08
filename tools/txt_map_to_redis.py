@@ -1,6 +1,6 @@
 import sys
 
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.services.system_utils import connection_pools
 
 sys.path.insert(0, './')
@@ -32,7 +32,7 @@ def parse_lines(lines):
             if room_enum:
                 rooms.append(
                     Room(
-                        position=PosComponent([x, max_y-y, 0]),
+                        position=PositionComponent().set_list_coordinates([x, max_y-y, 0]),
                         terrain=room_enum
                     )
                 )

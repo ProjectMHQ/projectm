@@ -3,7 +3,7 @@ import typing
 
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.actions.movement.move import do_move_entity
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.components.system import SystemComponent
 
 from core.src.world.domain.entity import Entity
@@ -68,13 +68,13 @@ class FollowSystemManager:
         if current_followed_id != event['entity']['id']:
             LOGGER.core.error('Error on follow system')
             return
-        entity = await load_components(Entity(follower_id), SystemComponent, PosComponent)
-        if entity.get_component(PosComponent).value != event['from']:
+        entity = await load_components(Entity(follower_id), SystemComponent, PositionComponent)
+        if entity.get_component(PositionComponent).list_coordinates != event['from']:
             LOGGER.core.error('Error on follow system')
             return
         await do_move_entity(
             entity,
-            Room(PosComponent(event['to'])),
+            Room(PositionComponent().set_list_coordinates(event['to'])),
             None,
             reason="movement",
             emit_message=False

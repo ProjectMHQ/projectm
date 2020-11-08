@@ -1,7 +1,6 @@
 import enum
 import typing
-from core.src.world.components.base import ComponentType
-
+from core.src.world.components.base.abstract import ComponentType
 
 StructSubtypeListAction = typing.NamedTuple(
     'StructSubtypeListAction',

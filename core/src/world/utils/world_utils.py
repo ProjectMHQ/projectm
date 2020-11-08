@@ -1,8 +1,9 @@
 import typing
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.domain.entity import Entity
+from core.src.world.utils.entity_utils import load_components
 from core.src.world.utils.world_types import DirectionEnum, TerrainEnum
 
 
@@ -17,12 +18,13 @@ def direction_to_coords_delta(direction: object) -> typing.Tuple:
     }[direction]
 
 
-def apply_delta_to_position(room_position: PosComponent, delta: typing.Tuple[int, int, int]):
-    return PosComponent([
-        room_position.x + delta[0],
-        room_position.y + delta[1],
-        room_position.z + delta[2]
-        ]
+def apply_delta_to_position(room_position: PositionComponent, delta: typing.Tuple[int, int, int]):
+    return PositionComponent(
+        coord='{},{},{}'.format(
+            room_position.x + delta[0],
+            room_position.y + delta[1],
+            room_position.z + delta[2]
+        )
     )
 
 
@@ -44,28 +46,21 @@ def is_terrain_walkable(terrain_type: TerrainEnum):
 
 
 async def get_current_room(entity: Entity, populate=True):
-    from core.src.world.builder import world_repository
     from core.src.world.builder import map_repository
-    if not entity.get_component(PosComponent):
-        pos = await world_repository.get_components_values_by_entities_ids(
-            [entity.entity_id],
-            [PosComponent]
-        )
-        entity.set_component(PosComponent(pos[entity.entity_id][PosComponent.enum]))
-    room = await map_repository.get_room(entity.get_component(PosComponent), populate=populate)
+    await load_components(entity, PositionComponent)
+    room = await map_repository.get_room(entity.get_component(PositionComponent), populate=populate)
     populate and await room.populate_content()
     entity.set_room(room)
     return room
 
 
 async def get_room_at_direction(entity: Entity, direction_enum, populate=True):
-    from core.src.world.builder import map_repository, world_repository
+    from core.src.world.builder import map_repository
     delta = direction_to_coords_delta(direction_enum)
     if not delta:
         return
-    pos = await world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-    entity.set_component(pos)
-    look_cords = apply_delta_to_position(pos, delta)
+    await load_components(entity, PositionComponent)
+    look_cords = apply_delta_to_position(entity.get_component(PositionComponent), delta)
     room = await map_repository.get_room(look_cords, populate=populate)
     populate and await room.populate_content()
     return room
@@ -83,13 +78,13 @@ async def clean_rooms_from_stales_instances(instance_type='character'):
     if not entity_ids_with_connection_component_active:
         return []
     entities = [Entity(eid) for eid in entity_ids_with_connection_component_active]
-    await batch_load_components(PosComponent, SystemComponent, entities=entities)
+    await batch_load_components(PositionComponent, SystemComponent, entities=entities)
     entities_without_connection_component_and_position = [
-        e for e in entities if not e.get_component(SystemComponent).connection.value
-        and e.get_component(PosComponent).value
+        e for e in entities if not e.get_component(SystemComponent).connection
+        and e.get_component(PositionComponent).coord
     ]
     rooms = await map_repository.get_rooms(
-        *(e.get_component(PosComponent) for e in entities_without_connection_component_and_position)
+        *(e.get_component(PositionComponent) for e in entities_without_connection_component_and_position)
     )
     stales = []
     for i, room in enumerate(rooms):

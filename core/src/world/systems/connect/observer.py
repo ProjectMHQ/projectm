@@ -5,11 +5,11 @@ from core.src.world.actions.system.cast import cast_entity
 from core.src.world.actions.system.disconnect import disconnect_entity
 from core.src.world.actions.system.getmap import getmap
 from core.src.world.actions.look.look import look
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.components.system import SystemComponent
 
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.entity_utils import get_base_room_for_entity, update_entities
+from core.src.world.utils.entity_utils import get_base_room_for_entity, update_entities, load_components
 from core.src.world.utils.messaging import emit_msg
 
 
@@ -64,12 +64,18 @@ class ConnectionsObserver:
         await update_entities(
             entity.set_for_update(SystemComponent().connection.set(connection_id))
         )
-        pos = await self.world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-        if not pos:
+        await load_components(entity, PositionComponent)
+        if not entity.get_component(PositionComponent):
             await cast_entity(entity, get_base_room_for_entity(entity), on_connect=True, reason="connect")
             self.loop.create_task(self.greet(entity))
         else:
-            await cast_entity(entity, pos, update=False, on_connect=True, reason="connect")
+            await cast_entity(
+                entity,
+                entity.get_component(PositionComponent),
+                update=False,
+                on_connect=True,
+                reason="connect"
+            )
         self.manager.set_transport(entity.entity_id, connection_id)
         self.commands_observer.enable_channel(connection_id)
         self.loop.create_task(look(entity))

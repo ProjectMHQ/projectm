@@ -1,7 +1,7 @@
 import typing
 
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.domain import DomainObject
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import batch_load_components
@@ -14,7 +14,7 @@ class Room(DomainObject):
 
     def __init__(
         self,
-        position: PosComponent = None,
+        position: PositionComponent = None,
         terrain: TerrainEnum = TerrainEnum.NULL,
         entity_ids: typing.List[int] = list()
     ):
@@ -32,7 +32,7 @@ class Room(DomainObject):
         return self._pov_direction
 
     @property
-    def position(self) -> PosComponent:
+    def position(self) -> PositionComponent:
         return self._position
 
     @property

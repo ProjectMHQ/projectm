@@ -3,7 +3,7 @@ import typing
 import time
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.domain import DomainObject
 
 from core.src.world.domain.room import Room
@@ -13,7 +13,7 @@ from core.src.world.domain.entity import Entity
 class Area(DomainObject):
     item_type = "area"
 
-    def __init__(self, center: PosComponent, square_size=9):
+    def __init__(self, center: PositionComponent, square_size=9):
         self.center = center
         self.size = square_size
         self.rooms: typing.List[typing.Optional[Room]] = []
@@ -86,7 +86,7 @@ class Area(DomainObject):
                     res['data'].append(payload)
         return res
 
-    def is_position_inside(self, pos: PosComponent):
+    def is_position_inside(self, pos: PositionComponent):
         if pos.z != self.center.z:
             return False
         max_distance = self.size // 2
@@ -95,7 +95,7 @@ class Area(DomainObject):
         )
         return bool(distance <= max_distance)
 
-    def get_relative_position(self, position: PosComponent) -> int:
+    def get_relative_position(self, position: PositionComponent) -> int:
         return (self.max_y - position.y) * (self.max_x - self.min_x + 1) + position.x - self.min_x
 
     async def populate_rooms(self):

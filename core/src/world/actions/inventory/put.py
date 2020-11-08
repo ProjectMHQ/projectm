@@ -1,6 +1,6 @@
 from core.src.world.actions.inventory.inventory_messages import InventoryMessages
 from core.src.world.components.inventory import InventoryComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import load_components, update_entities, \
     search_entities_in_container_by_keyword, move_entity_from_container, search_entity_in_sight_by_keyword
@@ -10,7 +10,7 @@ messages = InventoryMessages()
 
 
 async def put(entity: Entity, keyword: str, target: str):
-    await load_components(entity, PosComponent, InventoryComponent)
+    await load_components(entity, PositionComponent, InventoryComponent)
     inventory = entity.get_component(InventoryComponent)
     items = await search_entities_in_container_by_keyword(inventory, keyword)
     target_entity = await search_entity_in_sight_by_keyword(
@@ -25,8 +25,7 @@ async def put(entity: Entity, keyword: str, target: str):
         items_to_drop.append(
             move_entity_from_container(
                 item,
-                target=target_entity.get_component(InventoryComponent),
-                parent=entity
+                target=target_entity.get_component(InventoryComponent)
             )
         )
     if not items_to_drop:

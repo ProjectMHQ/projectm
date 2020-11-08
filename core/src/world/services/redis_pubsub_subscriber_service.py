@@ -37,7 +37,7 @@ class RedisPubSubEventsSubscriberService:
                 observer.on_event(
                     entity_id,
                     message,
-                    message['curr'],
+                    message['coordinates'],
                     self._transports_by_entity_id[entity_id]
                 )
             )

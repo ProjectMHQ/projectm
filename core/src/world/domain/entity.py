@@ -1,6 +1,6 @@
 import typing
 
-from core.src.world.components.base import ComponentType
+from core.src.world.components.base.abstract import ComponentType
 from core.src.world.components.base.structcomponent import StructComponent
 from core.src.world.domain import DomainObject
 

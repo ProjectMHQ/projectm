@@ -4,7 +4,7 @@ from enum import Enum
 import typing
 
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.components.system import SystemComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.entity import Entity
@@ -102,9 +102,9 @@ class PubSubObserver:
         )
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
-        room = PosComponent(room)
+        room = PositionComponent(room)
         entity = Entity(entity_id).set_component(SystemComponent().connection.set(transport_id))
-        curr_pos = await self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
+        curr_pos = await self.repository.get_component_value_by_entity_id(entity.entity_id, PositionComponent)
         interest_type = await self._get_message_interest_type(entity, room, curr_pos)
         if not interest_type.value:
             return
