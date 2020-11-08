@@ -264,26 +264,18 @@ async def batch_load_components(*components, entities=()):
     """
     from core.src.world.builder import world_repository
     from core.src.world.components.base.structcomponent import StructComponent
-    struct = []
-    comps = []
+    query_comp = []
     for c in components:
         if (isinstance(c, tuple) and (inspect.isclass(c[0]) and issubclass(c[0], StructComponent))) or \
                 (inspect.isclass(c) and issubclass(c, StructComponent)):
-            struct.append(c)
+            query_comp.append(c)
         else:
-            comps.append(c)
-    struct_comps = struct and await world_repository.read_struct_components_for_entities(
-        [e.entity_id for e in entities], *struct
+            raise ValueError
+    comp_res = query_comp and await world_repository.read_struct_components_for_entities(
+        [e.entity_id for e in entities], *query_comp
     ) or {}
-    data = await world_repository.get_components_values_by_entities_ids([e.entity_id for e in entities], comps)
     for entity in entities:
-        for c in comps:
-            assert not isinstance(c, tuple)
-            comp = c(data[entity.entity_id][c.enum])
-            comp.set_owner(entity)
-            entity.set_component(comp)
-    for entity in entities:
-        entity_comps = struct_comps.get(entity.entity_id, {})
+        entity_comps = comp_res.get(entity.entity_id, {})
         for ck, cv in entity_comps.items():
             cv.set_owner(entity)
             entity.set_component(cv)
@@ -297,28 +289,23 @@ async def load_components(entity, *components):
     """
     from core.src.world.builder import world_repository
     from core.src.world.components.base.structcomponent import StructComponent
-    struct = []
-    comps = []
+    query_comp = []
     for c in components:
         if (isinstance(c, tuple) and (inspect.isclass(c[0]) and issubclass(c[0], StructComponent))) or \
                 (inspect.isclass(c) and issubclass(c, StructComponent)):
-            struct.append(c)
+            query_comp.append(c)
         else:
-            comps.append(c)
-    struct_components = struct and \
-                        (await world_repository.read_struct_components_for_entity(entity.entity_id, *struct)) or {}
-    data = await world_repository.get_components_values_by_components_storage([entity.entity_id], comps)
-    for legacy_c in comps:
-        comp = legacy_c(data[legacy_c.enum][entity.entity_id])
-        comp.set_owner(entity)
-        entity.set_component(comp)
-    for k, c in struct_components.items():
+            raise ValueError
+    comp_res = query_comp and (
+        await world_repository.read_struct_components_for_entity(entity.entity_id, *query_comp)
+    ) or {}
+    for k, c in comp_res.items():
         c.set_owner(entity)
         entity.set_component(c)
     return entity
 
 
-def update_entities(*entities, apply_bounds=True):
+def update_entities(*entities):
     """
     Batch updates all the entities passed.
     By default it uses Component Type specs to ensure critical bounds are set.

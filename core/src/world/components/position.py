@@ -19,6 +19,11 @@ class PositionComponent(StructComponent):
     def __init__(self, **kw):
         super().__init__(**kw)
         self._list_coordinates = []
+        self.previous_position = None
+
+    def add_previous_position(self, previous: 'PositionComponent'):
+        self.previous_position = previous
+        return self
 
     def _make_coordinates(self) -> typing.Optional[typing.List]:
         if not self._list_coordinates:
@@ -40,14 +45,14 @@ class PositionComponent(StructComponent):
     @property
     def x(self):
         coord = self._make_coordinates()
-        return coord and coord[0]
+        return coord and coord[0] or None
 
     @property
     def y(self):
         coord = self._make_coordinates()
-        return coord and coord[1]
+        return coord and coord[1] or None
 
     @property
     def z(self):
         coord = self._make_coordinates()
-        return coord and coord[2]
+        return coord and coord[2] or None

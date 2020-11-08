@@ -4,6 +4,7 @@ import time
 import typing
 import aioredis
 from core.src.auth.logging_factory import LOGGER
+from core.src.world.components.base import ComponentTypeEnum
 from core.src.world.components.base.structcomponent import StructSubtypeListAction, StructSubtypeStrSetAction, \
     StructSubtypeIntIncrAction, StructSubtypeIntSetAction, StructSubTypeSetNull, StructSubTypeBoolOn, \
     StructSubTypeBoolOff, StructSubTypeDictSetKeyValueAction, \
@@ -186,6 +187,8 @@ class RedisDataRepository:
             self._check_bounds_for_update(pipeline, entity)
         for entity in entities:
             for component in entity.pending_changes.values():
+                if component.enum == ComponentTypeEnum.POSITION:
+                    self.map_repository.update_map_position_for_entity(component, entity, pipeline)
                 pipeline.setbit(
                     'c:{}:m'.format(component.key),
                     entity.entity_id, Bit.ON.value if component.is_active() else Bit.OFF.value

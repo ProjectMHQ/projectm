@@ -65,7 +65,7 @@ class ConnectionsObserver:
             entity.set_for_update(SystemComponent().connection.set(connection_id))
         )
         await load_components(entity, PositionComponent)
-        if not entity.get_component(PositionComponent):
+        if not entity.get_component(PositionComponent).coord:
             await cast_entity(entity, get_base_room_for_entity(entity), on_connect=True, reason="connect")
             self.loop.create_task(self.greet(entity))
         else:
@@ -84,20 +84,5 @@ class ConnectionsObserver:
     async def greet(self, entity: Entity):
         await emit_msg(
             entity,
-            "Welcome to a new place..."
-        )
-        await asyncio.sleep(3)
-        await emit_msg(
-            entity,
-            "Look around..."
-        )
-        await asyncio.sleep(3)
-        await emit_msg(
-            entity,
-            "..but be careful... "
-        )
-        await asyncio.sleep(3)
-        await emit_msg(
-            entity,
-            "..Antani is on fire."
+            "Welcome to Project M"
         )
