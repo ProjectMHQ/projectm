@@ -178,6 +178,7 @@ class _StructStrType(_BasicStructType):
         return self.value.startswith(value)
 
     def set(self, value):
+        value = value if value is not None else ''
         assert isinstance(value, str)
         self.value = value
         if not self.owner.pending_changes.get(self.key):
@@ -228,6 +229,7 @@ class _StructIntType(_BasicStructType):
         return self.owner
 
     def set(self, value):
+        value = value if value is not None else 0
         assert isinstance(value, int), value
         self.value = value
         if not self.owner.pending_changes.get(self.key):

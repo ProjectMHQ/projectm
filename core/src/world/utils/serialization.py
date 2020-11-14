@@ -12,7 +12,7 @@ def serialize_system_message_item(item, entity):
         return item.item_type, item.serialize()
     elif isinstance(item, Entity):
         p = item.get_component(PositionComponent)
-        if p.coords:
+        if p.coord:
             location = -1
         elif p.parent_of:
             location = p.parent_of
@@ -25,7 +25,7 @@ def serialize_system_message_item(item, entity):
                 "keyword": attributes.keyword.value,
                 "description": attributes.description.value
             },
-            "location": location
+            "location": location.value
         }
     elif isinstance(item, dict):
         return item

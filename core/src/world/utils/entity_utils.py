@@ -67,16 +67,19 @@ def move_entity_from_container(
     current_position = entity.get_component(PositionComponent)
     owner = target.owned_by()
     if isinstance(target, InventoryComponent):
-        new_position = PositionComponent(parent_of=owner.entity_id, coord=None)
+        new_position = PositionComponent().parent_of.set(owner.entity_id).coord.null()
         new_position.add_previous_position(current_position)
         target.content.append(entity.entity_id)
         owner.set_for_update(target)
         entity.set_for_update(new_position)
+
     elif isinstance(target, PositionComponent):
-        new_position = PositionComponent(parent_of=None, coord=target.coord.value)
+        assert target.coord.value
+        new_position = PositionComponent().parent_of.null().coord.set(target.coord.value)
         entity.set_for_update(new_position)
         assert current_position.parent_of == (owner and owner.entity_id)
         owner.get_component(InventoryComponent).content.remove(entity.entity_id)
+
     else:
         raise ValueError('Target must be type PosComponent or ContainerComponent, is: %s' % target)
     return entity
@@ -120,11 +123,11 @@ async def search_entity_in_sight_by_keyword(
     """
     if '*' in keyword:
         return
-    components = [PositionComponent, AttributesComponent, InventoryComponent]
+    components = [PositionComponent, AttributesComponent]
     include_self and components.append(InventoryComponent)
     await load_components(entity, *components)
     from core.src.world.utils.world_utils import get_current_room
-    room = await get_current_room(entity, populate=False)
+    room = await get_current_room(entity)
     if not room.has_entities:
         return
     entities = [Entity(entity_id) for entity_id in room.entity_ids if entity_id != entity.entity_id]
@@ -132,7 +135,7 @@ async def search_entity_in_sight_by_keyword(
     if include_self:
         self_inventory = entity.get_component(InventoryComponent)
         entities = [Entity(e) for e in self_inventory.content] + entities
-    entities and await batch_load_components(components, entities=entities)
+    entities and await batch_load_components(*components, entities=entities)
 
     # filtering - todo: investigate how to improve it using indexes
     def _make_filters(_f_by):
@@ -258,7 +261,7 @@ async def ensure_same_position(self_entity: Entity, *entities: Entity) -> bool:
             return False
         elif position.parent_of and position.parent_of != self_entity.entity_id:
             return False
-        else:
+        elif not position.parent_of and not position.coord:
             LOGGER.core.error('Cannot determinate if an item is in the same position as previous declared')
             return False
     return True
