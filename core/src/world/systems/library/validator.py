@@ -27,8 +27,7 @@ AttributesComponentValidator = combinators.struct(
         ),
         "collectible": combinators.Boolean,
     },
-    name="AttributesComponentValidator",
-    strict=True
+    name="AttributesComponentValidator"
 )
 
 LibraryWeaponValidator = combinators.struct(
@@ -67,8 +66,7 @@ GenericContainerValidator = combinators.struct(
             }
         ),
     },
-    name="LibraryJSONFileValidator",
-    strict=True
+    name="LibraryJSONFileValidator"
 )
 
 

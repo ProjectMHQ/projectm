@@ -384,6 +384,7 @@ class StructComponent(ComponentType):
         for x in self.indexes:
             if key == x[0]:
                 return True
+        return False
 
     def get_index_type(self, key):
         for x in self.indexes:

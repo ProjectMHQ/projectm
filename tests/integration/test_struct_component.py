@@ -2,6 +2,7 @@ import asyncio
 from unittest import TestCase
 from unittest.mock import Mock
 
+from core.src.world.components.base import ComponentTypeEnum
 from core.src.world.components.base.structcomponent import StructComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.repositories.data_repository import RedisDataRepository
@@ -122,7 +123,7 @@ class TestStructComponent(TestCase):
 
     async def _test_stuff_struct_component(self):
         class TestComponent2(StructComponent):
-            component_enum = 1
+            enum = ComponentTypeEnum.SYSTEM
             meta = (
                 ('weirdstuff', str),
                 ('manystuffhere', list),
@@ -132,7 +133,7 @@ class TestStructComponent(TestCase):
             )
 
         class TestComponent(StructComponent):
-            component_enum = 0
+            enum = ComponentTypeEnum.INVENTORY
             meta = (
                 ('weirdstuff', str),
                 ('manystuffhere', list),
@@ -140,8 +141,7 @@ class TestStructComponent(TestCase):
                 ('boolean', bool),
                 ('a', dict)
             )
-            has_index = ('weirdstuff', )
-            has_default = ('integerrr', )
+            indexes = ('weirdstuff', )
 
         ent = Entity(444)
         c3 = TestComponent().weirdstuff.set('weirdstuff').a.set('key', 'value').manystuffhere.append(3)

@@ -82,5 +82,6 @@ class TestRedisWorkerQueueService(TestCase):
         ids = {0, 1, 2, 3, 4}
         self.loop.run_until_complete(self.async_test())
         for m in self.messages:
+            print(m)
             ids.remove(m['d'])
         self.assertEqual(set(), ids)
