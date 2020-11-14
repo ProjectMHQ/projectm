@@ -135,12 +135,11 @@ async def search_entity_in_sight_by_keyword(
     if include_self:
         self_inventory = entity.get_component(InventoryComponent)
         entities = [Entity(e) for e in self_inventory.content] + entities
-    entities and await batch_load_components(*components, entities=entities)
 
     # filtering - todo: investigate how to improve it using indexes
     def _make_filters(_f_by):
         if not _f_by:
-            return [], []
+            return []
         from core.src.world.components.base.structcomponent import StructComponent
         _sb = []
         if issubclass(_f_by, StructComponent):
@@ -156,14 +155,14 @@ async def search_entity_in_sight_by_keyword(
 
     filters = _make_filters(filter_by)
     filtered = []
+    entities and await batch_load_components(*(components+filters), entities=entities)
     for ent in entities:
-        for component in components:
-            if filters:
-                for components in filters:
-                    if ent.get_component(component) is None:
-                        filtered.append(ent)
-            if ent in filtered:
-                continue
+        if filters:
+            for component in filters:
+                if ent.get_component(component) is None:
+                    filtered.append(ent)
+        if ent in filtered:
+            continue
         # end filtering
     for ent in entities:
         if ent in filtered:

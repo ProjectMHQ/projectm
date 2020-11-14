@@ -144,6 +144,10 @@ class RedisDataRepository:
                             pipeline.zadd('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *payload)
                         elif action.type == 'remove':
                             pipeline.zrem('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *action.values)
+                        elif action.type == 'overwrite':
+                            pipeline.remove('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k))
+                            if payload:
+                                pipeline.zadd('c:{}:zs:e:{}:{}'.format(comp_key, entity.entity_id, k), *payload)
                         else:
                             raise ValueError('Invalid action type')
                     elif isinstance(action, StructSubTypeSetNull):

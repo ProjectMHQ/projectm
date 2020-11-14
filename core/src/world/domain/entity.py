@@ -26,8 +26,10 @@ class Entity(DomainObject):
     def get_view_size(self):
         return 15
 
-    def set_for_update(self, component: ComponentType):
+    def set_for_update(self, component: StructComponent, no_full_update=False):
         self._pending_changes[component.enum] = component
+        if not component.pending_changes:
+            not no_full_update and component.build_values_as_changes()
         if isinstance(component, StructComponent) and component.bounds:
             if component not in self._bounds:
                 self._bounds.append(component)

@@ -39,6 +39,9 @@ class RedisLUAPipeline:
         ppload = ", ".join(["{}".format(str(p)) for p in payload])
         self.value += "redis.call('zadd', '{}', {})\n".format(key, ppload)
 
+    def remove(self, key):
+        self.value += "redis.call('del', '{}')\n".format(key)
+
     def zrem(self, key, *payload):
         ppload = ", ".join(["'{}'".format(str(p)) for p in payload])
         self.value += "redis.call('zrem', '{}', {})\n".format(key, ppload)

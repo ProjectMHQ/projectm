@@ -109,6 +109,9 @@ class _BasicStructType:
         self.owner.pending_changes[self.key].append(StructSubTypeSetNull())
         return self.owner
 
+    def build_updates_from_scratch(self):
+        raise NotImplementedError
+
 
 class _StructDictType(_BasicStructType):
 
@@ -137,6 +140,13 @@ class _StructDictType(_BasicStructType):
         self.value = value or {}
         self.owner = owner
         self.key = key
+
+    def build_updates_from_scratch(self):
+        for k, v in self.value.items():
+            if not v:
+                self.remove(k)
+            else:
+                self.set(k, v)
 
     def remove(self, key):
         assert isinstance(key, str)
@@ -186,6 +196,10 @@ class _StructStrType(_BasicStructType):
         self.owner.pending_changes[self.key].append(StructSubtypeStrSetAction(value))
         return self.owner
 
+    def build_updates_from_scratch(self):
+        self.set(self.value)
+        return self
+
 
 class _StructBoolType(_BasicStructType):
     def __init__(self, owner, key, value=False):
@@ -209,6 +223,10 @@ class _StructBoolType(_BasicStructType):
     def disable(self):
         self.set(False)
         return self.owner
+
+    def build_updates_from_scratch(self):
+        _ = self.enable() if self.value else self.disable()
+        return self
 
 
 class _StructIntType(_BasicStructType):
@@ -236,6 +254,10 @@ class _StructIntType(_BasicStructType):
             self.owner.pending_changes[self.key] = []
         self.owner.pending_changes[self.key].append(StructSubtypeIntSetAction(value))
         return self.owner
+
+    def build_updates_from_scratch(self):
+        self.set(self.value)
+        return self
 
 
 class _StructListType(_BasicStructType):
@@ -272,6 +294,12 @@ class _StructListType(_BasicStructType):
             self.owner.bounds[self.key] = []
         self.owner.bounds[self.key].append(StructSubtypeListAction('remove', list(values)))
         self.owner.pending_changes[self.key].append(StructSubtypeListAction('remove', list(values)))
+        return self.owner
+
+    def build_updates_from_scratch(self):
+        if not self.owner.pending_changes.get(self.key):
+            self.owner.pending_changes[self.key] = []
+        self.owner.pending_changes[self.key].append(StructSubtypeListAction('overwrite', self.value))
         return self.owner
 
 
@@ -325,6 +353,10 @@ class StructComponent(ComponentType):
 
         value = None
         super().__init__(value)
+
+    def build_values_as_changes(self):
+        for values in self._current_values.values():
+            values.build_updates_from_scratch()
 
     def remove_bounds(self):
         self.bounds = {}

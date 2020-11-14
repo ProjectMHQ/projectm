@@ -21,7 +21,7 @@ async def instance(entity: Entity, command: str, parent_alias: str, *args):
         else:
             await emit_msg(entity, 'Cannot do destroy action')
     else:
-        raise ValueError
+        await emit_msg(entity, 'error, use @inst [create|destroy] libname loc')
 
 
 async def _create_instance(entity: Entity, parent_alias: str, *args):
