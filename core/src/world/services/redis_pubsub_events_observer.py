@@ -176,12 +176,12 @@ class PubSubObserver:
                 'from': message['prev'],
                 'to': message['curr']
             }
-        if message['curr'] == curr_pos.value:
+        if message['curr'] == curr_pos.list_coordinates:
             assert message['prev'] != curr_pos
             assert interest_type == InterestType.LOCAL
             payload['action'] = "join"
             payload['direction'] = self._gather_movement_direction(message, "join")
-        elif message['prev'] == curr_pos.value:
+        elif message['prev'] == curr_pos.list_coordinates:
             assert message['curr'] != curr_pos
             assert interest_type != InterestType.LOCAL
             payload['action'] = "leave"
