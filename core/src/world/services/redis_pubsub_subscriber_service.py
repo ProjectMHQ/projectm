@@ -28,7 +28,10 @@ class RedisPubSubEventsSubscriberService:
 
     async def _subscribe_pubsub_topic(self, entity_id: int):
         async for message in self.pubsub.subscribe(self._eid_to_key(entity_id)):
-            self._on_new_message(entity_id, message)
+            try:
+                self._on_new_message(entity_id, message)
+            except Exception as e:
+                raise e
 
     def _on_new_message(self, entity_id, message):
         for observer in self._observers_by_entity_id.get(entity_id, []):
@@ -37,7 +40,7 @@ class RedisPubSubEventsSubscriberService:
                 observer.on_event(
                     entity_id,
                     message,
-                    message['coordinates'],
+                    message['curr'],
                     self._transports_by_entity_id[entity_id]
                 )
             )

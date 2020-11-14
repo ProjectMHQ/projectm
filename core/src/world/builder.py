@@ -56,7 +56,7 @@ mgr = socketio.AsyncRedisManager(
 )
 transport = SocketioTransportInterface(socketio.AsyncServer(client_manager=mgr))
 
-pubsub_observer = PubSubObserver(world_repository, transport)
+pubsub_observer = PubSubObserver(world_repository)
 
 async_redis_queues = get_redis_factory(RedisType.QUEUES)
 queue = RedisQueueConsumer(async_redis_queues, 0)

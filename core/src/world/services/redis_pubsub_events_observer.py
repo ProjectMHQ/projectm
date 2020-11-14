@@ -20,7 +20,7 @@ class InterestType(Enum):
 
 
 class PubSubObserver:
-    def __init__(self, repository, transport, loop=asyncio.get_event_loop()):
+    def __init__(self, repository, loop=asyncio.get_event_loop()):
         self.loop = loop
         self.repository = repository
         self.postprocessed_events_observers = {}
@@ -102,9 +102,10 @@ class PubSubObserver:
         )
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
-        room = PositionComponent(room)
+        room = PositionComponent(coord='{},{},{}'.format(*room))
         entity = Entity(entity_id).set_component(SystemComponent().connection.set(transport_id))
-        curr_pos = await self.repository.get_component_value_by_entity_id(entity.entity_id, PositionComponent)
+        await load_components(entity, PositionComponent)
+        curr_pos = entity.get_component(PositionComponent)
         interest_type = await self._get_message_interest_type(entity, room, curr_pos)
         if not interest_type.value:
             return
