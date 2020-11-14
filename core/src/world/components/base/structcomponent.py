@@ -355,8 +355,9 @@ class StructComponent(ComponentType):
         super().__init__(value)
 
     def build_values_as_changes(self):
-        for values in self._current_values.values():
-            values.build_updates_from_scratch()
+        for k, values in self._current_values.items():
+            if k not in self.defaults:
+                values.build_updates_from_scratch()
 
     def remove_bounds(self):
         self.bounds = {}

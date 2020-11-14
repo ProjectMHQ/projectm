@@ -25,7 +25,7 @@ def serialize_system_message_item(item, entity):
                 "keyword": attributes.keyword.value,
                 "description": attributes.description.value
             },
-            "location": location.value
+            "location": (location and not isinstance(location, int)) and location.value or location
         }
     elif isinstance(item, dict):
         return item

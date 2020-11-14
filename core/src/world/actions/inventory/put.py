@@ -25,7 +25,8 @@ async def put(entity: Entity, keyword: str, target: str):
         items_to_drop.append(
             move_entity_from_container(
                 item,
-                target=target_entity.get_component(InventoryComponent)
+                target=target_entity.get_component(InventoryComponent),
+                current_owner=entity
             )
         )
     if not items_to_drop:

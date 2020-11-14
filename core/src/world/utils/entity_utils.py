@@ -62,23 +62,29 @@ async def populate_container(container: InventoryComponent, *components):
 
 def move_entity_from_container(
         entity: Entity,
-        target: (PositionComponent, InventoryComponent)
+        target: (PositionComponent, InventoryComponent),
+        current_owner: Entity = None
 ):
     current_position = entity.get_component(PositionComponent)
-    owner = target.owned_by()
+    if current_position.parent_of:
+        assert current_owner and current_owner.entity_id == current_position.parent_of, (
+                current_owner and current_owner.entity_id, current_position.parent_of
+        )
+        current_owner.get_component(InventoryComponent).content.remove(entity.entity_id)
+        current_owner.set_for_update(current_owner.get_component(InventoryComponent))
+
     if isinstance(target, InventoryComponent):
-        new_position = PositionComponent().parent_of.set(owner.entity_id).coord.null()
+        target_owner = target.owned_by()
+        new_position = PositionComponent().parent_of.set(target_owner.entity_id).coord.null()
         new_position.add_previous_position(current_position)
         target.content.append(entity.entity_id)
-        owner.set_for_update(target)
+        target_owner.set_for_update(target)
         entity.set_for_update(new_position)
 
     elif isinstance(target, PositionComponent):
         assert target.coord.value
         new_position = PositionComponent().parent_of.null().coord.set(target.coord.value)
         entity.set_for_update(new_position)
-        assert current_position.parent_of == (owner and owner.entity_id)
-        owner.get_component(InventoryComponent).content.remove(entity.entity_id)
 
     else:
         raise ValueError('Target must be type PosComponent or ContainerComponent, is: %s' % target)

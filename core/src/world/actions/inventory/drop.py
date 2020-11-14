@@ -17,7 +17,13 @@ async def drop(entity: Entity, keyword: str):
     msgs_stack = get_stacker()
     items_to_drop = []
     for item in items:
-        items_to_drop.append(move_entity_from_container(item, target=entity.get_component(PositionComponent)))
+        items_to_drop.append(
+            move_entity_from_container(
+                item,
+                target=entity.get_component(PositionComponent),
+                current_owner=entity
+            )
+        )
     if not items_to_drop:
         await emit_msg(entity, messages.target_not_found())
         return

@@ -39,7 +39,7 @@ async def pick(entity: Entity, *arguments):
     await load_components(entity, InventoryComponent)
     inventory = entity.get_component(InventoryComponent)
     for item in items_to_pick:
-        move_entity_from_container(item, target=inventory)
+        move_entity_from_container(item, target=inventory, current_owner=container_entity)
     msgs_stack = get_stacker()
     if len(items_to_pick) == 1:
         if container_entity:
