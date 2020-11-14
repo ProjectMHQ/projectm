@@ -250,6 +250,7 @@ class _StructListType(_BasicStructType):
 
     def append(self, *values: int):
         for value in values:
+            print(values, self.value)
             assert isinstance(value, int)
             assert value not in self.value
             self.value.append(value)
@@ -316,7 +317,8 @@ class StructComponent(ComponentType):
             assert k not in self._reserved_names
             assert not getattr(self, k, None)
             expected_type = self.meta[getattr(self.meta_enum, k)][1]
-            assert type(v) == expected_type
+            if v is not None:
+                assert type(v) == expected_type, (type(v), expected_type)
             load_value_in_struct_component(self, k, v)
 
         value = None

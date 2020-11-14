@@ -64,12 +64,19 @@ def move_entity_from_container(
         entity: Entity,
         target: (PositionComponent, InventoryComponent)
 ):
+    current_position = entity.get_component(PositionComponent)
+    owner = target.owned_by()
     if isinstance(target, InventoryComponent):
+        new_position = PositionComponent(parent_of=owner.entity_id, coord=None)
+        new_position.add_previous_position(current_position)
         target.content.append(entity.entity_id)
-        target.owned_by().set_for_update(target)
-        entity.set_for_update(PositionComponent().parent_of.set(target.owned_by().entity_id).coord.set(''))
+        owner.set_for_update(target)
+        entity.set_for_update(new_position)
     elif isinstance(target, PositionComponent):
-        entity.set_for_update(target)
+        new_position = PositionComponent(parent_of=None, coord=target.coord.value)
+        entity.set_for_update(new_position)
+        assert current_position.parent_of == (owner and owner.entity_id)
+        owner.get_component(InventoryComponent).content.remove(entity.entity_id)
     else:
         raise ValueError('Target must be type PosComponent or ContainerComponent, is: %s' % target)
     return entity

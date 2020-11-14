@@ -21,6 +21,7 @@ async def drop(entity: Entity, keyword: str):
     if not items_to_drop:
         await emit_msg(entity, messages.target_not_found())
         return
+    entity.set_for_update(inventory)
     msgs_stack.add(
         emit_sys_msg(entity, 'remove_items', messages.items_to_message(items_to_drop)),
         emit_room_sys_msg(entity, 'add_items', messages.items_to_message(items_to_drop))

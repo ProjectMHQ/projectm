@@ -74,8 +74,11 @@ async def emit_room_sys_msg(entity: Entity, event_type: str, details: typing.Dic
     assert isinstance(details, dict)
     room = room or (entity.get_room() or await get_current_room(entity))
     listeners = await get_eligible_listeners_for_room(room)
-    listeners = listeners if not include_origin else [e for e in listeners if e.entity_id != entity.entity_id]
-    await batch_load_components((SystemComponent, 'connection'), PositionComponent, entities=listeners)
+    if listeners:
+        listeners = listeners if not include_origin else [e for e in listeners if e.entity_id != entity.entity_id]
+        listeners and (
+            await batch_load_components((SystemComponent, 'connection'), PositionComponent, entities=listeners)
+        )
     futures = []
     for entity in listeners:
         position = entity.get_component(PositionComponent)

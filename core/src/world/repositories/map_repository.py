@@ -220,10 +220,10 @@ class RedisMapRepository:
                 position.previous_position.y,
                 position.previous_position.z
             )
-            pipeline.zrem(prev_set_name, '{}'.format(entity.entity_id))
-        if position.value:
+            pipeline.zrem(prev_set_name, entity.entity_id)
+        if position.coord:
             new_set_name = self.get_room_key(position.x, position.y, position.z)
-            pipeline.zadd(new_set_name, int(time.time()*100000), '{}'.format(entity.entity_id))
+            pipeline.zadd(new_set_name, int(time.time()*100000), entity.entity_id)
 
     async def get_all_entity_ids_in_area(self, area):
         redis = await self.redis()
