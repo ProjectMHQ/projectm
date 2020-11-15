@@ -5,11 +5,9 @@ import time
 import aioredis
 import typing
 
-from core.src.world.components.base import ComponentType
-from core.src.world.components.created_at import CreatedAtComponent
+from core.src.world.components.base.abstract import ComponentType
 from core.src.world.components.factory import get_component_by_type
-from core.src.world.components.instance_by import InstanceByComponent
-from core.src.world.components.instance_of import InstanceOfComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.entity import Entity
 
 
@@ -107,13 +105,19 @@ class RedisLibraryRepository:
         data = self._local_copy.get(name)
         if not data:
             return
-        e.set_for_update(InstanceOfComponent(data['libname']))
-        e.set_for_update(CreatedAtComponent(int(time.time())))
-        e.set_for_update(InstanceByComponent(entity.entity_id))
+
+        system_component = SystemComponent()\
+            .instance_of.set(data['libname'])\
+            .created_at.set(int(time.time()))\
+            .instance_by.set(entity.entity_id)
+
+        e.set_for_update(system_component)
         for component in data['components']:
             comp_type = get_component_by_type(component)
-            if comp_type.has_data():
+            if comp_type.has_default:
                 e.set_for_update(comp_type().activate())
+            else:
+                e.set_for_update(comp_type(value=data['components'][component]))
         return e
 
     def get_libraries(self, pattern: str, offset=0, limit=20):
@@ -139,4 +143,12 @@ class RedisLibraryRepository:
     def get_defaults_for_library_element(self, name: str, component: typing.Type[ComponentType]) -> ComponentType:
         assert name
         val = self._local_copy.get(name, {'components': {}})['components'].get(component.libname)
-        return val and component(val)
+        if not val:
+            return val
+        return component(**val)
+
+    def get_default_value_for_struct_subkey(self, entity_type, component_key, component_subkey):
+        assert entity_type and component_key and component_subkey
+        return self._local_copy.get(entity_type, {'components': {}})['components']\
+            .get(component_key, {})\
+            .get(component_subkey)

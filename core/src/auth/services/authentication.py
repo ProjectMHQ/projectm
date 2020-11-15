@@ -70,7 +70,7 @@ class AuthenticationServiceImpl(AuthenticationServiceAbstract):
         LOGGER.core.debug('Decoding session token: %s', session_token)
         now = int(time.time())
         token = json.loads(self.encryption_service.decrypt(session_token))
-        LOGGER.core.debug('Decoding session token: %s', session_token)
+        LOGGER.core.debug('Decoding session token: %s', token)
         expires_at = token['ttl'] + token['created_at']
         if expires_at < now:
             raise exceptions.SessionExpiredException

@@ -3,9 +3,8 @@ import typing
 
 from core.src.auth.logging_factory import LOGGER
 from core.src.world.actions.movement.move import do_move_entity
-from core.src.world.components.character import CharacterComponent
-from core.src.world.components.connection import ConnectionComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
+from core.src.world.components.system import SystemComponent
 
 from core.src.world.domain.entity import Entity
 from core.src.world.domain.room import Room
@@ -21,7 +20,7 @@ class FollowSystemManager:
 
     def get_follow_target(self, follower_id: int):
         response = self._follow_by_follower.get(follower_id)
-        return response and Entity(response).set_component(CharacterComponent(True))
+        return response and Entity(response).set_component(SystemComponent(receive_events=True))
 
     def stop_following(self, follower_id: int):
         followed_id = self._follow_by_follower.get(follower_id)
@@ -69,13 +68,13 @@ class FollowSystemManager:
         if current_followed_id != event['entity']['id']:
             LOGGER.core.error('Error on follow system')
             return
-        entity = await load_components(Entity(follower_id), ConnectionComponent, PosComponent)
-        if entity.get_component(PosComponent).value != event['from']:
+        entity = await load_components(Entity(follower_id), SystemComponent, PositionComponent)
+        if entity.get_component(PositionComponent).list_coordinates != event['from']:
             LOGGER.core.error('Error on follow system')
             return
         await do_move_entity(
             entity,
-            Room(PosComponent(event['to'])),
+            Room(PositionComponent().set_list_coordinates(event['to'])),
             None,
             reason="movement",
             emit_message=False

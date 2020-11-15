@@ -5,7 +5,7 @@ from unittest import mock
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 from core.src.world.builder import worker_queue_manager
 from core.src.world.repositories.data_repository import RedisDataRepository
-from core.src.world.services.transport.websocket_channels_service import WebsocketChannelsService
+from core.src.world.transport import WebsocketChannelsService
 from etc import settings
 import binascii
 import os

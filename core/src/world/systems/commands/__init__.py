@@ -13,9 +13,9 @@ from core.src.world.actions.movement.move import move_entity
 
 
 def commands_observer_factory(transport):
-    from core.src.world.services.transport.socketio_interface import TransportInterface
     from core.src.world.systems.commands.observer import CommandsObserver
 
+    from core.src.world.transport.socketio_interface import TransportInterface
     if isinstance(transport, TransportInterface):
         observer = CommandsObserver(transport)
     else:

@@ -8,7 +8,11 @@ class RedisType(enum.IntEnum):
     QUEUES = 1
 
 
+connection_pools = {}
+
+
 def get_redis_factory(rtype: RedisType):
+
     if settings.INTEGRATION_TESTS:
         endpoint = 'redis://{}:{}/{}'.format(settings.REDIS_HOST, settings.REDIS_PORT, settings.REDIS_TEST_DB)
     else:
@@ -19,10 +23,13 @@ def get_redis_factory(rtype: RedisType):
         else:
             raise ValueError('wtf?')
 
-    async def async_redis_pool_factory(max_size=128):
-        return await aioredis.create_redis_pool(
+    async def async_redis_pool_factory(max_size=1024):
+        connection_pool = await aioredis.create_redis_pool(
             endpoint,
             db=settings.REDIS_DB,
             maxsize=max_size
         )
+        connection_pools[rtype] = connection_pool
+        return connection_pools[rtype]
+
     return async_redis_pool_factory

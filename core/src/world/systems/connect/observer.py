@@ -5,11 +5,12 @@ from core.src.world.actions.system.cast import cast_entity
 from core.src.world.actions.system.disconnect import disconnect_entity
 from core.src.world.actions.system.getmap import getmap
 from core.src.world.actions.look.look import look
-from core.src.world.components.connection import ConnectionComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
+from core.src.world.components.system import SystemComponent
 
 from core.src.world.domain.entity import Entity
-from core.src.world.utils.entity_utils import get_base_room_for_entity
+from core.src.world.utils.entity_utils import get_base_room_for_entity, update_entities, load_components
+from core.src.world.utils.messaging import emit_msg
 
 
 class ConnectionsObserver:
@@ -20,6 +21,7 @@ class ConnectionsObserver:
             world_repository,
             events_subscriber_service,
             connections_manager,
+            commands_observer,
             loop=asyncio.get_event_loop()
     ):
         self._commands = {}
@@ -29,6 +31,7 @@ class ConnectionsObserver:
         self.world_repository = world_repository
         self.events_subscriber_service = events_subscriber_service
         self.manager = connections_manager
+        self.commands_observer = commands_observer
 
     def add_command(self, command: str, method: callable):
         self._commands[command] = method
@@ -36,7 +39,7 @@ class ConnectionsObserver:
     async def on_message(self, message: typing.Dict):
         entity = Entity(
             message['e_id'], itsme=True
-        ).set_component(ConnectionComponent(message['n']))
+        ).set_component(SystemComponent().connection.set(message['n']))
         if message['c'] == 'connected':
             await self.on_connect(entity)
         elif message['c'] == 'disconnected':
@@ -45,44 +48,41 @@ class ConnectionsObserver:
             raise ValueError('wtf?!')
 
     async def on_disconnect(self, entity: Entity):
-        current_connection = list(await self.world_repository.get_raw_component_value_by_entity_ids(
-            ConnectionComponent, entity.entity_id
-        ))
-        if current_connection and current_connection[0] != entity.get_component(ConnectionComponent).value:
+        current_connection = (await self.world_repository.read_struct_components_for_entity(
+            entity.entity_id, (SystemComponent, 'connection')
+        ))[SystemComponent.enum]
+        if current_connection.connection.value != entity.get_component(SystemComponent).connection.value:
             return
-        await disconnect_entity(entity)
+        await disconnect_entity(entity, msg=False)
         self.events_subscriber_service.remove_observer_for_entity_id(entity.entity_id)
         self.manager.remove_transport(entity.entity_id)
         await self.events_subscriber_service.unsubscribe_all(entity)
 
     async def on_connect(self, entity: Entity):
-        await self.world_repository.update_entities(
-            entity.set_for_update(ConnectionComponent(entity.get_component(ConnectionComponent).value))
-        )
+        connection_id = entity.get_component(SystemComponent).connection.value
         self.events_subscriber_service.add_observer_for_entity_id(entity.entity_id, self.pubsub_observer)
-        pos = await self.world_repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
-        if not pos:
+        await update_entities(
+            entity.set_for_update(SystemComponent().connection.set(connection_id))
+        )
+        await load_components(entity, PositionComponent)
+        if not entity.get_component(PositionComponent).coord:
             await cast_entity(entity, get_base_room_for_entity(entity), on_connect=True, reason="connect")
             self.loop.create_task(self.greet(entity))
         else:
-            await cast_entity(entity, pos, update=False, on_connect=True, reason="connect")
-        self.manager.set_transport(entity.entity_id, entity.get_component(ConnectionComponent).value)
+            await cast_entity(
+                entity,
+                entity.get_component(PositionComponent),
+                update=False,
+                on_connect=True,
+                reason="connect"
+            )
+        self.manager.set_transport(entity.entity_id, connection_id)
+        self.commands_observer.enable_channel(connection_id)
         self.loop.create_task(look(entity))
         self.loop.create_task(getmap(entity))
 
     async def greet(self, entity: Entity):
-        await entity.emit_msg(
-            "Welcome to a new place..."
-        )
-        await asyncio.sleep(3)
-        await entity.emit_msg(
-            "Look around..."
-        )
-        await asyncio.sleep(3)
-        await entity.emit_msg(
-            "..but be careful... "
-        )
-        await asyncio.sleep(3)
-        await entity.emit_msg(
-            "..Antani is on fire."
+        await emit_msg(
+            entity,
+            "Welcome to Project M"
         )

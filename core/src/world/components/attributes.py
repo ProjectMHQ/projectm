@@ -1,21 +1,17 @@
 from core.src.world.components.base import ComponentTypeEnum
-from core.src.world.components.base.dictcomponent import DictComponent
+from core.src.world.components.base.structcomponent import StructComponent
 
 
-class AttributesComponent(DictComponent):
-    component_enum = ComponentTypeEnum.ATTRIBUTES
-    key = ComponentTypeEnum.ATTRIBUTES.value
+class AttributesComponent(StructComponent):
+    enum = ComponentTypeEnum.ATTRIBUTES
     libname = "attributes"
-    has_default = True
 
-    @property
-    def name(self):
-        return self._value.get('name')
-
-    @property
-    def description(self):
-        return self._value.get('description')
-
-    @property
-    def keyword(self):
-        return self._value.get('keyword')
+    meta = (
+        ('name', str),
+        ('description', str),
+        ('keyword', str),
+        ('collectible', bool)
+    )
+    defaults = (
+        'name', 'description', 'keyword', 'collectible'
+    )

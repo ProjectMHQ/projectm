@@ -1,7 +1,7 @@
 import typing
 
 from core.src.world.actions.movement.movement_messages import MovementMessages
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.domain.room import Room
 from core.src.world.utils.messaging import emit_msg
@@ -25,6 +25,7 @@ class ScheduledMovement:
         self.escape_corners = escape_corners
         self.direction = direction
         self.target_room = target
+        self._sem = True
 
     async def find_escape(self) -> typing.Optional[Room]:
         from core.src.world.builder import map_repository
@@ -44,9 +45,9 @@ class ScheduledMovement:
     async def do(self) -> bool:
         from core.src.world.actions.movement.move import do_move_entity
         if not self.entity.get_room():
-            position = self.entity.get_component(PosComponent)
+            position = self.entity.get_component(PositionComponent)
             assert position
-            self.entity.set_room(Room(position))
+            self.entity.set_room(Room(PositionComponent))
         if not self.target_room:
             self.target_room = await get_room_at_direction(self.entity, self.direction, populate=False)
         if not await self.target_room.walkable_by(self.entity):
@@ -56,7 +57,8 @@ class ScheduledMovement:
             else:
                 await emit_msg(self.entity, messages.invalid_direction())
                 return False
-        await do_move_entity(self.entity, self.target_room, self.direction, "movement")
+        await do_move_entity(self.entity, self.target_room, self.direction, "movement", self_emit_message=self._sem)
+        self._sem = False
         self.target_room = None
         return True
 

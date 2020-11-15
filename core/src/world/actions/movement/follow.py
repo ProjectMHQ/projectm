@@ -2,8 +2,8 @@ import asyncio
 
 from core.src.world.actions.movement.follow_messages import FollowMessages
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.connection import ConnectionComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.utils.messaging import emit_msg, emit_room_msg
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import search_entity_in_sight_by_keyword, ensure_same_position, \
@@ -60,7 +60,7 @@ async def unfollow(entity):
     else:
         follow_system_manager.stop_following(entity.entity_id)
         await batch_load_components(
-            AttributesComponent, ConnectionComponent, PosComponent,
+            AttributesComponent, (SystemComponent, 'receive_events'), PositionComponent,
             entities=(target_entity, entity)
         )
         await asyncio.gather(

@@ -1,14 +1,21 @@
 from core.src.world.components.base import ComponentTypeEnum
-from core.src.world.components.base.listcomponent import ListComponent
+from core.src.world.components.base.structcomponent import StructComponent
 
 
-class InventoryComponent(ListComponent):
-    component_enum = ComponentTypeEnum.INVENTORY
-    key = ComponentTypeEnum.INVENTORY.value
+class InventoryComponent(StructComponent):
+    enum = ComponentTypeEnum.INVENTORY
     libname = "inventory"
-    subtype = int
 
-    @classmethod
-    def is_active(cls):
-        return True
+    meta = (
+        ("content", list),
+        ("current_weight", int)
+    )
 
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self._raw_populated = []
+        self._owner = None
+
+    @property
+    def populated(self):
+        return self._raw_populated

@@ -36,8 +36,11 @@ class RedisLUAPipeline:
         self.value += "redis.call('setbit', '{}', {}, {})\n".format(key, bit, value)
 
     def zadd(self, key, *payload):
-        ppload = ", ".join(["'{}'".format(str(p)) for p in payload])
+        ppload = ", ".join(["{}".format(str(p)) for p in payload])
         self.value += "redis.call('zadd', '{}', {})\n".format(key, ppload)
+
+    def remove(self, key):
+        self.value += "redis.call('del', '{}')\n".format(key)
 
     def zrem(self, key, *payload):
         ppload = ", ".join(["'{}'".format(str(p)) for p in payload])
@@ -46,8 +49,8 @@ class RedisLUAPipeline:
     def hset(self, key, subkey, value):
         self.value += "redis.call('hset', '{}', '{}', '{}')\n".format(key, subkey, value)
 
-    def hincrby(self, key, entity_id, value):
-        self.value += "redis.call('hincrby', '{}', '{}', {})\n".format(key, entity_id, value)
+    def hincrby(self, key, subkey, value):
+        self.value += "redis.call('hincrby', '{}', '{}', {})\n".format(key, subkey, value)
 
     def hmset_dict(self, key, value):
         values = ""
@@ -78,9 +81,23 @@ class RedisLUAPipeline:
         self.value += "redis.call('zrange', 'temp:{}:2', 0, -1)\n".format(seed)
         self.value += "redis.call('del', 'temp:{0}:2', 'temp:{0}:1')\n".format(seed)
 
+    def mantain_valued_index(self, component, key: str, value: (str, int), entity_id: int):
+        c_key = 'c:{}:e:{}'.format(component.key, entity_id)
+        i_key_prefix = 'i:c:{}:{}'.format(component.key, key)
+        self.value += "local mvi_val = redis.call('hget', '{}', '{}')\n".format(c_key, key)
+        self.value += "if mvi_val then redis.call('zrem', '{}:' .. mvi_val, {}) end \n".format(i_key_prefix, entity_id)
+        self.value += "redis.call('zadd', '{}:{}', 0, {})\n".format(i_key_prefix, value, entity_id)
+
+    def drop_value_from_index(self, index_prefix: str, value: (str, int), entity_id: int):
+        self.value += "redis.call('zdel', '{}:{}', {})\n".format(index_prefix, value, entity_id)
+
     def return_exit(self, value_key=None):
         self.value += "return {}".format(value_key or 0)
 
     async def execute(self, return_value_at_exit=1):
         self.return_exit(value_key=return_value_at_exit)
-        return await self.redis.eval(self.value)
+        try:
+            return await self.redis.eval(self.value)
+        except:
+            print('Exception with LUA script: %s' % self.value)
+            raise

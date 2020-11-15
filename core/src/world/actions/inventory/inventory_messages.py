@@ -25,7 +25,7 @@ class InventoryMessages:
             "entities": [
                 {
                     "entity_id": item.entity_id,
-                    "name": item.get_component(AttributesComponent).keyword
+                    "name": item.get_component(AttributesComponent).keyword.value
                 } for item in items
             ]
         }

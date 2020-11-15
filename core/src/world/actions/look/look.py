@@ -2,7 +2,7 @@ from core.src.world.actions.look.messages import LookMessages
 from core.src.world.components.attributes import AttributesComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import search_entity_in_sight_by_keyword, ensure_same_position
-from core.src.world.utils.messaging import emit_sys_msg, emit_msg, emit_room_msg
+from core.src.world.utils.messaging import emit_sys_msg, emit_msg, emit_room_msg, check_entity_can_receive_messages
 from core.src.world.utils.world_types import DirectionEnum
 from core.src.world.utils.world_utils import get_direction, get_current_room, get_room_at_direction
 
@@ -37,10 +37,12 @@ async def look_at_target(entity: Entity, *arguments: str):
     elif not await ensure_same_position(entity, target_entity):
         await emit_msg(entity, messages.missing_target())
     else:
-        target_entity.can_receive_messages() and await emit_msg(
-            target_entity,
-            messages.entity_looks_at_you(entity.get_component(AttributesComponent).keyword)
-        )  # Avoid to send messages to... knives, for example :-)
+        if await check_entity_can_receive_messages(target_entity):
+            # Avoid to send messages to... knives, for example :-)
+            await emit_msg(
+                target_entity,
+                messages.entity_looks_at_you(entity.get_component(AttributesComponent).keyword)
+            )
 
         await emit_room_msg(
             origin=entity,

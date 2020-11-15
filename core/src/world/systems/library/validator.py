@@ -1,7 +1,5 @@
 from pycomb import combinators
 
-from core.src.world.components.weapon import WeaponType
-
 
 def string_size(value, size):
     if len(value) > size:
@@ -27,15 +25,9 @@ AttributesComponentValidator = combinators.struct(
             combinators.String,
             lambda x: string_size(x, 512)
         ),
+        "collectible": combinators.Boolean,
     },
-    name="AttributesComponentValidator",
-    strict=True
-)
-
-WeaponComponentValidator = combinators.subtype(
-    combinators.String,
-    lambda x: is_enum(x, WeaponType),
-    name="WeaponComponentValidator"
+    name="AttributesComponentValidator"
 )
 
 LibraryWeaponValidator = combinators.struct(
@@ -47,13 +39,18 @@ LibraryWeaponValidator = combinators.struct(
         "components": combinators.struct(
             {
                 "attributes": AttributesComponentValidator,
-                "weapon": WeaponComponentValidator,
-                "collectible": combinators.Boolean
             }
         )
     },
-    name="LibraryJSONFileValidator",
-    strict=True
+    name="LibraryJSONFileValidator"
+)
+
+InventoryComponentValidator = combinators.struct(
+    {
+        "content": combinators.list(combinators.String),
+        "max_items": combinators.Int
+    },
+    name="InventoryComponent"
 )
 
 GenericContainerValidator = combinators.struct(
@@ -65,13 +62,11 @@ GenericContainerValidator = combinators.struct(
         "components": combinators.struct(
             {
                 "attributes": AttributesComponentValidator,
-                "collectible": combinators.Boolean,
-                "inventory": combinators.list(combinators.String)
+                "inventory": InventoryComponentValidator
             }
         ),
     },
-    name="LibraryJSONFileValidator",
-    strict=True
+    name="LibraryJSONFileValidator"
 )
 
 

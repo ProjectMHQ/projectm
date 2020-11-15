@@ -7,14 +7,14 @@ from core.src.world.repositories.library_repository import RedisLibraryRepositor
 from core.src.world.services.redis_pubsub_interface import PubSubManager
 from core.src.world.services.redis_pubsub_publisher_service import RedisPubSubEventsPublisherService
 from core.src.world.services.redis_pubsub_subscriber_service import RedisPubSubEventsSubscriberService
-from core.src.world.services.transport.socketio_interface import SocketioTransportInterface
-from core.src.world.services.transport.websocket_channels_service import WebsocketChannelsService
 from core.src.world.services.worker_queue_service import WorkerQueueService
 from core.src.world.systems.commands import commands_observer_factory
 from core.src.world.systems.connect.manager import ConnectionsManager
 from core.src.world.systems.connect.observer import ConnectionsObserver
 from core.src.world.services.redis_pubsub_events_observer import PubSubObserver
 from core.src.world.systems.follow.manager import FollowSystemManager
+from core.src.world.transport.socketio_interface import SocketioTransportInterface
+from core.src.world.transport.websocket_channels_service import WebsocketChannelsService
 from etc import settings
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
@@ -56,7 +56,7 @@ mgr = socketio.AsyncRedisManager(
 )
 transport = SocketioTransportInterface(socketio.AsyncServer(client_manager=mgr))
 
-pubsub_observer = PubSubObserver(world_repository, transport)
+pubsub_observer = PubSubObserver(world_repository)
 
 async_redis_queues = get_redis_factory(RedisType.QUEUES)
 queue = RedisQueueConsumer(async_redis_queues, 0)
@@ -69,7 +69,8 @@ connections_observer = ConnectionsObserver(
     pubsub_observer,
     world_repository,
     events_subscriber_service,
-    connections_manager
+    connections_manager,
+    cmds_observer
 )
 
 singleton_actions_scheduler = SingletonActionsScheduler()

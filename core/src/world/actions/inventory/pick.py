@@ -1,7 +1,6 @@
 from core.src.world.actions.inventory.inventory_messages import InventoryMessages
-from core.src.world.components.collectible import CollectibleComponent
+from core.src.world.components.attributes import AttributesComponent
 from core.src.world.components.inventory import InventoryComponent
-from core.src.world.components.pos import PosComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import update_entities, search_entities_in_room_by_keyword, \
     move_entity_from_container, load_components, search_entities_in_container_by_keyword, \
@@ -17,7 +16,7 @@ async def pick(entity: Entity, *arguments):
     if len(arguments) == 1:
         room = await get_current_room(entity)
         items_to_pick = await search_entities_in_room_by_keyword(
-            room, keyword, filter_by=CollectibleComponent(True)
+            room, keyword, filter_by=(AttributesComponent, 'collectible', True)
         )
         container_entity = None
     elif len(arguments) == 2:
@@ -39,9 +38,8 @@ async def pick(entity: Entity, *arguments):
 
     await load_components(entity, InventoryComponent)
     inventory = entity.get_component(InventoryComponent)
-    position = entity.get_component(PosComponent)
     for item in items_to_pick:
-        move_entity_from_container(item, target=inventory, current_position=position, parent=container_entity)
+        move_entity_from_container(item, target=inventory, current_owner=container_entity)
     msgs_stack = get_stacker()
     if len(items_to_pick) == 1:
         if container_entity:

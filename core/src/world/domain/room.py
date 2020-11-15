@@ -1,9 +1,10 @@
 import typing
 
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.domain import DomainObject
 from core.src.world.domain.entity import Entity
+from core.src.world.utils.entity_utils import batch_load_components
 from core.src.world.utils.world_types import TerrainEnum
 from core.src.world.utils.world_utils import is_terrain_walkable
 
@@ -13,7 +14,7 @@ class Room(DomainObject):
 
     def __init__(
         self,
-        position: PosComponent = None,
+        position: PositionComponent = None,
         terrain: TerrainEnum = TerrainEnum.NULL,
         entity_ids: typing.List[int] = list()
     ):
@@ -31,7 +32,7 @@ class Room(DomainObject):
         return self._pov_direction
 
     @property
-    def position(self) -> PosComponent:
+    def position(self) -> PositionComponent:
         return self._position
 
     @property
@@ -73,7 +74,7 @@ class Room(DomainObject):
                     'status': 0,
                     'excerpt': 0,
                     'e_id': e.entity_id,
-                    'name': e.get_component(AttributesComponent).name
+                    'name': e.get_component(AttributesComponent).name.value
                 }
             )
         return {
@@ -105,8 +106,12 @@ class Room(DomainObject):
         return is_terrain_walkable(self.terrain)
 
     async def populate_content(self):
-        from core.src.world.builder import world_repository
-        await world_repository.populate_room_content_for_look(self)
+        entities = [Entity(eid) for eid in self.entity_ids]
+        if not entities:
+            return self
+        await batch_load_components(AttributesComponent, entities=entities)
+        for entity in entities:
+            self.add_entity(entity)
         return self
 
     async def refresh(self, populate=False):

@@ -1,6 +1,6 @@
 from core.src.world.actions.inventory.inventory_messages import InventoryMessages
 from core.src.world.components.inventory import InventoryComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
 from core.src.world.domain.entity import Entity
 from core.src.world.utils.entity_utils import load_components, update_entities, \
     search_entities_in_container_by_keyword, move_entity_from_container
@@ -11,17 +11,23 @@ messages = InventoryMessages()
 
 
 async def drop(entity: Entity, keyword: str):
-    await load_components(entity, PosComponent, InventoryComponent)
+    await load_components(entity, PositionComponent, InventoryComponent)
     inventory = entity.get_component(InventoryComponent)
     items = await search_entities_in_container_by_keyword(inventory, keyword)
-    position = entity.get_component(PosComponent)
     msgs_stack = get_stacker()
     items_to_drop = []
     for item in items:
-        items_to_drop.append(move_entity_from_container(item, target=position, parent=entity))
+        items_to_drop.append(
+            move_entity_from_container(
+                item,
+                target=entity.get_component(PositionComponent),
+                current_owner=entity
+            )
+        )
     if not items_to_drop:
         await emit_msg(entity, messages.target_not_found())
         return
+    entity.set_for_update(inventory)
     msgs_stack.add(
         emit_sys_msg(entity, 'remove_items', messages.items_to_message(items_to_drop)),
         emit_room_sys_msg(entity, 'add_items', messages.items_to_message(items_to_drop))

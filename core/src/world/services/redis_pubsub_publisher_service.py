@@ -30,13 +30,14 @@ class RedisPubSubEventsPublisherService:
             "entity_type": 0,
             "reason": reason,
             "ev": PubSubEventType.ENTITY_CHANGE_POS.value,
-            "curr": room_position.value,
-            "prev": room_position.previous_position.value
+            "curr": room_position.list_coordinates,
+            "prev": room_position.previous_position.list_coordinates
         }
         for target in targets:
             k = self._eid_to_key(target)
             LOGGER.core.debug('Publishing Message %s on channel %s', msg, k)
             await self.pubsub.publish(k, msg)
+            LOGGER.core.debug('Published Message %s on channel %s', msg, k)
 
     async def on_entity_appear_position(self, entity, room_position, reason, targets):
         msg = {
@@ -44,7 +45,7 @@ class RedisPubSubEventsPublisherService:
             "entity_type": 0,
             "reason": reason,
             "ev": PubSubEventType.ENTITY_APPEAR.value,
-            "curr": room_position.value
+            "curr": room_position.list_coordinates
         }
         for target in targets:
             k = self._eid_to_key(target)
@@ -57,7 +58,7 @@ class RedisPubSubEventsPublisherService:
             "entity_type": 0,
             "reason": reason,
             "ev": PubSubEventType.ENTITY_DISAPPEAR.value,
-            "curr": room_position.value
+            "curr": room_position.list_coordinates
         }
         for target in targets:
             k = self._eid_to_key(target)
@@ -73,7 +74,7 @@ class RedisPubSubEventsPublisherService:
             "en": entity.entity_id,
             "ev": PubSubEventType.ENTITY_DO_PUBLIC_ACTION.value,
             "target": target,
-            "curr": room_position.value
+            "curr": room_position.list_coordinates
         }
         k = self._eid_to_key(target)
         LOGGER.core.debug('Publishing Message %s on channel %s', msg, k)

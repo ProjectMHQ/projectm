@@ -4,7 +4,7 @@ import time
 
 from core.src.auth.repositories.redis_websocket_channels_repository import WebsocketChannelsRepository
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.services.transport.websocket_namespace_private import private_namespace_factory
+from core.src.world.transport.websocket_namespace_private import private_namespace_factory
 
 
 class WebsocketChannelsService:
@@ -15,8 +15,8 @@ class WebsocketChannelsService:
             loop=None,
             data_repository=None,
             redis_queue=None,
-            ping_interval=15,
-            ping_timeout=35
+            ping_interval=5,
+            ping_timeout=15
     ):
         self.loop = loop
         self.connections_statuses = {}

@@ -1,7 +1,7 @@
 import typing
 
 from core.src.auth.logging_factory import LOGGER
-from core.src.world.components.connection import ConnectionComponent
+from core.src.world.components.system import SystemComponent
 
 from etc import settings
 from core.src.world.domain.entity import Entity
@@ -11,6 +11,13 @@ class CommandsObserver:
     def __init__(self, transport):
         self._commands = {}
         self.transport = transport
+        self._enabled_channels = set()
+
+    def enable_channel(self, channel_id):
+        self._enabled_channels.add(channel_id)
+
+    def close_channel(self, channel_id):
+        self._enabled_channels.remove(channel_id)
 
     def add_command(self, method: callable, *aliases: str):
         for alias in aliases:
@@ -18,13 +25,17 @@ class CommandsObserver:
 
     async def on_message(self, message: typing.Dict):
         assert message['c'] == 'cmd'
+        if message['n'] not in self._enabled_channels:
+            LOGGER.core.error('Error, message received on closed channel: %s', message)
+            return
+
         try:
             data = message['d'].strip().split(' ')
             if not data:
                 raise TypeError('Empty command?')
 
             entity = Entity(message['e_id'], itsme=True)
-            entity.set_component(ConnectionComponent(message['n']))
+            entity.set_component(SystemComponent(connection=message['n']))
 
             command = self._commands[data[0].lower()]
             if getattr(command, 'get_self', False):

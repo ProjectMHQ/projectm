@@ -4,11 +4,12 @@ from enum import Enum
 import typing
 
 from core.src.world.components.attributes import AttributesComponent
-from core.src.world.components.connection import ConnectionComponent
-from core.src.world.components.pos import PosComponent
+from core.src.world.components.position import PositionComponent
+from core.src.world.components.system import SystemComponent
 from core.src.world.domain.area import Area
 from core.src.world.domain.entity import Entity
 from core.src.world.services.redis_pubsub_publisher_service import PubSubEventType
+from core.src.world.utils.entity_utils import load_components
 from core.src.world.utils.messaging import emit_sys_msg
 
 
@@ -19,10 +20,9 @@ class InterestType(Enum):
 
 
 class PubSubObserver:
-    def __init__(self, repository, transport, loop=asyncio.get_event_loop()):
+    def __init__(self, repository, loop=asyncio.get_event_loop()):
         self.loop = loop
         self.repository = repository
-        self.transport = transport
         self.postprocessed_events_observers = {}
 
     def add_observer_for_pov_event(self, event_type: str, observer):
@@ -102,9 +102,10 @@ class PubSubObserver:
         )
 
     async def on_event(self, entity_id: int, message: typing.Dict, room: typing.Tuple, transport_id: str):
-        room = PosComponent(room)
-        entity = Entity(entity_id).set_component(ConnectionComponent(transport_id))
-        curr_pos = await self.repository.get_component_value_by_entity_id(entity.entity_id, PosComponent)
+        room = PositionComponent(coord='{},{},{}'.format(*room))
+        entity = Entity(entity_id).set_component(SystemComponent().connection.set(transport_id))
+        await load_components(entity, PositionComponent)
+        curr_pos = entity.get_component(PositionComponent)
         interest_type = await self._get_message_interest_type(entity, room, curr_pos)
         if not interest_type.value:
             return
@@ -113,7 +114,7 @@ class PubSubObserver:
     async def publish_event(self, entity: Entity, message, room, interest_type, curr_pos):
         if self._is_system_event(message):
             event = self._get_system_event(message, room, curr_pos)
-            self.loop.create_task(emit_sys_msg(entity, event))
+            self.loop.create_task(emit_sys_msg(entity, None, event))
 
         if self._is_movement_message(message):
             if self._entity_sees_it(message, curr_pos):
@@ -165,9 +166,7 @@ class PubSubObserver:
 
     async def _get_character_movement_message(self, entity, message, interest_type, curr_pos) -> typing.Dict:
         assert interest_type
-        evaluated_emitter_entity = (
-            await self.repository.get_entities_evaluation_by_entity(entity.entity_id, message['en'])
-        )[0]
+        evaluated_emitter_entity = await load_components(Entity(message['en']), AttributesComponent)
         payload = {
                 "event": "move",
                 "entity": {
@@ -177,12 +176,12 @@ class PubSubObserver:
                 'from': message['prev'],
                 'to': message['curr']
             }
-        if message['curr'] == curr_pos.value:
+        if message['curr'] == curr_pos.list_coordinates:
             assert message['prev'] != curr_pos
             assert interest_type == InterestType.LOCAL
             payload['action'] = "join"
             payload['direction'] = self._gather_movement_direction(message, "join")
-        elif message['prev'] == curr_pos.value:
+        elif message['prev'] == curr_pos.list_coordinates:
             assert message['curr'] != curr_pos
             assert interest_type != InterestType.LOCAL
             payload['action'] = "leave"

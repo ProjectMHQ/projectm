@@ -1,6 +1,7 @@
 import typing
 
-from core.src.world.components.base import ComponentType
+from core.src.world.components.base.abstract import ComponentType
+from core.src.world.components.base.structcomponent import StructComponent
 from core.src.world.domain import DomainObject
 
 
@@ -25,8 +26,13 @@ class Entity(DomainObject):
     def get_view_size(self):
         return 15
 
-    def set_for_update(self, component: ComponentType):
-        self._pending_changes[component.key] = component
+    def set_for_update(self, component: StructComponent, no_full_update=False):
+        self._pending_changes[component.enum] = component
+        if not component.pending_changes:
+            not no_full_update and component.build_values_as_changes()
+        if isinstance(component, StructComponent) and component.bounds:
+            if component not in self._bounds:
+                self._bounds.append(component)
         return self
 
     @property
@@ -54,18 +60,12 @@ class Entity(DomainObject):
         return self
 
     def set_component(self, component: ComponentType):
-        self._components[component.component_enum] = component
+        self._components[component.enum] = component
         if getattr(component, 'bounds', None):
             self.add_bound(component)
         return self
 
     def get_component(self, component: typing.Type[ComponentType]):
-        component = self._components.get(component.component_enum)
+        component = self._components.get(component.enum)
         component and component.set_owner(self)
         return component
-
-    def can_receive_messages(self) -> bool:
-        assert not self.itsme, 'Requested if your own entity can receive messages.. well, it can.'
-        from core.src.world.components.character import CharacterComponent
-        v = self._components.get(CharacterComponent.component_enum, None)
-        return bool(v and v.value)
