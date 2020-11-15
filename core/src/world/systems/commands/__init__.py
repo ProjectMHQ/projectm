@@ -1,3 +1,4 @@
+from core.src.world.actions.inventory.inventory import inventory
 from core.src.world.actions.inventory.put import put
 from core.src.world.actions.system.disconnect import disconnect_entity
 from core.src.world.actions.inventory.drop import drop
@@ -31,6 +32,7 @@ def commands_observer_factory(transport):
     observer.add_command(pick, 'pick')
     observer.add_command(drop, 'drop')
     observer.add_command(put, 'put')
+    observer.add_command(inventory, 'inventory')
 
     observer.add_command(library, '@lib')
     observer.add_command(instance, '@inst')
