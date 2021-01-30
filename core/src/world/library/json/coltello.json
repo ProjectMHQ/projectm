@@ -1,0 +1,13 @@
+{
+  "libname": "coltello",
+  "components": {
+    "weight": 2,
+    "attributes": {
+      "keyword": "coltello",
+      "name": "il coltello del potere",
+      "description": "Con questo coltello potresti skillare, ma non c'è",
+      "collectible": true
+    },
+    "weapon": "knife"
+  }
+}

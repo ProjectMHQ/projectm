@@ -1,7 +1,5 @@
 import enum
 
-import typing
-
 
 @enum.unique
 class Direction(enum.IntEnum):
@@ -25,19 +23,10 @@ class TerrainEnum(enum.IntEnum):
     GRASS = 3
 
 
-Transport = typing.NamedTuple(
-    'Transport',
-    (
-        ('namespace', str),
-        ('transport', callable)
-    )
-)
-
-
-def is_terrain_walkable(terrain_type: TerrainEnum):
-    return {
-        TerrainEnum.NULL: False,
-        TerrainEnum.WALL_OF_BRICKS: False,
-        TerrainEnum.PATH: True,
-        TerrainEnum.GRASS: True
-    }[terrain_type]
+class DirectionEnum(enum.Enum):
+    NORTH = 'n'
+    SOUTH = 's'
+    EAST = 'e'
+    WEST = 'w'
+    UP = 'u'
+    DOWN = 'd'

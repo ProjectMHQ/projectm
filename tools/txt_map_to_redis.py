@@ -1,7 +1,14 @@
+import sys
+
+from core.src.world.components.position import PositionComponent
+from core.src.world.services.system_utils import connection_pools
+
+sys.path.insert(0, './')
+
 import asyncio
 
 from core.src.world.builder import map_repository
-from core.src.world.domain.room import Room, RoomPosition
+from core.src.world.domain.room import Room
 from core.src.world.utils.world_types import TerrainEnum
 
 terrains = {
@@ -10,6 +17,8 @@ terrains = {
     "~": TerrainEnum.GRASS,
     " ": None
 }
+
+done = 0
 
 
 def parse_lines(lines):
@@ -23,15 +32,11 @@ def parse_lines(lines):
             if room_enum:
                 rooms.append(
                     Room(
-                        position=RoomPosition(x=x, y=max_y-y, z=0),
+                        position=PositionComponent().set_list_coordinates([x, max_y-y, 0]),
                         terrain=room_enum
                     )
                 )
     return rooms
-
-
-async def set_rooms(data):
-    await map_repository.set_rooms(*data)
 
 
 def parse(filename):
@@ -40,8 +45,14 @@ def parse(filename):
     return lines
 
 
-if __name__ == '__main__':
-    lines = parse('./mappa_prova_1')
-    content = parse_lines(lines)
+async def set_rooms(c):
+    await map_repository.set_rooms(*c)
+    for key, pool in connection_pools.items():
+        pool.close()
 
-    asyncio.get_event_loop().run_until_complete(set_rooms(content))
+
+if __name__ == '__main__':
+    lines = parse('./tools/mappa_prova_1')
+    content = parse_lines(lines)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(set_rooms(content))

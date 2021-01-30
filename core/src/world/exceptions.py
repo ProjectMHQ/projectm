@@ -12,3 +12,15 @@ class NotImplementedException(WorldException):
 
 class RoomError(WorldException):
     pass
+
+
+class FollowSystemLoopError(WorldException):
+    pass
+
+
+class FollowSystemRepeatError(WorldException):
+    pass
+
+
+class TargetInconsistency(WorldException):
+    pass

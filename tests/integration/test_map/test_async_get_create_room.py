@@ -4,10 +4,11 @@ from collections import OrderedDict
 from unittest import TestCase
 import time
 
+from core.src.world.components.position import PositionComponent
 from core.src.world.services.system_utils import get_redis_factory, RedisType
 from etc import settings
 from core.src.world.repositories.map_repository import RedisMapRepository
-from core.src.world.domain.room import Room, RoomPosition
+from core.src.world.domain.room import Room
 from core.src.world.utils.world_types import TerrainEnum
 
 
@@ -36,7 +37,7 @@ class TestSetGetRooms(TestCase):
                     futures.append(
                         sut.set_room(
                             Room(
-                                position=RoomPosition(x=x, y=y, z=z),
+                                position=PositionComponent(coord='{},{},{}'.format(x, y, z)),
                                 terrain=TerrainEnum.WALL_OF_BRICKS
                             )
                         )
@@ -45,14 +46,13 @@ class TestSetGetRooms(TestCase):
         for x in range(0, max_x):
             for y in range(0, max_y):
                 for z in range(0, max_z):
-                    room = await sut.get_room(
-                        RoomPosition(x, y, z)
-                    )
+                    room = await sut.get_room(PositionComponent(coord='{},{},{}'.format(x, y, z)))
                     self.assertEqual(
                         [room.position.x, room.position.y, room.position.z],
                         [x, y, z]
                     )
         print('\n', i, ' rooms tested NO pipeline in {:.10f}'.format(time.time() - start))
+
         await (await sut.redis()).flushdb()
         _start = time.time()
         roomz = OrderedDict()
@@ -60,7 +60,7 @@ class TestSetGetRooms(TestCase):
         for x in range(0, max_x):
             for y in range(0, max_y):
                 for z in range(0, max_z):
-                    position = RoomPosition(x=x, y=y, z=z)
+                    position = PositionComponent(coord='{},{},{}'.format(x, y, z))
                     positions.append(position)
                     roomz['{}.{}.{}'.format(x, y, z)] = Room(
                         position=position,
@@ -75,7 +75,7 @@ class TestSetGetRooms(TestCase):
 
                 ],
                 [
-                    positions[i][0], positions[i][1], positions[i][2],
+                    positions[i].x, positions[i].y, positions[i].z,
                 ]
             )
         print('\n', i+1, ' rooms tested WITH pipeline in {:.10f}'.format(time.time() - _start))
@@ -84,7 +84,7 @@ class TestSetGetRooms(TestCase):
         i = 0
         for x in range(0, 9):
             for y in range(0, 9):
-                positions.append(RoomPosition(x, y, 0))
+                positions.append(PositionComponent(coord='{},{},{}'.format(x, y, 0)))
                 i += 1
         print('\n Starting benchmarks: \n')
         for x in range(1, 110, 10):
@@ -100,7 +100,7 @@ class TestSetGetRooms(TestCase):
         i = 0
         for x in range(0, 9):
             y = 1
-            positions.append(RoomPosition(x, y, 0))
+            positions.append(PositionComponent(coord='{},{},{}'.format(x, y, 0)))
             i += 1
 
         for x in range(1, 110, 10):
@@ -132,7 +132,7 @@ class TestBigMap(TestCase):
             for y in range(max_y, -1, -1):
                 for z in range(0, max_z):
                     i += 1
-                    position = RoomPosition(x=x, y=y, z=z)
+                    position = PositionComponent(coord='{},{},{}'.format(x, y, z))
                     roomz['{}.{}.{}'.format(x, y, z)] = Room(
                         position=position,
                         terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
@@ -144,7 +144,7 @@ class TestBigMap(TestCase):
         print('\nFetching {}x{} map'.format(max_x, max_y))
         tot = 0
         for x in range(0, max_x):
-            res = await sut.get_rooms(*(RoomPosition(x, y, 0) for y in range(0, max_y)))
+            res = await sut.get_rooms(*(PositionComponent(coord='{},{},{}'.format(x, y, 0)) for y in range(0, max_y)))
             tot += len(res)
         print('\n{}x{} map fetched in {} - total: {}'.format(max_x, max_y, time.time() - start, tot))
 
@@ -165,11 +165,10 @@ class TestMapLines(TestCase):
         roomz = OrderedDict()
         for x in range(0, max_x):
             for y in range(0, max_y):
-                position = RoomPosition(x=x, y=y, z=0)
+                position = PositionComponent(coord='{},{},{}'.format(x, y, 0))
                 roomz['{}.{}.{}'.format(x, y, 0)] = Room(
                     position=position,
-                    terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH]),
-                    entity_ids=sorted([1, 2, 3, 4, y+5])
+                    terrain=random.choice([TerrainEnum.WALL_OF_BRICKS, TerrainEnum.PATH])
                 )
         await sut.set_rooms(*roomz.values())
         print('\n{}x{} map baked in {}'.format(max_x, max_y, time.time() - start))
@@ -187,11 +186,6 @@ class TestMapLines(TestCase):
                 for req in range(0, to_x):
                     k = '{}.{}.{}'.format(from_x + req, 0, 0)
                     self.assertEqual(
-                        [
-                            r[req].position.x, r[req].position.y, r[req].position.z, r[req].entity_ids],
-                        [
-                            roomz[k].position.x, roomz[k].position.y, roomz[k].position.z,
-                            sorted(roomz[k].entity_ids)
-
-                        ]
+                        [r[req].position.x, r[req].position.y, r[req].position.z],
+                        [roomz[k].position.x, roomz[k].position.y, roomz[k].position.z]
                     )

@@ -9,11 +9,12 @@ alembic==1.2.1
 click==7.0
 requests==2.22.0
 redis==3.3.11
-psycopg2==2.8.4
-
+# psycopg2==2.8.4
+async_generator==1.10
 # Common
 msgpack==0.6.2
 fluent-logger==0.9.4
+pycomb
 
 # Websocket
 aiohttp==3.6.2
@@ -24,4 +25,3 @@ bitarray==1.0.1
 
 # Coverage
 coverage==4.5.4
-

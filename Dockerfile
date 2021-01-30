@@ -1,7 +1,7 @@
 #
 # Use docker-ce to persist volumes with --mount
 #
-# docker run -p=60160:60160 --mount=source=data,target=/tmp/db/
+# docker run -p=8081:8081 --mount=source=data,target=/tmp/db/
 #
 
 FROM python:3.6.8-slim-stretch

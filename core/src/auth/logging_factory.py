@@ -15,7 +15,7 @@ def _init_logging(loggers):
             logging.basicConfig(level=getattr(logging, _l))
             _logger = logging.getLogger(_n)
             _logger.addHandler(logging.StreamHandler(sys.stdout))
-            _logger.addHandler(logging.StreamHandler(sys.stderr))
+            #_logger.addHandler(logging.StreamHandler(sys.stderr))
 
     if settings.FLUENTD_HANDLER_HOST:
         from fluent import handler

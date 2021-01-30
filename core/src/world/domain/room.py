@@ -1,29 +1,38 @@
 import typing
 
-from core.src.world.utils.world_types import TerrainEnum, is_terrain_walkable
-
-RoomPosition = typing.NamedTuple(
-    'RoomPosition', (
-        ('x', int),
-        ('y', int),
-        ('z', int)
-    )
-)
+from core.src.world.components.attributes import AttributesComponent
+from core.src.world.components.position import PositionComponent
+from core.src.world.domain import DomainObject
+from core.src.world.domain.entity import Entity
+from core.src.world.utils.entity_utils import batch_load_components
+from core.src.world.utils.world_types import TerrainEnum
+from core.src.world.utils.world_utils import is_terrain_walkable
 
 
-class Room:
+class Room(DomainObject):
+    item_type = "room"
+
     def __init__(
         self,
-        position: RoomPosition = None,
+        position: PositionComponent = None,
         terrain: TerrainEnum = TerrainEnum.NULL,
         entity_ids: typing.List[int] = list()
     ):
         self._position = position
         self._terrain = terrain
         self._entity_ids = entity_ids
+        self._content: typing.List = list()
+        self._pov_direction = None
+
+    def set_pov_direction(self, value):
+        self._pov_direction = value
+        return self
+
+    def pov_direction(self):
+        return self._pov_direction
 
     @property
-    def position(self) -> RoomPosition:
+    def position(self) -> PositionComponent:
         return self._position
 
     @property
@@ -49,11 +58,32 @@ class Room:
         return "Room Title"  # FIXME TODO
 
     @property
-    def content(self) -> typing.List[str]:
-        if self.position.x == 1 and self.position.y == 1 and not self.position.z:
-            # FIXME REMOVE TODO
-            return ['A three-headed monkey']
-        return []
+    def content(self) -> typing.List:
+        return list(self._content)
+
+    @property
+    def has_entities(self):
+        return bool(self._entity_ids)
+
+    def serialize(self) -> typing.Dict:
+        res = []
+        for e in self.content:
+            res.append(
+                {
+                    'type': 0,
+                    'status': 0,
+                    'excerpt': 0,
+                    'e_id': e.entity_id,
+                    'name': e.get_component(AttributesComponent).name.value
+                }
+            )
+        return {
+            "position": [self._position.x, self._position.y, self._position.z],
+            "content": res
+        }
+
+    def add_entity(self, entity: Entity):
+        self._content.append(entity)
 
     def __str__(self):
         return '''
@@ -74,3 +104,23 @@ class Room:
 
     async def walkable_by(self, entity):
         return is_terrain_walkable(self.terrain)
+
+    async def populate_content(self):
+        entities = [Entity(eid) for eid in self.entity_ids]
+        if not entities:
+            return self
+        await batch_load_components(AttributesComponent, entities=entities)
+        for entity in entities:
+            self.add_entity(entity)
+        return self
+
+    async def refresh(self, populate=False):
+        from core.src.world.builder import map_repository
+        room = await map_repository.get_room(self.position, populate=populate)
+        self._terrain = room.terrain
+        # FIXME TODO
+        return self
+
+    @property
+    def entities(self):
+        return self._content

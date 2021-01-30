@@ -1,0 +1,21 @@
+{
+  "libname": "spadone",
+  "components": {
+    "collectible": true,
+    "weight": 12,
+    "attributes": {
+      "keyword": "spadone",
+      "name": "Uno spadone ammaccato",
+      "description": "E' certamente uno degli spadoni più malandati che tu abbia mai visto."
+    },
+    "weapon": "broadsword"
+  },
+  "events": {
+    "on_held": [
+      {"selfEmit": ["{name} brilla di vita propria"]},
+      {"roomEmit": ["{name} impugnato da {entity.name} brilla per un istante, acciecandoti"]},
+      {"selfBonus": [{"vol":  5, "time": 30}, {"def":  20, "time":  30}]},
+      {"roomBonus": [{"att":  -5, "time": 30}, {"def":  -20, "time":  30}]}
+    ]
+  }
+}

@@ -1,13 +1,14 @@
 import asyncio
+import binascii
+import os
 import struct
-
+import time
 import typing
-from aioredis import Redis
-from aioredis.commands import Pipeline
-
+import aioredis
 from core.src.auth.logging_factory import LOGGER
 from core.src.world import exceptions
-from core.src.world.domain.room import Room, RoomPosition
+from core.src.world.components.position import PositionComponent
+from core.src.world.domain.room import Room
 from core.src.world.utils.world_types import TerrainEnum
 
 
@@ -30,10 +31,21 @@ class RedisMapRepository:
         self.max_x = 131      # FIXME TODO
         self.min_x = 0
         self.min_y = 0
+        self.async_lock = asyncio.Lock()
 
-    async def redis(self) -> Redis:
-        if not self._redis:
-            self._redis = await self.redis_factory()
+    def get_room_key(self, x, y, z):
+        if z:
+            return self.room_content_key.format('{}.{}.{}'.format(x, y, z))
+        else:
+            return self.room_content_key.format('{}.{}'.format(x, y))
+
+    async def redis(self) -> aioredis.Redis:
+        await self.async_lock.acquire()
+        try:
+            if not self._redis:
+                self._redis = await self.redis_factory()
+        finally:
+            self.async_lock.release()
         return self._redis
 
     def _coords_to_int(self, x: int, y: int, bytesize=1) -> int:
@@ -44,19 +56,12 @@ class RedisMapRepository:
     def _pack_coords(x: int, y: int, z: int) -> bytes:
         return struct.pack('>hhh', x, y, z)
 
-    def _get_room_content(self, pipeline: Pipeline, x: int, y: int, z: int):
-        pipeline.smembers(self.room_content_key.format(self._pack_coords(x, y, z)))
+    def _get_room_content(self, pipeline, x: int, y: int, z: int):
+        pipeline.zrange(self.get_room_key(x, y, z))
 
-    def _get_rooms_content(self, pipeline: Pipeline, x: int, from_y: int, to_y: int, z: int):
-        pipeline.sunion(
-            *(self.room_content_key.format(c) for c in
-            (self._pack_coords(x, y, z) for y in range(from_y, to_y)))
-        )
-
-    def _set_room_content(self, pipeline: Pipeline, room: Room):
-        pipeline.sadd(self.room_content_key.format(
-            self._pack_coords(room.position.x, room.position.y, room.position.z)
-        ), *room.entity_ids)
+    async def get_room_content(self, position):
+        redis = await self.redis()
+        return [int(x.decode()) for x in await redis.zrange(self.get_room_key(position.x, position.y, position.z))]
 
     async def set_room(self, room: Room):
         return await self._set_room(room)
@@ -67,7 +72,7 @@ class RedisMapRepository:
         if room.position.z:
             pipeline.hset(
                 self.z_valued_rooms_data_key,
-                self._pack_coords(room.position.x, room.position.y, room.position.z),
+                '{}.{}.{}'.format(room.position.x, room.position.y, room.position.z),
                 '{}'.format(room.terrain.value)
             )
         else:
@@ -75,11 +80,10 @@ class RedisMapRepository:
             pipeline.setrange(
                 self.terrains_bitmap_key, num, struct.pack('B', room.terrain.value)
             )
-        any(room.entity_ids) and self._set_room_content(pipeline, room)
         not external_pipeline and await pipeline.execute()
         return room
 
-    async def get_room(self, position: RoomPosition) -> typing.Optional[Room]:
+    async def get_room(self, position: PositionComponent, populate=True) -> typing.Optional[Room]:
         if (self.min_y > position.y) or (self.max_y < position.y):
             raise exceptions.RoomError
         if (self.min_x > position.x) or (self.max_x < position.x):
@@ -88,13 +92,14 @@ class RedisMapRepository:
         redis = await self.redis()
         pipeline = redis.pipeline()
         if position.z:
-            pipeline.hget(self.z_valued_rooms_data_key, self._pack_coords(
-                position.x, position.y, position.z
-            ))
+            pipeline.hget(
+                self.z_valued_rooms_data_key,
+                '{}.{}.{}'.format(position.x, position.y, position.z),
+            )
         else:
             k = self._coords_to_int(position.x, position.y)
             pipeline.getrange(self.terrains_bitmap_key, k, k)
-        self._get_room_content(pipeline, position.x, position.y, position.z)
+        populate and self._get_room_content(pipeline, position.x, position.y, position.z)
         result = await pipeline.execute()
         if not result or not result[0]:
             LOGGER.core.error('Room Error. Request: %s, Result: %s', position, result)
@@ -103,7 +108,7 @@ class RedisMapRepository:
             terrain = int(result[0])
         else:
             terrain = int(struct.unpack('B', result[0])[0])
-        content = [int(x) for x in result[1]]
+        content = populate and [int(x) for x in result[1]] or []
 
         return Room(
             position=position,
@@ -118,18 +123,19 @@ class RedisMapRepository:
         await pipeline.execute()
         return response
 
-    async def get_rooms(self, *positions: RoomPosition):
+    async def get_rooms(self, *positions: PositionComponent, get_content=True):
         redis = await self.redis()
         pipeline = redis.pipeline()
         for position in positions:
             if position.z:
-                pipeline.hget(self.z_valued_rooms_data_key, self._pack_coords(
-                    position.x, position.y, position.z
-                ))
+                pipeline.hget(
+                    self.z_valued_rooms_data_key,
+                    '{}.{}.{}'.format(position.x, position.y, position.z)
+                )
             else:
                 k = self._coords_to_int(position.x, position.y)
                 pipeline.getrange(self.terrains_bitmap_key, k, k)
-            self._get_room_content(
+            get_content and self._get_room_content(
                 pipeline, position.x, position.y, position.z
             )
         result = await pipeline.execute()
@@ -141,8 +147,11 @@ class RedisMapRepository:
             else:
                 terrain = int(struct.unpack('B', result[i])[0])
             i += 1
-            content = [int(x) for x in result[i]]
-            i += 1
+            if get_content:
+                content = [int(x) for x in result[i]]
+                i += 1
+            else:
+                content = []
             response.append(
                 Room(
                     position=position,
@@ -152,7 +161,7 @@ class RedisMapRepository:
             )
         return response
 
-    async def get_rooms_on_y(self, y: int, from_x: int, to_x: int, z: int):
+    async def get_rooms_on_y(self, y: int, from_x: int, to_x: int, z: int, get_content=True):
         assert to_x > from_x
         redis = await self.redis()
         pipeline = redis.pipeline()
@@ -162,7 +171,7 @@ class RedisMapRepository:
         else:
             k = self._coords_to_int(from_x, y)
             pipeline.getrange(self.terrains_bitmap_key, k, k + ((to_x - from_x) - 1))
-        _ = [self._get_room_content(pipeline, x, y, z) for x in range(from_x, to_x)]
+        get_content and [self._get_room_content(pipeline, x, y, z) for x in range(from_x, to_x)]
         response = []
         i = 0
         result = await pipeline.execute()
@@ -173,7 +182,7 @@ class RedisMapRepository:
                 terrain = int(value)
                 response.append(
                     Room(
-                        position=RoomPosition(from_x + d, y, z),
+                        position=PositionComponent().set_list_coordinates([from_x + d, y, z]),
                         terrain=TerrainEnum(terrain),
                     )
                 )
@@ -185,9 +194,47 @@ class RedisMapRepository:
             for d in range(0, to_x - from_x):
                 response.append(
                     Room(
-                        position=RoomPosition(from_x + d, y, z),
+                        position=PositionComponent().set_list_coordinates([from_x + d, y, z]),
                         terrain=TerrainEnum(terrains[d]),
-                        entity_ids=[int(x) for x in result[d+1]]
+                        entity_ids=get_content and [int(x) for x in result[d+1]] or []
                     )
                 )
         return response
+
+    async def remove_entity_from_map(self, entity_id: int, position: PositionComponent, pipeline=None):
+        if not pipeline:
+            redis = await self.redis()
+            p = redis.pipeline()
+        else:
+            p = pipeline
+        p.zrem(self.get_room_key(position.x, position.y, position.z), '{}'.format(entity_id))
+        p.hdel('positions', entity_id)
+        if not pipeline:
+            res = await p.execute()
+            return bool(res[1])
+
+    def update_map_position_for_entity(self, position: PositionComponent, entity, pipeline):
+        if position.previous_position:
+            prev_set_name = self.get_room_key(
+                position.previous_position.x,
+                position.previous_position.y,
+                position.previous_position.z
+            )
+            pipeline.zrem(prev_set_name, entity.entity_id)
+        if position.coord:
+            new_set_name = self.get_room_key(position.x, position.y, position.z)
+            pipeline.zadd(new_set_name, int(time.time()*100000), entity.entity_id)
+
+    async def get_all_entity_ids_in_area(self, area):
+        redis = await self.redis()
+        pipeline = redis.pipeline()
+        key = binascii.hexlify(os.urandom(8)).decode()
+        pipeline.zunionstore(
+            'temp:{}'.format(key), *(
+                self.get_room_key(r[0], r[1], r[2]) for r in area.make_coordinates().rooms_and_peripherals_coordinates
+            )
+        )
+        pipeline.zrange('temp:{}'.format(key), 0, -1)
+        pipeline.delete('temp:{}'.format(key))
+        result = await pipeline.execute()
+        return result[1]

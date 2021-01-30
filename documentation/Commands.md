@@ -10,8 +10,10 @@ Almost any event may come asynchronously, at any time, on the same topic, if it 
 #### - look
 
 - request topic: `cmd`
-- request payload: `look [id]`
-- response topic: `msg`
+- request payload: `look <abbrev>` [ TODO - WIP ]
+- request payload: `look <abbrev> <abbrev>` [ TODO - WIP]
+- request payload: `look <dir: n\s\w\e\u\d>`
+- response topic: `system`
 - response body: 
 ```
 {
@@ -19,7 +21,14 @@ Almost any event may come asynchronously, at any time, on the same topic, if it 
     "title": str,
     "description": str,
     "content": [
-        {"id": integer, "descr": str}, ...
+        {
+        "e_id": int,
+        "excerpt": str,
+        "name": optional[str],
+        "status": int,
+        "type": int
+        },
+        ...
     ]
 }
 ```
@@ -29,7 +38,7 @@ Almost any event may come asynchronously, at any time, on the same topic, if it 
 
 - request topic: `cmd`
 - request payload: `getmap`
-- response topic: `map`
+- response topic: `system`
 - response body: 
 ```
 {
@@ -55,13 +64,13 @@ Flow:
 1) The server receives the command and checks about the movement. 
    This first step may lead to an error (see below, response errors).
 
-2) Once a movement is authorized, an event with status `begin` is fired. 
+2) Once a movement is authorized, an event of type `begin` is fired. 
    In this state the movement can be interrupted.
 
 3) Another movement check is done to ensure the movement can still be done.
    The check may lead to an error.
    If the movement is authorized again, it cannot be interrupted anymore and it is
-   immediately executed. An event with status `success` is emitted and the entity is 
+   immediately executed. An event with of type `success` is emitted and the entity is 
    finally moved into another location.
    
 4) Once a movement is completed and the entity position change, `map` and `look` events are fired as well.
@@ -70,34 +79,17 @@ Events:
  
 * Movement begin:
 ```
-{
-    "event": "move",
-    "status": "begin",
-    "direction": <direction>
-}
+* Textual output on MSG channel about movement begin * 
 ```
 * Movement success:
 ```
-{
-    "event": "move",
-    "status": "success",
-    "direction": <direction>
-}
+* Textual output on MSG channel about movement begin * 
 ```
 * Movement interrupted:
 ```
-{
-    "event": "move",
-    "status": "canceled",
-    "direction": <direction>
-}
+* Textual output on MSG channel about movement begin * 
 ```
 * Terrain error:
 ```
-{
-    "event": "move",
-    "status": "error",
-    "code": "terrain",
-    "direction": <direction>
-}
+* Textual output on MSG channel about movement begin * 
 ```

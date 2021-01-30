@@ -1,7 +1,6 @@
 from etc import settings
 import asyncio
 from unittest import TestCase
-from core.src.auth.builder import strict_redis
 from core.src.world.services.redis_queue import RedisMultipleQueuesPublisher, RedisQueueConsumer
 from core.src.world.services.worker_queue_service import WorkerQueueService
 from core.src.world.services.system_utils import get_redis_factory, RedisType
@@ -11,7 +10,6 @@ class TestRedisMultiQueue(TestCase):
     def setUp(self):
         assert settings.INTEGRATION_TESTS
         assert settings.RUNNING_TESTS
-        strict_redis.flushdb()
         self.loop = asyncio.get_event_loop()
         self.publisher = RedisMultipleQueuesPublisher(
             get_redis_factory(RedisType.QUEUES),
@@ -40,7 +38,6 @@ class TestRedisMultiQueue(TestCase):
 class TestRedisWorkerQueueService(TestCase):
     def setUp(self):
         self.messages = []
-        strict_redis.flushdb()
         self.loop = asyncio.get_event_loop()
         self.publisher = RedisMultipleQueuesPublisher(
             get_redis_factory(RedisType.QUEUES),
@@ -48,7 +45,6 @@ class TestRedisWorkerQueueService(TestCase):
         )
         self.workers = [
             WorkerQueueService(
-                self.loop,
                 RedisQueueConsumer(get_redis_factory(RedisType.QUEUES), x)
             ) for x in range(0, 5)
         ]
@@ -86,5 +82,6 @@ class TestRedisWorkerQueueService(TestCase):
         ids = {0, 1, 2, 3, 4}
         self.loop.run_until_complete(self.async_test())
         for m in self.messages:
+            print(m)
             ids.remove(m['d'])
         self.assertEqual(set(), ids)
